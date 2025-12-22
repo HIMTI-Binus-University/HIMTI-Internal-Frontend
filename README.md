@@ -1,17 +1,3 @@
-# HIMTI Internal Frontend
-
-Modern React + Vite template dengan TypeScript, TanStack Query (React Query), dan Tailwind CSS.
-
-## 🚀 Tech Stack
-
-- **React 18** - UI library
-- **TypeScript** - Type safety
-- **Vite** - Fast build tool and dev server
-- **TanStack Query (React Query)** - Data fetching and state management
-- **Axios** - HTTP client
-- **Tailwind CSS** - Utility-first CSS framework
-- **ESLint** - Code linting
-
 ## 📁 Project Structure
 
 ```
@@ -70,7 +56,9 @@ himti-internal-frontend/
 ### 📂 Penjelasan Folder Structure
 
 #### `/src/api/`
+
 Berisi semua logic untuk API calls menggunakan TanStack Query. Setiap fitur/resource punya folder sendiri dengan file `queries.ts` yang berisi:
+
 - **Types/Interfaces** - untuk request params, payloads, dan responses
 - **Queries** - hooks menggunakan `useQuery` untuk GET requests
 - **Mutations** - hooks menggunakan `useMutation` untuk POST/PUT/DELETE
@@ -78,17 +66,21 @@ Berisi semua logic untuk API calls menggunakan TanStack Query. Setiap fitur/reso
 **Contoh:** `src/api/users/queries.ts` berisi `useGetUsers`, `useCreateUser`, `useUpdateUser`, `useDeleteUser`
 
 #### `/src/config/`
+
 Konfigurasi aplikasi seperti Axios instance, API client setup, dll.
 
 **File:** `api-client.ts` - Axios instance dengan:
+
 - Base URL dari environment variables
 - Request interceptor untuk add auth token
 - Response interceptor untuk error handling
 
 #### `/src/constants/`
+
 Konstanta dan nilai static yang digunakan di seluruh aplikasi.
 
 **Environment Management:**
+
 - `api-service-local.ts`, `api-service-dev.ts`, `api-service-uat.ts`, `api-service-prod.ts` - Base URL untuk setiap environment (gitignored)
 - `api-service.ts` - File selector yang export environment aktif (gitignored)
 
@@ -96,12 +88,15 @@ Konstanta dan nilai static yang digunakan di seluruh aplikasi.
 - `keys.ts` - File selector yang export environment aktif (gitignored)
 
 **API Endpoints:**
+
 - `api.ts` - Semua API endpoints, menggunakan `ApiService.baseURL` untuk dynamic base URL
 
 #### `/src/components/`
+
 Reusable React components. Bisa diorganisir lebih lanjut dengan subfolder per feature.
 
 **Contoh:**
+
 ```
 components/
 ├── ui/              # Basic UI components (Button, Input, Card, dll)
@@ -110,14 +105,17 @@ components/
 ```
 
 #### `/src/hooks/`
+
 Custom React hooks yang reusable.
 
 **Contoh:** `useAuth.ts`, `useDebounce.ts`, `useLocalStorage.ts`
 
 #### `/src/pages/`
+
 Page-level components. Setiap page punya folder sendiri dengan file `index.tsx`.
 
 **Contoh:**
+
 ```
 pages/
 ├── home/
@@ -131,11 +129,13 @@ pages/
 ```
 
 #### `/src/types/`
+
 Global TypeScript types/interfaces yang digunakan di banyak tempat.
 
 **Contoh:** `common.ts`, `models.ts`
 
 #### `/src/utils/`
+
 Utility/helper functions.
 
 **Contoh:** `formatDate.ts`, `validators.ts`, `helpers.ts`
@@ -158,7 +158,7 @@ npm install
 
 ```typescript
 // Untuk local development
-export * from './api-service-local'
+export * from "./api-service-local";
 
 // Untuk dev environment
 // export * from './api-service-dev'
@@ -174,7 +174,7 @@ export * from './api-service-local'
 
 ```typescript
 // Untuk local development
-export { default } from './keys-local'
+export { default } from "./keys-local";
 
 // Untuk dev environment
 // export { default } from './keys-dev'
@@ -222,10 +222,10 @@ npm run lint
 
 ```typescript
 export const QueryKeys = {
-  USERS: 'users',
-  USER_DETAIL: 'user-detail',
+  USERS: "users",
+  USER_DETAIL: "user-detail",
   // Add more...
-} as const
+} as const;
 ```
 
 ### 2. Buat API Hooks (`src/api/[feature]/index.ts`)
@@ -235,67 +235,67 @@ Contoh lengkap ada di `src/api/users/index.ts`. Structure-nya:
 ```typescript
 // 1. Define Types
 export interface User {
-  id: number
-  name: string
-  email: string
+  id: number;
+  name: string;
+  email: string;
 }
 
 // 2. Create Query Hooks (GET)
 export const useGetUsers = () => {
   return useQuery({
     queryKey: [QueryKeys.USERS],
-    queryFn: () => apiClient.get('/users').then(res => res.data),
-  })
-}
+    queryFn: () => apiClient.get("/users").then((res) => res.data),
+  });
+};
 
 // 3. Create Mutation Hooks (POST/PUT/DELETE)
 export const useCreateUser = () => {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload) => apiClient.post('/users', payload),
+    mutationFn: (payload) => apiClient.post("/users", payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.USERS] })
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.USERS] });
     },
-  })
-}
+  });
+};
 ```
 
 ### 3. Pakai di Component
 
 ```typescript
-import { useGetUsers, useCreateUser } from '@/api/users'
+import { useGetUsers, useCreateUser } from "@/api/users";
 
 function UsersPage() {
   // Fetch data
-  const { data: users, isLoading, error } = useGetUsers()
+  const { data: users, isLoading, error } = useGetUsers();
 
   // Create mutation
   const createUser = useCreateUser({
     onSuccess: () => {
-      alert('User created!')
+      alert("User created!");
     },
-  })
+  });
 
   const handleCreate = () => {
     createUser.mutate({
-      name: 'John Doe',
-      email: 'john@example.com',
-      username: 'johndoe',
-    })
-  }
+      name: "John Doe",
+      email: "john@example.com",
+      username: "johndoe",
+    });
+  };
 
-  if (isLoading) return <div>Loading...</div>
-  if (error) return <div>Error: {error.message}</div>
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
 
   return (
     <div>
       <button onClick={handleCreate}>Create User</button>
-      {users?.map(user => (
+      {users?.map((user) => (
         <div key={user.id}>{user.name}</div>
       ))}
     </div>
-  )
+  );
 }
 ```
 
@@ -309,11 +309,11 @@ Contoh: Menambah API untuk "articles"
 
 ```typescript
 export const QueryKeys = {
-  USERS: 'users',
-  USER_DETAIL: 'user-detail',
-  ARTICLES: 'articles',           // ← tambah ini
-  ARTICLE_DETAIL: 'article-detail', // ← tambah ini
-} as const
+  USERS: "users",
+  USER_DETAIL: "user-detail",
+  ARTICLES: "articles", // ← tambah ini
+  ARTICLE_DETAIL: "article-detail", // ← tambah ini
+} as const;
 ```
 
 ### 2. Buat API Hooks
@@ -321,89 +321,47 @@ export const QueryKeys = {
 **File:** `src/api/articles/index.ts`
 
 ```typescript
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import apiClient from '@/config/api-client'
-import { QueryKeys } from '@/constants/query-keys'
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import apiClient from "@/config/api-client";
+import { QueryKeys } from "@/constants/query-keys";
 
 // Types
 export interface Article {
-  id: number
-  title: string
-  content: string
+  id: number;
+  title: string;
+  content: string;
 }
 
 // Queries
 export const useGetArticles = () => {
   return useQuery({
     queryKey: [QueryKeys.ARTICLES],
-    queryFn: () => apiClient.get('/articles').then(res => res.data),
-  })
-}
+    queryFn: () => apiClient.get("/articles").then((res) => res.data),
+  });
+};
 
 // Mutations
 export const useCreateArticle = () => {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload) => apiClient.post('/articles', payload),
+    mutationFn: (payload) => apiClient.post("/articles", payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.ARTICLES] })
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.ARTICLES] });
     },
-  })
-}
+  });
+};
 ```
 
 ### 3. Pakai di Component
 
 ```typescript
-import { useGetArticles, useCreateArticle } from '@/api/articles'
+import { useGetArticles, useCreateArticle } from "@/api/articles";
 
 function ArticlesPage() {
-  const { data: articles } = useGetArticles()
-  const createArticle = useCreateArticle()
+  const { data: articles } = useGetArticles();
+  const createArticle = useCreateArticle();
 
   // ... rest of your component
 }
 ```
-
-## ✅ Best Practices
-
-1. **Query Keys Management**
-   - Simpan semua query keys di `src/constants/query-keys.ts`
-   - Pakai query keys yang sama untuk invalidation
-
-2. **Error Handling**
-   - Selalu handle loading dan error states
-   - Pakai `isLoading`, `error` dari hooks
-
-3. **Cache Management**
-   - Set `staleTime` sesuai kebutuhan data freshness
-   - Invalidate queries setelah mutations untuk sync data
-
-4. **Type Safety**
-   - Selalu define types untuk API requests & responses
-   - Pakai TypeScript strict mode
-
-5. **Code Organization**
-   - Satu file per feature di `src/api/[feature]/index.ts`
-   - Types, queries, dan mutations dalam satu file
-   - Mudah di-maintain dan di-scale
-
-## 🎨 Tailwind CSS
-
-Template ini sudah include Tailwind CSS. Untuk custom configuration, edit `tailwind.config.js`.
-
-Dokumentasi: https://tailwindcss.com/docs
-
-## 📚 Resources
-
-- [React Documentation](https://react.dev)
-- [Vite Documentation](https://vitejs.dev)
-- [TanStack Query Documentation](https://tanstack.com/query/latest)
-- [TypeScript Documentation](https://www.typescriptlang.org)
-- [Tailwind CSS Documentation](https://tailwindcss.com)
-- [Axios Documentation](https://axios-http.com)
-
-## 📄 License
-
-MIT
