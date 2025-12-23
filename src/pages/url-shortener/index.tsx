@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import Sidebar from "../components/Sidebar";
+import { useState } from "react";
+import Sidebar from "@/components/Sidebar";
 import {
   FaChevronDown,
   FaChevronUp,
@@ -7,9 +7,7 @@ import {
   FaUserAlt,
   FaPlusCircle,
 } from "react-icons/fa";
-
-import headerLinkIcon from "../assets/header-link.svg";
-import headerProfileIcon from "../assets/header-profile.svg";
+import { LinkIcon, ProfileIcon } from "@/components/icons";
 
 const UrlShortenerPage = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -19,36 +17,26 @@ const UrlShortenerPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-[#f3f4f6]">
+    <div className="flex min-h-screen w-full bg-grayscale-50">
       <Sidebar />
 
-      <main className="flex-1 ml-[260px] p-10 font-sans">
-        <header className="flex justify-between items-center mb-10 relative">
-          <div className="flex items-center gap-5">
-            {" "}
-            <img
-              src={headerLinkIcon}
-              alt="Link Icon"
-              className="w-[70px] h-auto object-contain opacity-60"
-            />
-            <h2 className="text-4xl font-bold text-[#707785] tracking-tight">
-              URL Shortener
-            </h2>
+      <main className="flex-1 ml-[393px] px-8 py-12 font-sans">
+        <header className="flex justify-between items-start mb-8 relative">
+          <div className="flex items-center gap-5 p-2">
+            <LinkIcon width={96} height={96} className="opacity-50" />
+            <h2 className="text-h2 font-bold text-black/50 ">URL Shortener</h2>
           </div>
 
           <div className="relative">
             <div
               onClick={toggleDropdown}
-              className="flex items-center gap-3 cursor-pointer select-none py-2 px-3 rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex items-center gap-3 cursor-pointer select-none py-2 px-3 rounded-md hover:bg-grayscale-100 transition-colors"
             >
-              <img
-                src={headerProfileIcon}
-                alt="Profile"
-                className="w-[22px] h-[22px] object-contain rounded-full"
-              />
+              <ProfileIcon width={32} height={32} className="rounded-full" />
 
-              <div className="text-sm text-[#374151]">
-                Logged in as <span className="font-bold">Daffa Fayyaz</span>
+              <div className="text-h5 text-black/50">
+                Logged in as{" "}
+                <span className="font-bold text-black">Daffa Fayyaz</span>
               </div>
 
               {isDropdownOpen ? (
@@ -58,7 +46,8 @@ const UrlShortenerPage = () => {
               )}
             </div>
 
-            {/* Dropdown Menu */}
+            {/* NOTE: Ini Popup di figma jadi nnti revisi lagi */}
+            {/* NOTE: JANGAN ADA YANG PAKE WARNA SELAIN YANG ADA DI TAILWIND CONFIG */}
             {isDropdownOpen && (
               <div className="absolute right-0 mt-3 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in duration-200">
                 <div className="p-4 flex items-center gap-3 border-b border-gray-50 bg-gray-50/50">
@@ -89,7 +78,7 @@ const UrlShortenerPage = () => {
           </div>
         </header>
 
-        {/* --- Area Form --- */}
+        {/* NOTE: JANGAN ADA YANG PAKE WARNA SELAIN YANG ADA DI TAILWIND CONFIG */}
         <div className="border-4 border-dashed border-blue-100 bg-white rounded-2xl h-[65vh] flex flex-col items-center justify-center text-blue-300 gap-4 shadow-inner">
           <h3 className="text-2xl font-black uppercase tracking-widest">
             Area Form & List
