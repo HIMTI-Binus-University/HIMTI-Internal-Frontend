@@ -1,6 +1,7 @@
 import { Route } from "@/types/route";
 import HomePage from "@/pages/home";
 import LoginPage from "@/pages/login";
+import UrlShortenerPage from "@/pages/UrlShortenerPage";
 
 export const publicRoutes: Route[] = [
   {
@@ -17,6 +18,14 @@ export const publicRoutes: Route[] = [
     description: "Login Page",
     component: LoginPage,
     path: "/login",
+    isEnabled: true,
+  },
+  {
+    key: "router-url-shortener",
+    title: "URL Shortener",
+    description: "Halaman URL Shortener",
+    component: UrlShortenerPage,
+    path: "/url-shortener",
     isEnabled: true,
   },
 ];
