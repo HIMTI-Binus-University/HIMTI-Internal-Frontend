@@ -1,0 +1,40 @@
+import { IconProps } from "@/types/icon";
+
+const ProfileIcon = ({
+  width = 32,
+  height = 32,
+  className,
+}: IconProps) => {
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      xmlnsXlink="http://www.w3.org/1999/xlink"
+      className={className}
+    >
+      <rect width="32" height="32" fill="url(#pattern0_45_69)" />
+      <defs>
+        <pattern
+          id="pattern0_45_69"
+          patternContentUnits="objectBoundingBox"
+          width="1"
+          height="1"
+        >
+          <use xlinkHref="#image0_45_69" transform="scale(0.0104167)" />
+        </pattern>
+        <image
+          id="image0_45_69"
+          width="96"
+          height="96"
+          preserveAspectRatio="none"
+          xlinkHref="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAACXBIWXMAAAsTAAALEwEAmpwYAAAENklEQVR4nO2cz4tWVRjHPypj6DsIKY6txEWGk+JGA8XaJNg+wzbmwjJ/pv4DI4MbQwxLMXUTLVrkrmWbUsgSF6UliJqO6EJQwUWm4wzojYPPQAw659yf59z3/X7ggeGd+z7v+T7nnl/POfeCEEIIIYQQQgghhBDp0Q98CJwEzgP3gHGze/bZCWAD0Ild2G5iADgKPASyQHPXHrHvioLMBPblDPxk+wcYMl8iB/OA0yUCP9nOAgtji2oLg8DNCoM/YSPmW3ju/Os1BH/CXMXOjy0yVfoq7nZeZr9oTHgx+xoI/oTtjy02NRbYjCUkeH8Au6w/75gN2mcXAn08ARbFFp0SRwOCNgpsBqZN4Wc68Ild6/P3dYP6kl/hPvQE6zGwJofPtwMqwbU4rZh5nl7w3a3uzs/LlgC/H9Sgp3WcDOjzXdeSF/edix7fx2vQ0zrOe4K0s4Tv3R7fv1Woo7Xc9wRpSQnfb3p8361QR2sZ8wTJDdJF6Q+YjvY8YzVWwBxVQPkuaLCEb3VBFQzCn5XwvVeDsJ8TniBdKDEN/dPjW6thnu/h+hZMLr2Ql08D/K6vQU/r6ASkIkYtvRDKO4GpiNk16moVRwLu1lFLL0zVHbn/bQ1Mxh1rUF/yDORIR1+0Fe5Saz399vfugD7//5W5MLbo1BgKDF4VNhxbbIr0aUsyPvO0KR+fQTtCUnXwb5RM7PVcS/i54m5HxxQLjAn7LWFWNPCjNuA6X6IgiyxlEDpNzexaN8/XVLNCOraH6yrjnGUyx8zu2mfHLL2gFa4QQgghhBBCCCGEEDmYb8dL3Jmgg8APwBngd9tcuW+p6if29w373xm71n3nY/OhXTAPs4F3LXfv9oUf1LAj9sA2eYbtt3o6Y+oetFsNfG7nM8cb2IyfbO43fwUOAKs8D/91DUvtDvw7QsAzj90GvrITeF1VGa/ZmZ9rCQQ5C7RrVuZWv+BjGfBdwAMYWcI2Zhpcy20NbwCngKcJBDCryJyW74HFJMws69/LnGLIErdxGyfKPDZVC8uBKzXcdSPAj8BhYBvwHrACeN3O+bxiNmCfrbBr3LVf2ndHamiNV0xzEmy0VwmUFfUI+Mla0dqKXyPQMZ/DthZ4VEF5H5v2qLiHqJ+VEHELOGTvgWjy8FSf/eYXVoai5XfadxCJjwoW+o51KasTmW9PLAoPW9mKaGq8JSzOeVIts1zNHhusU2UmsAm4nFPbv02+j26anUILLZx7yvH9gk86xmK6nbALfQFUo4+8rgsskGsh24EZtJcZNs6FtnY30NfOtwEF+Sv1RUtOnJZLAbq/oQF8iTT3oNyrdB9z7caaSvvVJgrim/OvpHt5y6PdrS9qx9cMu50stv7oBYhMdP155se9aLUTW2CWuKkCUAX0tNVObIFZ4qYKQBXQ01Y7sQVmiZsQQgghhBBCCCGEELyI/wALXAG3jHtt8QAAAABJRU5ErkJggg=="
+        />
+      </defs>
+    </svg>
+  );
+};
+
+export default ProfileIcon;
