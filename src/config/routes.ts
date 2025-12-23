@@ -1,7 +1,7 @@
 import { Route } from "@/types/route";
 import HomePage from "@/pages/home";
 import LoginPage from "@/pages/login";
-import UrlShortenerPage from "../pages/UrlShortenerPage";
+import UrlShortenerPage from "@/pages/UrlShortenerPage";
 
 export const publicRoutes: Route[] = [
   {
