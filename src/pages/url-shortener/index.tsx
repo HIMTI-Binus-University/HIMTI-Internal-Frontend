@@ -102,7 +102,7 @@ const UrlShortenerPage = () => {
               <input
                 type="text"
                 placeholder="www.youtube.com"
-                className="w-full border  border-black/25 rounded-xl p-4 outline-none text-body-1"
+                className="w-full border  border-black/25 rounded-xl p-4 outline-none text-body-2"
               />
             </div>
 
@@ -111,13 +111,13 @@ const UrlShortenerPage = () => {
                 <label className="block text-body-1 mb-1">Short Link</label>
 
                 <div className="flex rounded-xl overflow-hidden border border-black/25">
-                  <span className="bg-grayscale-100 text-black/70 text-h6 px-3 flex items-center whitespace-nowrap font-bold">
-                    https://himtibinus.or.id/
+                  <span className="bg-grayscale-100 w-[40%] text-black/70 text-body-2 px-3 flex items-center whitespace-nowrap font-bold">
+                    https://link.himtibinus.or.id/
                   </span>
 
                   <input
                     type="text"
-                    className="flex-1 p-4  outline-none text-body-1 "
+                    className="flex-1 p-4  outline-none text-body-2 "
                     placeholder="ReallyCoolVideos"
                   />
                 </div>
@@ -127,16 +127,26 @@ const UrlShortenerPage = () => {
                 <label className="block text-body-1 mb-1">
                   Link Expiry Date{" "}
                   <span className="text-body-2 text-black/50">
-                    (leave blank if it doesn’t need an expiry date)
+                    (leave blank if it doesn't need an expiry date)
                   </span>
                 </label>
                 <input
                   type="datetime-local"
                   value={expiryDate}
                   onChange={(e) => setExpiryDate(e.target.value)}
+                  placeholder="DD/MM/YYYY HH:MM:SS"
                   className={`w-full border border-black/25 ${
                     expiryDate ? "text-black" : "text-black/25"
-                  } outline-none rounded-xl p-4 text-body-1`}
+                  } outline-none rounded-xl p-4 text-body-2 [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
+                  onClick={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    const rect = target.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const iconWidth = 40;
+                    if (clickX < rect.width - iconWidth) {
+                      e.preventDefault();
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -159,9 +169,9 @@ const UrlShortenerPage = () => {
             <input
               type="text"
               placeholder="Search..."
-              className="border outline-none rounded-xl py-3 px-4 border-black/25  w-full text-body-1"
+              className="border outline-none rounded-xl py-3 px-4 border-black/25  w-full text-body-2"
             />
-            <button className="bg-primary-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 text-h6">
+            <button className="bg-primary-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 text-body-1">
               <FaSearch />
               Search
             </button>
@@ -175,10 +185,10 @@ const UrlShortenerPage = () => {
               >
                 <div className="space-y-2">
                   <p className="font-bold text-h6">
-                    himtibinus.or.id/ReallyCoolVideos
+                    link.himtibinus.or.id/ReallyCoolVideos
                   </p>
 
-                  <div className="flex items-center gap-2 text-body-1">
+                  <div className="flex font-medium items-center gap-2 text-body-1">
                     <DownRightIcon />
                     <span>www.youtube.com</span>
                   </div>
@@ -196,14 +206,14 @@ const UrlShortenerPage = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-gray-400">
-                  <button className="hover:text-indigo-600 transition-colors">
+                <div className="flex items-center gap-1 text-gray-400">
+                  <button className="hover:bg-grayscale-100 p-1.5 rounded-md transition-colors">
                     <FaRegCopy />
                   </button>
-                  <button className="hover:text-yellow-500 transition-colors">
+                  <button className="hover:bg-grayscale-100 p-1.5 rounded-md transition-colors">
                     <FaPencilAlt />
                   </button>
-                  <button className="hover:text-red-500 transition-colors">
+                  <button className="hover:bg-grayscale-100 p-1.5 rounded-md transition-colors">
                     <FaTrashAlt />
                   </button>
                 </div>
