@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Sidebar from "@/components/Utils";
+import { Sidebar, Button } from "@/components/Utils";
 
 import {
   FaChevronDown,
@@ -140,12 +140,8 @@ const UrlShortenerPage = () => {
                 />
               </div>
             </div>
-
-            <div className="flex justify-end">
-              <button className="bg-primary-600 text-white px-5 text-body-1 py-3 rounded-xl flex items-center gap-2">
-                <FaPlus /> Create Link
-              </button>
-            </div>
+            
+            <Button text="Create Link" icon={<FaPlus/>}></Button>
           </div>
         </div>
         {/* CARD URL */}
@@ -155,16 +151,13 @@ const UrlShortenerPage = () => {
             <h3 className="text-h6 font-bold">Existing Links</h3>
           </div>
 
-          <div className="flex gap-3 mb-6">
+          <div className="flex gap-3 mb-6"> 
             <input
               type="text"
               placeholder="Search..."
               className="border outline-none rounded-xl py-3 px-4 border-black/25  w-full text-body-1"
             />
-            <button className="bg-primary-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 text-h6">
-              <FaSearch />
-              Search
-            </button>
+            <Button text="Search" icon={<FaSearch/>}></Button>
           </div>
 
           <div className="space-y-4">
