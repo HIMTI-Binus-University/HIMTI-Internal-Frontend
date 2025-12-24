@@ -11,7 +11,7 @@ import {
   FaRegCopy,
   FaPencilAlt,
   FaTrashAlt,
-  FaPlus
+  FaPlus,
 } from "react-icons/fa";
 
 import {
@@ -24,6 +24,7 @@ import {
 
 const UrlShortenerPage = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [expiryDate, setExpiryDate] = useState("");
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
@@ -33,8 +34,8 @@ const UrlShortenerPage = () => {
     <div className="flex min-h-screen w-full bg-grayscale-50">
       <Sidebar />
 
-      <main className="flex-1 ml-[393px] px-8 py-12 font-sans">
-        <header className="flex justify-between items-start mb-8 relative">
+      <main className="flex-1 ml-[393px] px-8 py-6 font-sans">
+        <header className="flex justify-between items-center mb-8 relative">
           <div className="flex items-center gap-5 p-2">
             <LinkIconV2 width={80} height={80} />
             <h2 className="text-h3 font-bold text-black/50 ">URL Shortener</h2>
@@ -43,7 +44,7 @@ const UrlShortenerPage = () => {
           <div className="relative">
             <div
               onClick={toggleDropdown}
-              className="flex items-center gap-3 cursor-pointer select-none py-2 px-3 rounded-md hover:bg-grayscale-100 transition-colors"
+              className="flex items-center gap-3 cursor-pointer select-none py-2 px-3 rounded-lg hover:bg-grayscale-100 transition-colors"
             >
               <ProfileIcon width={32} height={32} className="rounded-full" />
 
@@ -101,7 +102,7 @@ const UrlShortenerPage = () => {
               <input
                 type="text"
                 placeholder="www.youtube.com"
-                className="w-full border text-black/25 border-black/25 rounded-xl p-4 outline-none text-body-1"
+                className="w-full border  border-black/25 rounded-xl p-4 outline-none text-body-1"
               />
             </div>
 
@@ -110,13 +111,13 @@ const UrlShortenerPage = () => {
                 <label className="block text-body-1 mb-1">Short Link</label>
 
                 <div className="flex rounded-xl overflow-hidden border border-black/25">
-                  <span className="bg-grayscale-100 text-black/25 text-h6 px-3 flex items-center whitespace-nowrap font-bold">
+                  <span className="bg-grayscale-100 text-black/70 text-h6 px-3 flex items-center whitespace-nowrap font-bold">
                     https://himtibinus.or.id/
                   </span>
 
                   <input
                     type="text"
-                    className="flex-1 p-4 text-black/25 outline-none text-body-1 "
+                    className="flex-1 p-4  outline-none text-body-1 "
                     placeholder="ReallyCoolVideos"
                   />
                 </div>
@@ -131,7 +132,11 @@ const UrlShortenerPage = () => {
                 </label>
                 <input
                   type="datetime-local"
-                  className="w-full border border-black/25 text-black/25 outline-none rounded-xl p-4 text-body-1"
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                  className={`w-full border border-black/25 ${
+                    expiryDate ? "text-black" : "text-black/25"
+                  } outline-none rounded-xl p-4 text-body-1`}
                 />
               </div>
             </div>
@@ -153,7 +158,7 @@ const UrlShortenerPage = () => {
               <input
                 type="text"
                 placeholder="Search..."
-                className="border outline-none rounded-xl p-4 border-black/25 text-black/50 w-64 text-body-1"
+                className="border outline-none rounded-xl p-4 border-black/25  w-64 text-body-1"
               />
               <button className="bg-primary-600 text-white px-5 py-3 rounded-lg flex items-center gap-2 text-h6">
                 <FaSearch />
