@@ -1,16 +1,26 @@
 import { useState } from "react";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/Utils";
+
 import {
   FaChevronDown,
   FaChevronUp,
   FaSignOutAlt,
   FaUserAlt,
   FaPlusCircle,
+  FaSearch,
+  FaRegCopy,
+  FaPencilAlt,
+  FaTrashAlt,
+  FaPlus
 } from "react-icons/fa";
-import { LinkIcon, ProfileIcon } from "@/components/icons";
-import CreateLinkForm from "./CreateLinkForm";
-import ExistingLink from "./ExistingLink";
 
+import {
+  LinkIconV2,
+  ProfileIcon,
+  CalendarIcon,
+  ExpiredIcon,
+  DownRightIcon,
+} from "@/components/icons";
 
 const UrlShortenerPage = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -20,15 +30,14 @@ const UrlShortenerPage = () => {
   };
 
   return (
-    
     <div className="flex min-h-screen w-full bg-grayscale-50">
       <Sidebar />
 
       <main className="flex-1 ml-[393px] px-8 py-12 font-sans">
         <header className="flex justify-between items-start mb-8 relative">
           <div className="flex items-center gap-5 p-2">
-            <LinkIcon width={96} height={96} className="opacity-50" />
-            <h2 className="text-h2 font-bold text-black/50 ">URL Shortener</h2>
+            <LinkIconV2 width={80} height={80} />
+            <h2 className="text-h3 font-bold text-black/50 ">URL Shortener</h2>
           </div>
 
           <div className="relative">
@@ -38,7 +47,7 @@ const UrlShortenerPage = () => {
             >
               <ProfileIcon width={32} height={32} className="rounded-full" />
 
-              <div className="text-h5 text-black/50">
+              <div className="text-h6 text-black/50">
                 Logged in as{" "}
                 <span className="font-bold text-black">Daffa Fayyaz</span>
               </div>
@@ -82,9 +91,121 @@ const UrlShortenerPage = () => {
           </div>
         </header>
 
-          
-        <CreateLinkForm />
-        <ExistingLink />
+        {/* FORM CREATE LINK */}
+        <div className="bg-white rounded-xl shadow p-6 mb-8">
+          <h3 className="text-h6 font-bold mb-6">Create New Link</h3>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-body-1 mb-1">Target Link</label>
+              <input
+                type="text"
+                placeholder="www.youtube.com"
+                className="w-full border text-black/25 border-black/25 rounded-xl p-4 outline-none text-body-1"
+              />
+            </div>
+
+            <div className="gap-4 grid grid-cols-2">
+              <div className="flex-1">
+                <label className="block text-body-1 mb-1">Short Link</label>
+
+                <div className="flex rounded-xl overflow-hidden border border-black/25">
+                  <span className="bg-grayscale-100 text-black/25 text-h6 px-3 flex items-center whitespace-nowrap font-bold">
+                    https://himtibinus.or.id/
+                  </span>
+
+                  <input
+                    type="text"
+                    className="flex-1 p-4 text-black/25 outline-none text-body-1 "
+                    placeholder="ReallyCoolVideos"
+                  />
+                </div>
+              </div>
+
+              <div className="w-full">
+                <label className="block text-body-1 mb-1">
+                  Link Expiry Date{" "}
+                  <span className="text-body-2 text-black/50">
+                    (leave blank if it doesn’t need an expiry date)
+                  </span>
+                </label>
+                <input
+                  type="datetime-local"
+                  className="w-full border border-black/25 text-black/25 outline-none rounded-xl p-4 text-body-1"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button className="bg-primary-600 text-white px-5 text-body-1 py-3 rounded-xl flex items-center gap-2">
+                <FaPlus /> Create Link
+              </button>
+            </div>
+          </div>
+        </div>
+        {/* CARD URL */}
+        <div className="bg-white rounded-xl shadow p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-h6 font-bold">Existing Links</h3>
+
+            <div className="flex gap-3">
+              <input
+                type="text"
+                placeholder="Search..."
+                className="border outline-none rounded-xl p-4 border-black/25 text-black/50 w-64 text-body-1"
+              />
+              <button className="bg-primary-600 text-white px-5 py-3 rounded-lg flex items-center gap-2 text-h6">
+                <FaSearch />
+                Search
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {[1, 2].map((item) => (
+              <div
+                key={item}
+                className="border shadow-sm cursor-pointer border-black/25 rounded-xl p-5 flex justify-between items-start hover:scale-[101%] transition-transform"
+              >
+                <div className="space-y-2">
+                  <p className="font-bold text-h6">
+                    himtibinus.or.id/ReallyCoolVideos
+                  </p>
+
+                  <div className="flex items-center gap-2 text-body-1">
+                    <DownRightIcon />
+                    <span>www.youtube.com</span>
+                  </div>
+
+                  <div className="flex items-center gap-6 text-body-3 text-black/50 mt-2">
+                    <div className="flex items-center justify-center gap-1">
+                      <CalendarIcon />
+                      Created on 20 December, 2025
+                    </div>
+
+                    <div className="flex items-center gap-1 text-body-3 text-black/50">
+                      <ExpiredIcon />
+                      Expires on 21 December, 2025, 23:59:59
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 text-gray-400">
+                  <button className="hover:text-indigo-600 transition-colors">
+                    <FaRegCopy />
+                  </button>
+                  <button className="hover:text-yellow-500 transition-colors">
+                    <FaPencilAlt />
+                  </button>
+                  <button className="hover:text-red-500 transition-colors">
+                    <FaTrashAlt />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* NOTE: JANGAN ADA YANG PAKE WARNA SELAIN YANG ADA DI TAILWIND CONFIG */}
         {/* <div className="border-4 border-dashed border-blue-100 bg-white rounded-2xl h-[65vh] flex flex-col items-center justify-center text-blue-300 gap-4 shadow-inner">
@@ -93,7 +214,6 @@ const UrlShortenerPage = () => {
           </h3>
           <p className="text-blue-200 font-medium italic">untuk form</p>
         </div> */}
-
       </main>
     </div>
   );
