@@ -111,7 +111,7 @@ const UrlShortenerPage = () => {
                 <label className="block text-body-1 mb-1">Short Link</label>
 
                 <div className="flex rounded-xl overflow-hidden border border-black/25">
-                  <span className="bg-grayscale-100 text-black/70 text-h6 px-3 flex items-center whitespace-nowrap font-bold">
+                  <span className="bg-grayscale-100 text-black/70 text-body1 px-3 flex items-center whitespace-nowrap font-bold">
                     https://himtibinus.or.id/
                   </span>
 
