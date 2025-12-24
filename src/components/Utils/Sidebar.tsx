@@ -8,14 +8,14 @@ import {
 
 const Sidebar = () => {
   return (
-    <aside className="w-[393px] bg-primary-600 text-white h-screen flex flex-col py-12 px-8 fixed left-0 top-0 overflow-y-auto font-sans z-40">
-      <div className="mb-16 px-3 mt-3">
+    <aside className="w-[393px] bg-primary-600 text-white h-screen flex flex-col py-9 px-8 fixed left-0 top-0 overflow-y-auto font-sans z-40">
+      <div className="mb-10 px-3">
         <div className="mb-9">
           <HimtiLogo />
         </div>
 
         <div className="flex flex-col">
-          <div className="text-h4 max-w-[180px] leading-none tracking-tight text-white">
+          <div className="text-h5 max-w-[150px] leading-none tracking-tight text-white">
             <span className="font-bold">HIMTI</span> Helper Tools
           </div>
         </div>
@@ -28,8 +28,8 @@ const Sidebar = () => {
         <MenuItem icon={CertificateIcon} label="Certificate Generator" />
       </nav>
 
-      <div className="mt-auto px-3 pb-4">
-        <p className="text-body-1 text-white/50 ">
+      <div className="mt-auto px-3">
+        <p className="text-body-2 text-white/50 ">
           © KOMTIG HIMTI BINUS 2026/2027
         </p>
       </div>
@@ -52,7 +52,7 @@ const MenuItem = ({ icon: Icon, label, active = false }: MenuItemProps) => {
     <a
       href="#"
       className={`
-        flex items-center gap-3 px-4 py-2 rounded-lg text-h6 transition-all duration-200 group
+        flex items-center gap-3 px-4 py-2 rounded-lg text-body-1 transition-all duration-200 group
         ${
           active
             ? "bg-white text-primary-600 font-bold shadow-md"

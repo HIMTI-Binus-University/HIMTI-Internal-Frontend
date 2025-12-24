@@ -4,3 +4,7 @@ export { default as CertificateIcon } from "./CertificateIcon";
 export { default as DashboardIcon } from "./DashboardIcon";
 export { default as ProfileIcon } from "./ProfileIcon";
 export { default as HimtiLogo } from "./HimtiLogo";
+export { default as LinkIconV2 } from "./LinkIconV2";
+export { default as CalendarIcon } from "./CalendarIcon";
+export { default as ExpiredIcon } from "./ExpiredIcon";
+export { default as DownRightIcon } from "./DownRightIcon";
