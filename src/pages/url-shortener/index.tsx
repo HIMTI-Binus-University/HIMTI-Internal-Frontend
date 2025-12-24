@@ -8,6 +8,9 @@ import {
   FaPlusCircle,
 } from "react-icons/fa";
 import { LinkIcon, ProfileIcon } from "@/components/icons";
+import CreateLinkForm from "./CreateLinkForm";
+import ExistingLink from "./ExistingLink";
+
 
 const UrlShortenerPage = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -17,6 +20,7 @@ const UrlShortenerPage = () => {
   };
 
   return (
+    
     <div className="flex min-h-screen w-full bg-grayscale-50">
       <Sidebar />
 
@@ -78,13 +82,18 @@ const UrlShortenerPage = () => {
           </div>
         </header>
 
+          
+        <CreateLinkForm />
+        <ExistingLink />
+
         {/* NOTE: JANGAN ADA YANG PAKE WARNA SELAIN YANG ADA DI TAILWIND CONFIG */}
-        <div className="border-4 border-dashed border-blue-100 bg-white rounded-2xl h-[65vh] flex flex-col items-center justify-center text-blue-300 gap-4 shadow-inner">
+        {/* <div className="border-4 border-dashed border-blue-100 bg-white rounded-2xl h-[65vh] flex flex-col items-center justify-center text-blue-300 gap-4 shadow-inner">
           <h3 className="text-2xl font-black uppercase tracking-widest">
             Area Form & List
           </h3>
           <p className="text-blue-200 font-medium italic">untuk form</p>
-        </div>
+        </div> */}
+
       </main>
     </div>
   );
