@@ -16,12 +16,18 @@ import {
 } from "react-icons/fa";
 
 import {
+  CalendarIcon,
+  ExpiredIcon,
+  DownRightIcon,
   LinkIconV2,
   ProfileIcon,
 } from "@/components/icons";
+import Popup from "@/components/Utils/Popup";
 
 const UrlShortenerPage = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showConfirmPopup, setConfirmPopup] = useState(false);
+  const [showEditPopup, setEditPopup] = useState(false);
   const [expiryDate, setExpiryDate] = useState("");
 
   // DUMMY JSON RETURN DATA
@@ -110,7 +116,7 @@ const UrlShortenerPage = () => {
 
         {/* FORM CREATE LINK */}
         <div className="bg-white rounded-xl shadow p-6 mb-8">
-          <h3 className="text-h6 font-bold mb-6">Create New Link</h3>
+          <h3 className="text-h5 font-bold mb-6">Create New Link</h3>
 
           <div className="space-y-4">
             <div>
@@ -157,14 +163,50 @@ const UrlShortenerPage = () => {
               </div>
             </div>
             
-            <Button text="Create Link" icon={<FaPlus/>}></Button>
+            <Button text="Create Link" icon={<FaPlus/>} onClick={() => setConfirmPopup(true)}></Button>
           </div>
         </div>
+
+        {/* LINK CREATION CONFIRMATION POPUP */}
+        {showConfirmPopup && (
+          <Popup
+            component={(
+              <div className="relative bg-white rounded-xl shadow-xl p-5">
+                <div className="flex flex-col gap-4">
+                  <h3 className="text-h5 font-bold">Link Created</h3>
+                  <div className="flex flex-col gap-2 border border-black/25 rounded-xl p-6">
+                    <p className="font-bold text-h6">{links[0].shortUrl}</p>
+
+                    <div className="flex items-center gap-2 text-body-1">
+                      <DownRightIcon />
+                      <span>{links[0].targetUrl}</span>
+                    </div>
+
+                    <div className="flex items-center gap-6 text-body-3 text-black/50 mt-2">
+                      <div className="flex items-center gap-1">
+                        <CalendarIcon />
+                        Created on {links[0].createdAt}
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <ExpiredIcon />
+                        Expires on {links[0].expiresAt}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button onClick={() => setConfirmPopup(false)} text="Done"></Button>
+                </div>
+              </div>
+            )}
+          />
+        )}
+
         {/* CARD URL */}
         <div className="bg-white rounded-xl shadow p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-h6 font-bold">Existing Links</h3>
+            <h3 className="text-h5 font-bold">Existing Links</h3>
           </div>
 
           <div className="flex gap-3 mb-6"> 
