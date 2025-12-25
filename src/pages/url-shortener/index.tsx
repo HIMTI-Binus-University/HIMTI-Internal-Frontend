@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { Sidebar, Button } from "@/components/Utils";
+import { 
+  Sidebar, 
+  Button,
+  LinkDetails,
+} from "@/components/Utils";
 
 import {
   FaChevronDown,
@@ -8,23 +12,35 @@ import {
   FaUserAlt,
   FaPlusCircle,
   FaSearch,
-  FaRegCopy,
-  FaPencilAlt,
-  FaTrashAlt,
   FaPlus,
 } from "react-icons/fa";
 
 import {
   LinkIconV2,
   ProfileIcon,
-  CalendarIcon,
-  ExpiredIcon,
-  DownRightIcon,
 } from "@/components/icons";
 
 const UrlShortenerPage = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [expiryDate, setExpiryDate] = useState("");
+
+  // DUMMY JSON RETURN DATA
+  const links = [
+    {
+      id: 1,
+      shortUrl: "himtibinus.or.id/ReallyCoolVideos",
+      targetUrl: "www.youtube.com",
+      createdAt: "20 December, 2025",
+      expiresAt: "21 December, 2025, 23:59:59",
+    },
+    {
+      id: 2,
+      shortUrl: "himtibinus.or.id/EventHighlights",
+      targetUrl: "www.instagram.com",
+      createdAt: "18 December, 2025",
+      expiresAt: "25 December, 2025, 23:59:59",
+    },
+  ];
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
@@ -161,57 +177,17 @@ const UrlShortenerPage = () => {
           </div>
 
           <div className="space-y-4">
-            {[1, 2].map((item) => (
-              <div
-                key={item}
-                className="border shadow-sm cursor-pointer border-black/25 rounded-xl p-5 flex justify-between items-start hover:scale-[101%] transition-transform"
-              >
-                <div className="space-y-2">
-                  <p className="font-bold text-h6">
-                    himtibinus.or.id/ReallyCoolVideos
-                  </p>
-
-                  <div className="flex items-center gap-2 text-body-1">
-                    <DownRightIcon />
-                    <span>www.youtube.com</span>
-                  </div>
-
-                  <div className="flex items-center gap-6 text-body-3 text-black/50 mt-2">
-                    <div className="flex items-center justify-center gap-1">
-                      <CalendarIcon />
-                      Created on 20 December, 2025
-                    </div>
-
-                    <div className="flex items-center gap-1 text-body-3 text-black/50">
-                      <ExpiredIcon />
-                      Expires on 21 December, 2025, 23:59:59
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 text-gray-400">
-                  <button className="hover:text-indigo-600 transition-colors">
-                    <FaRegCopy />
-                  </button>
-                  <button className="hover:text-yellow-500 transition-colors">
-                    <FaPencilAlt />
-                  </button>
-                  <button className="hover:text-red-500 transition-colors">
-                    <FaTrashAlt />
-                  </button>
-                </div>
-              </div>
+            {links.map((link) => (
+              <LinkDetails
+                key={link.id}
+                short={link.shortUrl}
+                target={link.targetUrl}
+                created={link.createdAt}
+                expires={link.expiresAt}
+              />
             ))}
           </div>
         </div>
-
-        {/* NOTE: JANGAN ADA YANG PAKE WARNA SELAIN YANG ADA DI TAILWIND CONFIG */}
-        {/* <div className="border-4 border-dashed border-blue-100 bg-white rounded-2xl h-[65vh] flex flex-col items-center justify-center text-blue-300 gap-4 shadow-inner">
-          <h3 className="text-2xl font-black uppercase tracking-widest">
-            Area Form & List
-          </h3>
-          <p className="text-blue-200 font-medium italic">untuk form</p>
-        </div> */}
       </main>
     </div>
   );
