@@ -26,8 +26,21 @@ import Popup from "@/components/Utils/Popup";
 
 const UrlShortenerPage = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  // POPUPS
   const [showConfirmPopup, setConfirmPopup] = useState(false);
+  const [showDeletePopup, setDeletePopup] = useState(false);
   const [showEditPopup, setEditPopup] = useState(false);
+
+  const [selectedLink, setSelectedLink] = useState<{
+    id: number;
+    shortUrl: string;
+    targetUrl: string;
+    createdAt: string;
+    expiresAt: string;
+  } | null>(null);
+
   const [expiryDate, setExpiryDate] = useState("");
 
   // DUMMY JSON RETURN DATA
@@ -226,10 +239,145 @@ const UrlShortenerPage = () => {
                 target={link.targetUrl}
                 created={link.createdAt}
                 expires={link.expiresAt}
+                isCopied={copiedId === link.id}
+                onEdit={() => {
+                  setSelectedLink(link);
+                  setEditPopup(true);
+                }}
+                onDelete={() => {
+                  setSelectedLink(link);
+                  setDeletePopup(true);
+                }}
+                onCopy={() => {
+                  navigator.clipboard.writeText(`https://${link.shortUrl}`);
+                  setCopiedId(link.id);
+
+                  setTimeout(() => {
+                    setCopiedId(null);
+                  }, 1500);
+                }}
               />
             ))}
           </div>
         </div>
+          
+        {/* EDIT FORM */}
+        {showEditPopup && selectedLink && (
+          <Popup
+            component={(
+              <div className="relative bg-white rounded-xl shadow-xl p-6 w-[480px]">
+                <div className="flex flex-col gap-4">
+                  <h3 className="text-h5 font-bold">Edit Link</h3>
+
+                  <div>
+                    <label className="block text-body-1 mb-1">Target Link</label>
+                    <input
+                      type="text"
+                      defaultValue={selectedLink.targetUrl}
+                      className="w-full border border-black/25 rounded-xl p-4 outline-none text-body-1"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-body-1 mb-1">Short Link</label>
+                    <div className="flex rounded-xl overflow-hidden border border-black/25">
+                      <span className="bg-grayscale-100 px-3 flex items-center font-bold">
+                        https://himtibinus.or.id/
+                      </span>
+                      <input
+                        type="text"
+                        defaultValue={selectedLink.shortUrl.replace("himtibinus.or.id/", "")}
+                        className="flex-1 p-4 outline-none text-body-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-body-1 mb-1">
+                      Link Expiry Date
+                    </label>
+                    <input
+                      type="datetime-local"
+                      defaultValue={selectedLink.expiresAt}
+                      className="w-full border border-black/25 rounded-xl p-4 outline-none text-body-1"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button
+                      text="Cancel"
+                      onClick={() => {
+                        setEditPopup(false);
+                        setSelectedLink(null);
+                      }}
+                      type="danger"
+                    />
+                    <Button
+                      text="Save Changes"
+                      icon={<FaPlus />}
+                      onClick={() => {
+                        // NNTI INI SAMBUNGIN BACKEND SUBMIT EDIT
+                        setEditPopup(false);
+                        setSelectedLink(null);
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          />
+        )}
+        
+        {/* DELETE POPUP */}
+        {showDeletePopup && selectedLink && (
+          <Popup
+            component={(
+              <div className="relative bg-white rounded-xl shadow-xl p-6 w-[420px]">
+                <div className="flex flex-col gap-4">
+                  <h3 className="text-h5 font-bold text-danger">
+                    Delete Link
+                  </h3>
+
+                  <p className="text-body-1 text-black/70">
+                    Are you sure you want to delete this link?
+                    This action cannot be undone.
+                  </p>
+
+                  <div className="border border-black/25 rounded-xl p-4">
+                    <p className="font-bold text-body-1">
+                      {selectedLink.shortUrl}
+                    </p>
+                    <p className="text-body-2 text-black/50">
+                      {selectedLink.targetUrl}
+                    </p>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button
+                      text="Cancel"
+                      type="warning"
+                      onClick={() => {
+                        setDeletePopup(false);
+                        setSelectedLink(null);
+                      }}
+                    />
+
+                    <Button
+                      text="Delete"
+                      type="danger"
+                      onClick={() => {
+                        // NNTI SAMBUNG KE BACKEND DELETE
+                        setDeletePopup(false);
+                        setSelectedLink(null);
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          />
+        )}
+
       </main>
     </div>
   );

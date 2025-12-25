@@ -15,9 +15,13 @@ type LinkDetailsProps = {
   target: string;
   created: string;
   expires: string;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onCopy?: () => void;
+  isCopied?: boolean;
 };
 
-const LinkDetails = ({ short, target, created, expires }: LinkDetailsProps) => {
+const LinkDetails = ({ short, target, created, expires, onEdit, onDelete, onCopy, isCopied }: LinkDetailsProps) => {
   return (
     <div className="border shadow-sm cursor-pointer border-black/25 rounded-xl p-5 flex justify-between items-start hover:scale-[101%] transition-transform">
       <div className="space-y-2">
@@ -42,13 +46,13 @@ const LinkDetails = ({ short, target, created, expires }: LinkDetailsProps) => {
       </div>
 
       <div className="flex items-center gap-3 text-gray-400">
-        <button className="hover:text-primary-600 transition-colors">
-          <FaRegCopy />
+        <button className="hover:text-primary-600 transition-colors" onClick={onCopy}>
+          {isCopied ? <h6 className="text-body-3">Copied!</h6> : <FaRegCopy />}
         </button>
-        <button className="hover:text-warning transition-colors">
+        <button className="hover:text-warning-500 transition-colors" onClick={onEdit}>
           <FaPencilAlt />
         </button>
-        <button className="hover:text-danger transition-colors">
+        <button className="hover:text-danger-500 transition-colors" onClick={onDelete}>
           <FaTrashAlt />
         </button>
       </div>
