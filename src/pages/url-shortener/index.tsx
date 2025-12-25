@@ -13,6 +13,7 @@ import {
   FaPlusCircle,
   FaSearch,
   FaPlus,
+  FaBars,
 } from "react-icons/fa";
 
 import {
@@ -27,6 +28,7 @@ import Popup from "@/components/Utils/Popup";
 const UrlShortenerPage = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // POPUPS
   const [showConfirmPopup, setConfirmPopup] = useState(false);
@@ -67,13 +69,24 @@ const UrlShortenerPage = () => {
 
   return (
     <div className="flex min-h-screen w-full bg-grayscale-50">
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <main className="flex-1 ml-[393px] px-8 py-6 font-sans">
+      <main className="flex-1 ml-[393px] max-xl:ml-0 px-8 py-6 font-sans">
         <header className="flex justify-between items-center mb-8 relative">
-          <div className="flex items-center gap-5 p-2">
-            <LinkIconV2 width={80} height={80} />
-            <h2 className="text-h3 font-bold text-black/50 ">URL Shortener</h2>
+          <div className="flex flex-row gap-4">
+            <button
+              className="xl:hidden p-2 rounded-lg hover:bg-grayscale-100"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <FaBars size={24} />
+            </button>
+      
+            <div className="flex items-center gap-5 p-2">
+              <LinkIconV2 width={80} height={80} 
+                          className="max-xl:w-[60px] max-xl:h-[60px]" 
+              />
+              <h2 className="text-h3 max-xl:text-h4 max-xl:font-bold max-lg:text-h5 max-lg:font-bold  font-bold text-black/50 ">URL Shortener</h2>
+            </div>
           </div>
 
           <div className="relative">
@@ -83,7 +96,7 @@ const UrlShortenerPage = () => {
             >
               <ProfileIcon width={32} height={32} className="rounded-full" />
 
-              <div className="text-h6 text-black/50">
+              <div className="text-h6 max-xl:text-body-1 text-black/50">
                 Logged in as{" "}
                 <span className="font-bold text-black">Daffa Fayyaz</span>
               </div>
@@ -141,7 +154,8 @@ const UrlShortenerPage = () => {
               />
             </div>
 
-            <div className="gap-4 grid grid-cols-2">
+            <div className="gap-4 grid grid-cols-2
+                            max-xl:flex max-xl:flex-col">
               <div className="flex-1">
                 <label className="block text-body-1 mb-1">Short Link</label>
 
@@ -162,7 +176,7 @@ const UrlShortenerPage = () => {
                 <label className="block text-body-1 mb-1">
                   Link Expiry Date{" "}
                   <span className="text-body-2 text-black/50">
-                    (leave blank if it doesn’t need an expiry date)
+                    (leave blank if doesn’t expire.)
                   </span>
                 </label>
                 <input
