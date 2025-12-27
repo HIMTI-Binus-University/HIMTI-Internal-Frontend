@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Sidebar from "@/components/Utils";
+import { Sidebar, Button } from "@/components/Utils";
 
 import {
   FaChevronDown,
@@ -111,8 +111,8 @@ const UrlShortenerPage = () => {
                 <label className="block text-body-1 mb-1">Short Link</label>
 
                 <div className="flex rounded-xl overflow-hidden border border-black/25">
-                  <span className="bg-grayscale-100 w-[40%] text-black/70 text-body-2 px-3 flex items-center whitespace-nowrap font-bold">
-                    https://link.himtibinus.or.id/
+                  <span className="bg-grayscale-100 text-black/70 text-body1 px-3 flex items-center whitespace-nowrap font-bold">
+                    https://himtibinus.or.id/
                   </span>
 
                   <input
@@ -150,12 +150,8 @@ const UrlShortenerPage = () => {
                 />
               </div>
             </div>
-
-            <div className="flex justify-end">
-              <button className="bg-primary-600 text-white px-5 text-body-1 py-3 rounded-xl flex items-center gap-2">
-                <FaPlus /> Create Link
-              </button>
-            </div>
+            
+            <Button text="Create Link" icon={<FaPlus/>}></Button>
           </div>
         </div>
         {/* CARD URL */}
@@ -165,16 +161,13 @@ const UrlShortenerPage = () => {
             <h3 className="text-h6 font-bold">Existing Links</h3>
           </div>
 
-          <div className="flex gap-3 mb-6">
+          <div className="flex gap-3 mb-6"> 
             <input
               type="text"
               placeholder="Search..."
               className="border outline-none rounded-xl py-3 px-4 border-black/25  w-full text-body-2"
             />
-            <button className="bg-primary-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 text-body-1">
-              <FaSearch />
-              Search
-            </button>
+            <Button text="Search" icon={<FaSearch/>}></Button>
           </div>
 
           <div className="space-y-4">
