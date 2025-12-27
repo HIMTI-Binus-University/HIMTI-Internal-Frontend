@@ -1,14 +1,20 @@
-import { useState } from "react";
+import {
+  useState,
+  useEffect
+} from "react";
+
 import { 
   Sidebar, 
   Button,
   LinkDetails,
+  Popup
 } from "@/components/Utils";
 
 import {
   FaSearch,
   FaPlus,
   FaBars,
+  FaRegCopy,
 } from "react-icons/fa";
 
 import {
@@ -17,45 +23,138 @@ import {
   DownRightIcon,
   LinkIconV2,
 } from "@/components/icons";
-import Popup from "@/components/Utils/Popup";
+
+// FUNCTION IMPORTS
+import {
+  createShortUrl,
+  getUrlList
+} from "@/api/users/urlQueries";
+
+type UrlItem = {
+  id: string;
+  shortCode: string;
+  originalUrl: string;
+  expiresAt: string | null;
+  status: string;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string | null;
+}
 
 const UrlShortenerPage = () => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [popupCopied, setPopupCopied] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expiryDate, setExpiryDate] = useState("");
+  const [selectedLink, setSelectedLink] = useState<UrlItem | null>(null);
+  const [editTargetUrl, setEditTargetUrl] = useState("");
+  const [editShortCode, setEditShortCode] = useState("");
+  const [editExpiryDate, setEditExpiryDate] = useState("");
 
   // POPUPS
   const [showConfirmPopup, setConfirmPopup] = useState(false);
   const [showDeletePopup, setDeletePopup] = useState(false);
   const [showEditPopup, setEditPopup] = useState(false);
-
-  const [selectedLink, setSelectedLink] = useState<{
-    id: number;
+  
+  // BACKEND OEPRATIONAL VARIABLES
+  const [targetUrl, setTargetUrl] = useState("");
+  const [shortCode, setShortCode] = useState("");
+  const [urls, setUrls] = useState<UrlItem[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [createdLink, setCreatedLink] = useState<{
     shortUrl: string;
     targetUrl: string;
-    createdAt: string;
-    expiresAt: string;
+    createdAt?: string;
+    expiresAt?: string | null;
   } | null>(null);
 
-  const [expiryDate, setExpiryDate] = useState("");
+  //BACKEND LOADING VARIABLES
+  const [isCreating, setIsCreating] = useState(false);
+  const [isLoadingUrls, setIsLoadingUrls] = useState(false);
 
-  // DUMMY JSON RETURN DATA
-  const links = [
-    {
-      id: 1,
-      shortUrl: "himtibinus.or.id/ReallyCoolVideos",
-      targetUrl: "www.youtube.com",
-      createdAt: "20 December, 2025",
-      expiresAt: "21 December, 2025, 23:59:59",
-    },
-    {
-      id: 2,
-      shortUrl: "himtibinus.or.id/EventHighlights",
-      targetUrl: "www.instagram.com",
-      createdAt: "18 December, 2025",
-      expiresAt: "25 December, 2025, 23:59:59",
-    },
-  ];
+  const normalizeUrl = (input: string): string => {
+    let url = input.trim();
+
+    if (!/^https?:\/\//i.test(url)) {
+      url = `https://${url}`;
+    }
+
+    try {
+      const parsed = new URL(url);
+
+      parsed.hostname = parsed.hostname.replace(/^www\./i, "");
+
+      return parsed.toString();
+    } catch {
+      return url;
+    }
+  };
+
+  const handleCreateLink = async () => {
+    if (!targetUrl || !shortCode) {
+      alert("Target URL and Short Code are required");
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+
+      const payload: {
+        originalUrl: string;
+        shortCode: string;
+        expiresAt?: string;
+      } = {
+        originalUrl: normalizeUrl(targetUrl),
+        shortCode,
+      };
+
+      if (expiryDate) {
+        payload.expiresAt = new Date(expiryDate).toISOString();
+      }
+
+      const created = await createShortUrl(payload);
+
+      console.log("Created:", created);
+
+      setCreatedLink({
+        shortUrl: created.shortUrl ?? shortCode,
+        targetUrl: created.originalUrl ?? targetUrl,
+        createdAt: created.createdAt ?? new Date().toISOString(),
+        expiresAt: created.expiresAt ?? expiryDate,
+      });
+
+      setConfirmPopup(true);
+
+      setTargetUrl("");
+      setShortCode("");
+      setExpiryDate("");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to create short link");
+    } finally {
+      setIsCreating(false);
+    }
+  }
+
+  const handleGetUrlList = async () => {
+    try {
+      setIsLoadingUrls(true);
+      const res = await getUrlList();
+      setUrls(res.data)
+
+      console.log("Links:", urls);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to fetch url list");
+    } finally {
+      setIsLoadingUrls(false);
+    }
+  }
+
+  useEffect(() => {
+    handleGetUrlList();
+  }, []);
 
   return (
     <div className="min-h-screen w-full bg-grayscale-50">
@@ -91,6 +190,8 @@ const UrlShortenerPage = () => {
               <input
                 type="text"
                 placeholder="www.youtube.com"
+                value={targetUrl}
+                onChange={(e) => setTargetUrl(e.target.value)}
                 className="w-full border  border-black/25 rounded-xl p-4 outline-none text-body-1"
               />
             </div>
@@ -107,6 +208,8 @@ const UrlShortenerPage = () => {
 
                   <input
                     type="text"
+                    value={shortCode}
+                    onChange={(e) => setShortCode(e.target.value)}
                     className="flex-1 p-4  outline-none text-body-1 "
                     placeholder="ReallyCoolVideos"
                   />
@@ -131,34 +234,55 @@ const UrlShortenerPage = () => {
               </div>
             </div>
             
-            <Button text="Create Link" icon={<FaPlus/>} onClick={() => setConfirmPopup(true)}></Button>
+            <Button
+              text="Create Link"
+              icon={<FaPlus />}
+              onClick={handleCreateLink}
+              loading={isCreating}
+              disabled={isCreating}
+            />
           </div>
         </div>
 
         {/* LINK CREATION CONFIRMATION POPUP */}
-        {showConfirmPopup && (
+        {showConfirmPopup && createdLink && (
           <Popup
             component={(
               <div className="relative bg-white rounded-xl shadow-xl p-5">
                 <div className="flex flex-col gap-4">
                   <h3 className="text-h5 font-bold">Link Created</h3>
                   <div className="flex flex-col gap-2 border border-black/25 rounded-xl p-6">
-                    <p className="font-bold text-h6">{links[0].shortUrl}</p>
+                    <div className="flex flex-row items-center justify-start gap-4">
+                      <p className="font-bold text-h6">https://72.62.122.54:8001/{createdLink.shortUrl}</p>
+                      <button
+                        className="hover:text-primary-600 transition-colors"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`https://72.62.122.54:8001/${createdLink.shortUrl}`);
+                          setPopupCopied(true);
+
+                          setTimeout(() => {
+                            setPopupCopied(false);
+                          }, 1500);
+                        }}
+                      >
+                        {popupCopied ? <h6 className="text-body-3">Copied!</h6> : <FaRegCopy />}
+                      </button>
+                    </div>
 
                     <div className="flex items-center gap-2 text-body-1">
                       <DownRightIcon />
-                      <span>{links[0].targetUrl}</span>
+                      <span>{createdLink.targetUrl}</span>
                     </div>
 
                     <div className="flex items-center gap-6 text-body-3 text-black/50 mt-2">
                       <div className="flex items-center gap-1">
                         <CalendarIcon />
-                        Created on {links[0].createdAt}
+                        Created on {createdLink.createdAt}
                       </div>
 
                       <div className="flex items-center gap-1">
                         <ExpiredIcon />
-                        Expires on {links[0].expiresAt}
+                        Expires on {createdLink.expiresAt}
                       </div>
                     </div>
                   </div>
@@ -187,25 +311,32 @@ const UrlShortenerPage = () => {
           </div>
 
           <div className="space-y-4">
-            {links.map((link) => (
+            {urls.map((url) => (
               <LinkDetails
-                key={link.id}
-                short={link.shortUrl}
-                target={link.targetUrl}
-                created={link.createdAt}
-                expires={link.expiresAt}
-                isCopied={copiedId === link.id}
+                key={url.id}
+                short={`https://himtibinus.or.id/${url.shortCode}`}
+                target={url.originalUrl}
+                created={url.createdAt}
+                expires={url.expiresAt ?? null}
+                isCopied={copiedId === url.id}
                 onEdit={() => {
-                  setSelectedLink(link);
+                  setSelectedLink(url);
+
+                  setEditTargetUrl(url.originalUrl);
+                  setEditShortCode(url.shortCode);
+                  setEditExpiryDate(
+                    url.expiresAt ? url.expiresAt.slice(0, 16) : ""
+                  );
+
                   setEditPopup(true);
                 }}
                 onDelete={() => {
-                  setSelectedLink(link);
+                  // setSelectedLink(link);
                   setDeletePopup(true);
                 }}
                 onCopy={() => {
-                  navigator.clipboard.writeText(`https://${link.shortUrl}`);
-                  setCopiedId(link.id);
+                  navigator.clipboard.writeText(`https://72.62.122.54:8001/${url.shortCode}`);
+                  setCopiedId(url.id);
 
                   setTimeout(() => {
                     setCopiedId(null);
@@ -228,7 +359,8 @@ const UrlShortenerPage = () => {
                     <label className="block text-body-1 mb-1">Target Link</label>
                     <input
                       type="text"
-                      defaultValue={selectedLink.targetUrl}
+                      value={editTargetUrl}
+                      onChange={(e) => setEditTargetUrl(e.target.value)}
                       className="w-full border border-black/25 rounded-xl p-4 outline-none text-body-1"
                     />
                   </div>
@@ -241,7 +373,8 @@ const UrlShortenerPage = () => {
                       </span>
                       <input
                         type="text"
-                        defaultValue={selectedLink.shortUrl.replace("himtibinus.or.id/", "")}
+                        value={editShortCode}
+                        onChange={(e) => setEditShortCode(e.target.value.replace("himtibinus.or.id/", ""))}
                         className="flex-1 p-4 outline-none text-body-1"
                       />
                     </div>
@@ -253,7 +386,8 @@ const UrlShortenerPage = () => {
                     </label>
                     <input
                       type="datetime-local"
-                      defaultValue={selectedLink.expiresAt}
+                      value={editExpiryDate}
+                      onChange={(e) => setEditExpiryDate(e.target.value)}
                       className="w-full border border-black/25 rounded-xl p-4 outline-none text-body-1"
                     />
                   </div>
@@ -264,6 +398,9 @@ const UrlShortenerPage = () => {
                       onClick={() => {
                         setEditPopup(false);
                         setSelectedLink(null);
+                        setEditTargetUrl("");
+                        setEditShortCode("");
+                        setEditExpiryDate("");
                       }}
                       type="danger"
                     />
@@ -300,10 +437,10 @@ const UrlShortenerPage = () => {
 
                   <div className="border border-black/25 rounded-xl p-4">
                     <p className="font-bold text-body-1">
-                      {selectedLink.shortUrl}
+                      {/* {selectedLink.shortUrl} */}
                     </p>
                     <p className="text-body-2 text-black/50">
-                      {selectedLink.targetUrl}
+                      {/* {selectedLink.targetUrl} */}
                     </p>
                   </div>
 

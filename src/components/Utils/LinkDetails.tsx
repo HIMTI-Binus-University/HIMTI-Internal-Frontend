@@ -14,7 +14,7 @@ type LinkDetailsProps = {
   short: string;
   target: string;
   created: string;
-  expires: string;
+  expires: string | null;
   onEdit?: () => void;
   onDelete?: () => void;
   onCopy?: () => void;
@@ -40,7 +40,7 @@ const LinkDetails = ({ short, target, created, expires, onEdit, onDelete, onCopy
 
           <div className="flex items-center gap-1">
             <ExpiredIcon />
-            Expires on {expires}
+            {expires ? `Expires on ${expires}` : "Never expires"}
           </div>
         </div>
       </div>
