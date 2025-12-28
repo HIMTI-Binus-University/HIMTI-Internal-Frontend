@@ -27,7 +27,9 @@ import {
 // FUNCTION IMPORTS
 import {
   createShortUrl,
-  getUrlList
+  getUrlList,
+  updateUrl,
+  deleteUrl
 } from "@/api/users/urlQueries";
 
 type UrlItem = {
@@ -61,7 +63,6 @@ const UrlShortenerPage = () => {
   const [targetUrl, setTargetUrl] = useState("");
   const [shortCode, setShortCode] = useState("");
   const [urls, setUrls] = useState<UrlItem[]>([]);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [createdLink, setCreatedLink] = useState<{
     shortUrl: string;
     targetUrl: string;
@@ -142,8 +143,6 @@ const UrlShortenerPage = () => {
       setIsLoadingUrls(true);
       const res = await getUrlList();
       setUrls(res.data)
-
-      console.log("Links:", urls);
     } catch (error) {
       console.error(error);
       alert("Failed to fetch url list");
@@ -151,6 +150,54 @@ const UrlShortenerPage = () => {
       setIsLoadingUrls(false);
     }
   }
+
+  const handleSaveEditUrl = async () => {
+    if (!selectedLink) return;
+
+    if (!editTargetUrl || !editShortCode) {
+      alert("Target URL and Short Code are required");
+      return;
+    }
+
+    try {
+      const payload = {
+        originalUrl: normalizeUrl(editTargetUrl),
+        shortCode: editShortCode,
+        expiresAt: editExpiryDate
+          ? new Date(editExpiryDate).toISOString()
+          : null,
+      };
+
+      await updateUrl(payload, selectedLink.id);
+
+      await handleGetUrlList();
+
+      setEditPopup(false);
+      setSelectedLink(null);
+      setEditTargetUrl("");
+      setEditShortCode("");
+      setEditExpiryDate("");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to update link");
+    }
+  };
+
+  const handleDeleteUrl = async () => {
+    if (!selectedLink) return;
+
+    try {
+      await deleteUrl(selectedLink.id);
+
+      await handleGetUrlList();
+
+      setDeletePopup(false);
+      setSelectedLink(null);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete link");
+    }
+  };
 
   useEffect(() => {
     handleGetUrlList();
@@ -253,11 +300,11 @@ const UrlShortenerPage = () => {
                   <h3 className="text-h5 font-bold">Link Created</h3>
                   <div className="flex flex-col gap-2 border border-black/25 rounded-xl p-6">
                     <div className="flex flex-row items-center justify-start gap-4">
-                      <p className="font-bold text-h6">https://72.62.122.54:8001/{createdLink.shortUrl}</p>
+                      <p className="font-bold text-h6">http://72.62.122.54:8001/{createdLink.shortUrl}</p>
                       <button
                         className="hover:text-primary-600 transition-colors"
                         onClick={() => {
-                          navigator.clipboard.writeText(`https://72.62.122.54:8001/${createdLink.shortUrl}`);
+                          navigator.clipboard.writeText(`http://72.62.122.54:8001/${createdLink.shortUrl}`);
                           setPopupCopied(true);
 
                           setTimeout(() => {
@@ -282,7 +329,8 @@ const UrlShortenerPage = () => {
 
                       <div className="flex items-center gap-1">
                         <ExpiredIcon />
-                        Expires on {createdLink.expiresAt}
+                        
+                        {createdLink.expiresAt ? `Expires on ${createdLink.expiresAt}` : "Never expires"}
                       </div>
                     </div>
                   </div>
@@ -310,41 +358,46 @@ const UrlShortenerPage = () => {
             <Button text="Search" icon={<FaSearch/>}></Button>
           </div>
 
-          <div className="space-y-4">
-            {urls.map((url) => (
-              <LinkDetails
-                key={url.id}
-                short={`https://himtibinus.or.id/${url.shortCode}`}
-                target={url.originalUrl}
-                created={url.createdAt}
-                expires={url.expiresAt ?? null}
-                isCopied={copiedId === url.id}
-                onEdit={() => {
-                  setSelectedLink(url);
+          {isLoadingUrls ? (
+            <h1>loading...</h1>
+          ) : (
+            <div className="space-y-4">
+              {urls.map((url) => (
+                <LinkDetails
+                  key={url.id}
+                  short={`https://himtibinus.or.id/${url.shortCode}`}
+                  target={url.originalUrl}
+                  created={url.createdAt}
+                  expires={url.expiresAt ?? null}
+                  isCopied={copiedId === url.id}
+                  onEdit={() => {
+                    setSelectedLink(url);
 
-                  setEditTargetUrl(url.originalUrl);
-                  setEditShortCode(url.shortCode);
-                  setEditExpiryDate(
-                    url.expiresAt ? url.expiresAt.slice(0, 16) : ""
-                  );
+                    setEditTargetUrl(url.originalUrl);
+                    setEditShortCode(url.shortCode);
+                    setEditExpiryDate(url.expiresAt ? url.expiresAt.slice(0, 16) : "");
 
-                  setEditPopup(true);
-                }}
-                onDelete={() => {
-                  // setSelectedLink(link);
-                  setDeletePopup(true);
-                }}
-                onCopy={() => {
-                  navigator.clipboard.writeText(`https://72.62.122.54:8001/${url.shortCode}`);
-                  setCopiedId(url.id);
+                    console.log(url.id)
 
-                  setTimeout(() => {
-                    setCopiedId(null);
-                  }, 1500);
-                }}
-              />
-            ))}
-          </div>
+                    setEditPopup(true);
+                  }}
+                  onDelete={() => {
+                    setDeletePopup(true);
+                  }}
+                  onCopy={() => {
+                    navigator.clipboard.writeText(
+                      `http://72.62.122.54:8001/${url.shortCode}`
+                    );
+                    setCopiedId(url.id);
+
+                    setTimeout(() => {
+                      setCopiedId(null);
+                    }, 1500);
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
           
         {/* EDIT FORM */}
@@ -407,11 +460,7 @@ const UrlShortenerPage = () => {
                     <Button
                       text="Save Changes"
                       icon={<FaPlus />}
-                      onClick={() => {
-                        // NNTI INI SAMBUNGIN BACKEND SUBMIT EDIT
-                        setEditPopup(false);
-                        setSelectedLink(null);
-                      }}
+                      onClick={handleSaveEditUrl}
                     />
                   </div>
                 </div>
@@ -457,11 +506,7 @@ const UrlShortenerPage = () => {
                     <Button
                       text="Delete"
                       type="danger"
-                      onClick={() => {
-                        // NNTI SAMBUNG KE BACKEND DELETE
-                        setDeletePopup(false);
-                        setSelectedLink(null);
-                      }}
+                      onClick={handleDeleteUrl}
                     />
                   </div>
                 </div>
