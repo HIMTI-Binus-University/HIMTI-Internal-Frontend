@@ -501,10 +501,10 @@ const UrlShortenerPage = () => {
 
                   <div className="border border-black/25 rounded-xl p-4">
                     <p className="font-bold text-body-1">
-                      {/* {selectedLink.shortUrl} */}
+                      http://72.62.122.54:8001/{selectedLink.shortCode}
                     </p>
                     <p className="text-body-2 text-black/50">
-                      {/* {selectedLink.targetUrl} */}
+                      {selectedLink.originalUrl}
                     </p>
                   </div>
 
