@@ -9,4 +9,4 @@
  * - Prod: ./api-service-prod
  */
 
-export * from "./api-service-dev";
+export * from "./api-service-prod";
