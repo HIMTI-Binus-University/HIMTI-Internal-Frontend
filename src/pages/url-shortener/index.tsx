@@ -104,6 +104,8 @@ const UrlShortenerPage = () => {
       const created = await createShortUrl(payload);
 
       console.log("Created:", created);
+      
+      await handleGetUrlList();
 
       setCreatedLink({
         shortUrl: created.shortUrl ?? shortCode,
@@ -374,6 +376,11 @@ const UrlShortenerPage = () => {
 
           {isLoadingUrls ? (
             <h1>loading...</h1>
+          ) : urls.length === 0 ? (
+            <div className="text-center text-black/25 text-body-1 py-8 space-y-4">
+              <h1 className="text-h3">{`( •_•)>⌐■-■`}</h1>
+              <h2 className="text-h6">Nothing to show here...</h2>
+            </div>
           ) : (
             <div className="space-y-4">
               {urls.map((url) => (
