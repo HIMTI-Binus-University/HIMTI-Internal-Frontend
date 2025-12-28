@@ -147,13 +147,19 @@ const UrlShortenerPage = () => {
     }
 
     try {
-      const payload = {
+      const payload: {
+        originalUrl: string;
+        shortCode: string;
+        expiresAt?: string;
+      } = {
         originalUrl: normalizeUrl(editTargetUrl),
         shortCode: editShortCode,
-        expiresAt: editExpiryDate
-          ? new Date(editExpiryDate).toISOString()
-          : null,
       };
+
+      // ONLY include expiresAt if user sets it
+      if (editExpiryDate) {
+        payload.expiresAt = new Date(editExpiryDate).toISOString();
+      }
 
       await updateUrl(payload, selectedLink.id);
 
