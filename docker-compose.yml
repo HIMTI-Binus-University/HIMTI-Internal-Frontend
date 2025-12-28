@@ -1,6 +1,6 @@
 services:
   app: 
-    image: ghcr.io/$HIMTI-Binus-University/HIMTI-Internal-Frontend:${IMAGE_TAG}
+    image: ghcr.io/himti-binus-university/himti-internal-frontend:${IMAGE_TAG}
     
     container_name: himti_frontend_${IMAGE_TAG} 
     restart: always
