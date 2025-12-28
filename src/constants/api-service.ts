@@ -8,5 +8,6 @@
  * - UAT: ./api-service-uat
  * - Prod: ./api-service-prod
  */
+// endpoint portnya diganti ke 3000 nanti dioper ke 8001 pake nginx, ini biar bisa redirect ke port 3000 buat auth
 
 export * from "./api-service-dev";
