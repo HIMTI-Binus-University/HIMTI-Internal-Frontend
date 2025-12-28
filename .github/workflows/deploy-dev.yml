@@ -68,7 +68,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "./docker-compose.yml"
+          source: "docker-compose.yml"
           target: "~/dev-himti-internal-frontend"
 
       - name: Execute remote ssh commands
