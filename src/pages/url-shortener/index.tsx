@@ -1,21 +1,8 @@
-import {
-  useState,
-  useEffect
-} from "react";
+import { useState, useEffect } from "react";
 
-import { 
-  Sidebar, 
-  Button,
-  LinkDetails,
-  Popup
-} from "@/components/Utils";
+import { Sidebar, Button, LinkDetails, Popup } from "@/components/Utils";
 
-import {
-  FaSearch,
-  FaPlus,
-  FaBars,
-  FaRegCopy,
-} from "react-icons/fa";
+import { FaSearch, FaPlus, FaBars, FaRegCopy } from "react-icons/fa";
 
 import {
   CalendarIcon,
@@ -27,7 +14,9 @@ import {
 // FUNCTION IMPORTS
 import {
   createShortUrl,
-  getUrlList
+  getUrlList,
+  updateUrl,
+  deleteUrl,
 } from "@/api/users/urlQueries";
 
 type UrlItem = {
@@ -40,7 +29,7 @@ type UrlItem = {
   createdBy: string;
   updatedAt: string;
   updatedBy: string | null;
-}
+};
 
 const UrlShortenerPage = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -56,12 +45,11 @@ const UrlShortenerPage = () => {
   const [showConfirmPopup, setConfirmPopup] = useState(false);
   const [showDeletePopup, setDeletePopup] = useState(false);
   const [showEditPopup, setEditPopup] = useState(false);
-  
+
   // BACKEND OEPRATIONAL VARIABLES
   const [targetUrl, setTargetUrl] = useState("");
   const [shortCode, setShortCode] = useState("");
   const [urls, setUrls] = useState<UrlItem[]>([]);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [createdLink, setCreatedLink] = useState<{
     shortUrl: string;
     targetUrl: string;
@@ -135,22 +123,68 @@ const UrlShortenerPage = () => {
     } finally {
       setIsCreating(false);
     }
-  }
+  };
 
   const handleGetUrlList = async () => {
     try {
       setIsLoadingUrls(true);
       const res = await getUrlList();
-      setUrls(res.data)
-
-      console.log("Links:", urls);
+      setUrls(res.data);
     } catch (error) {
       console.error(error);
       alert("Failed to fetch url list");
     } finally {
       setIsLoadingUrls(false);
     }
-  }
+  };
+
+  const handleSaveEditUrl = async () => {
+    if (!selectedLink) return;
+
+    if (!editTargetUrl || !editShortCode) {
+      alert("Target URL and Short Code are required");
+      return;
+    }
+
+    try {
+      const payload = {
+        originalUrl: normalizeUrl(editTargetUrl),
+        shortCode: editShortCode,
+        expiresAt: editExpiryDate
+          ? new Date(editExpiryDate).toISOString()
+          : null,
+      };
+
+      await updateUrl(payload, selectedLink.id);
+
+      await handleGetUrlList();
+
+      setEditPopup(false);
+      setSelectedLink(null);
+      setEditTargetUrl("");
+      setEditShortCode("");
+      setEditExpiryDate("");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to update link");
+    }
+  };
+
+  const handleDeleteUrl = async () => {
+    if (!selectedLink) return;
+
+    try {
+      await deleteUrl(selectedLink.id);
+
+      await handleGetUrlList();
+
+      setDeletePopup(false);
+      setSelectedLink(null);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete link");
+    }
+  };
 
   useEffect(() => {
     handleGetUrlList();
@@ -160,8 +194,10 @@ const UrlShortenerPage = () => {
     <div className="min-h-screen w-full bg-grayscale-50">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <main className="flex-1 ml-[393px] max-xl:ml-0 px-8 py-6 font-sans
-                       max-md:px-4 max-md:py-3">
+      <main
+        className="flex-1 ml-[393px] max-xl:ml-0 px-8 py-6 font-sans
+                       max-md:px-4 max-md:py-3"
+      >
         <header className="flex justify-between items-center mb-8 relative">
           <div className="flex flex-row gap-4">
             <button
@@ -170,12 +206,16 @@ const UrlShortenerPage = () => {
             >
               <FaBars size={24} />
             </button>
-      
+
             <div className="flex items-center gap-5 p-2">
-              <LinkIconV2 width={80} height={80} 
-                          className="max-xl:w-[60px] max-xl:h-[60px]" 
+              <LinkIconV2
+                width={80}
+                height={80}
+                className="max-xl:w-[60px] max-xl:h-[60px]"
               />
-              <h2 className="text-h3 max-xl:text-h4 max-xl:font-bold max-lg:text-h5 max-lg:font-bold  font-bold text-black/50 ">URL Shortener</h2>
+              <h2 className="text-h3 max-xl:text-h4 max-xl:font-bold max-lg:text-h5 max-lg:font-bold  font-bold text-black/50 ">
+                URL Shortener
+              </h2>
             </div>
           </div>
         </header>
@@ -196,8 +236,10 @@ const UrlShortenerPage = () => {
               />
             </div>
 
-            <div className="gap-4 grid grid-cols-2
-                            max-xl:flex max-xl:flex-col">
+            <div
+              className="gap-4 grid grid-cols-2
+                            max-xl:flex max-xl:flex-col"
+            >
               <div className="flex-1">
                 <label className="block text-body-1 mb-1">Short Link</label>
 
@@ -233,7 +275,7 @@ const UrlShortenerPage = () => {
                 />
               </div>
             </div>
-            
+
             <Button
               text="Create Link"
               icon={<FaPlus />}
@@ -247,17 +289,21 @@ const UrlShortenerPage = () => {
         {/* LINK CREATION CONFIRMATION POPUP */}
         {showConfirmPopup && createdLink && (
           <Popup
-            component={(
+            component={
               <div className="relative bg-white rounded-xl shadow-xl p-5">
                 <div className="flex flex-col gap-4">
                   <h3 className="text-h5 font-bold">Link Created</h3>
                   <div className="flex flex-col gap-2 border border-black/25 rounded-xl p-6">
                     <div className="flex flex-row items-center justify-start gap-4">
-                      <p className="font-bold text-h6">https://72.62.122.54:8001/{createdLink.shortUrl}</p>
+                      <p className="font-bold text-h6">
+                        http://72.62.122.54:8001/{createdLink.shortUrl}
+                      </p>
                       <button
                         className="hover:text-primary-600 transition-colors"
                         onClick={() => {
-                          navigator.clipboard.writeText(`https://72.62.122.54:8001/${createdLink.shortUrl}`);
+                          navigator.clipboard.writeText(
+                            `http://72.62.122.54:8001/${createdLink.shortUrl}`,
+                          );
                           setPopupCopied(true);
 
                           setTimeout(() => {
@@ -265,7 +311,11 @@ const UrlShortenerPage = () => {
                           }, 1500);
                         }}
                       >
-                        {popupCopied ? <h6 className="text-body-3">Copied!</h6> : <FaRegCopy />}
+                        {popupCopied ? (
+                          <h6 className="text-body-3">Copied!</h6>
+                        ) : (
+                          <FaRegCopy />
+                        )}
                       </button>
                     </div>
 
@@ -282,15 +332,21 @@ const UrlShortenerPage = () => {
 
                       <div className="flex items-center gap-1">
                         <ExpiredIcon />
-                        Expires on {createdLink.expiresAt}
+
+                        {createdLink.expiresAt
+                          ? `Expires on ${createdLink.expiresAt}`
+                          : "Never expires"}
                       </div>
                     </div>
                   </div>
-                  
-                  <Button onClick={() => setConfirmPopup(false)} text="Done"></Button>
+
+                  <Button
+                    onClick={() => setConfirmPopup(false)}
+                    text="Done"
+                  ></Button>
                 </div>
               </div>
-            )}
+            }
           />
         )}
 
@@ -301,62 +357,72 @@ const UrlShortenerPage = () => {
             <h3 className="text-h5 font-bold">Existing Links</h3>
           </div>
 
-          <div className="flex gap-3 mb-6"> 
+          <div className="flex gap-3 mb-6">
             <input
               type="text"
               placeholder="Search..."
               className="border outline-none rounded-xl py-3 px-4 border-black/25  w-full text-body-1"
             />
-            <Button text="Search" icon={<FaSearch/>}></Button>
+            <Button text="Search" icon={<FaSearch />}></Button>
           </div>
 
-          <div className="space-y-4">
-            {urls.map((url) => (
-              <LinkDetails
-                key={url.id}
-                short={`https://himtibinus.or.id/${url.shortCode}`}
-                target={url.originalUrl}
-                created={url.createdAt}
-                expires={url.expiresAt ?? null}
-                isCopied={copiedId === url.id}
-                onEdit={() => {
-                  setSelectedLink(url);
+          {isLoadingUrls ? (
+            <h1>loading...</h1>
+          ) : (
+            <div className="space-y-4">
+              {urls.map((url) => (
+                <LinkDetails
+                  key={url.id}
+                  short={`https://himtibinus.or.id/${url.shortCode}`}
+                  target={url.originalUrl}
+                  created={url.createdAt}
+                  expires={url.expiresAt ?? null}
+                  isCopied={copiedId === url.id}
+                  onEdit={() => {
+                    setSelectedLink(url);
 
-                  setEditTargetUrl(url.originalUrl);
-                  setEditShortCode(url.shortCode);
-                  setEditExpiryDate(
-                    url.expiresAt ? url.expiresAt.slice(0, 16) : ""
-                  );
+                    setEditTargetUrl(url.originalUrl);
+                    setEditShortCode(url.shortCode);
+                    setEditExpiryDate(
+                      url.expiresAt ? url.expiresAt.slice(0, 16) : "",
+                    );
 
-                  setEditPopup(true);
-                }}
-                onDelete={() => {
-                  // setSelectedLink(link);
-                  setDeletePopup(true);
-                }}
-                onCopy={() => {
-                  navigator.clipboard.writeText(`https://72.62.122.54:8001/${url.shortCode}`);
-                  setCopiedId(url.id);
+                    console.log(url.id);
 
-                  setTimeout(() => {
-                    setCopiedId(null);
-                  }, 1500);
-                }}
-              />
-            ))}
-          </div>
+                    setEditPopup(true);
+                  }}
+                  onDelete={() => {
+                    setSelectedLink(url);
+                    setDeletePopup(true);
+                  }}
+                  onCopy={() => {
+                    navigator.clipboard.writeText(
+                      `http://72.62.122.54:8001/${url.shortCode}`,
+                    );
+                    setCopiedId(url.id);
+
+                    setTimeout(() => {
+                      setCopiedId(null);
+                    }, 1500);
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
-          
+
         {/* EDIT FORM */}
         {showEditPopup && selectedLink && (
           <Popup
-            component={(
+            component={
               <div className="relative bg-white rounded-xl shadow-xl p-6 w-[480px]">
                 <div className="flex flex-col gap-4">
                   <h3 className="text-h5 font-bold">Edit Link</h3>
 
                   <div>
-                    <label className="block text-body-1 mb-1">Target Link</label>
+                    <label className="block text-body-1 mb-1">
+                      Target Link
+                    </label>
                     <input
                       type="text"
                       value={editTargetUrl}
@@ -374,7 +440,11 @@ const UrlShortenerPage = () => {
                       <input
                         type="text"
                         value={editShortCode}
-                        onChange={(e) => setEditShortCode(e.target.value.replace("himtibinus.or.id/", ""))}
+                        onChange={(e) =>
+                          setEditShortCode(
+                            e.target.value.replace("himtibinus.or.id/", ""),
+                          )
+                        }
                         className="flex-1 p-4 outline-none text-body-1"
                       />
                     </div>
@@ -407,32 +477,26 @@ const UrlShortenerPage = () => {
                     <Button
                       text="Save Changes"
                       icon={<FaPlus />}
-                      onClick={() => {
-                        // NNTI INI SAMBUNGIN BACKEND SUBMIT EDIT
-                        setEditPopup(false);
-                        setSelectedLink(null);
-                      }}
+                      onClick={handleSaveEditUrl}
                     />
                   </div>
                 </div>
               </div>
-            )}
+            }
           />
         )}
-        
+
         {/* DELETE POPUP */}
         {showDeletePopup && selectedLink && (
           <Popup
-            component={(
+            component={
               <div className="relative bg-white rounded-xl shadow-xl p-6 w-[420px]">
                 <div className="flex flex-col gap-4">
-                  <h3 className="text-h5 font-bold text-danger">
-                    Delete Link
-                  </h3>
+                  <h3 className="text-h5 font-bold text-danger">Delete Link</h3>
 
                   <p className="text-body-1 text-black/70">
-                    Are you sure you want to delete this link?
-                    This action cannot be undone.
+                    Are you sure you want to delete this link? This action
+                    cannot be undone.
                   </p>
 
                   <div className="border border-black/25 rounded-xl p-4">
@@ -457,19 +521,14 @@ const UrlShortenerPage = () => {
                     <Button
                       text="Delete"
                       type="danger"
-                      onClick={() => {
-                        // NNTI SAMBUNG KE BACKEND DELETE
-                        setDeletePopup(false);
-                        setSelectedLink(null);
-                      }}
+                      onClick={handleDeleteUrl}
                     />
                   </div>
                 </div>
               </div>
-            )}
+            }
           />
         )}
-
       </main>
     </div>
   );

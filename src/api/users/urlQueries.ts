@@ -13,6 +13,13 @@ type urlPayload = {
   expiresAt?: string | null;
 };
 
+type editUrlPayload = {
+  originalUrl: string;
+  shortCode: string;
+  status?: string;
+  expiresAt?: string | null;
+};
+
 
 /**
  * ====================================
@@ -22,7 +29,9 @@ type urlPayload = {
  */
 
 // CREATE NEW SHORTLINK URL
-export const createShortUrl = async (payload: urlPayload) => {
+export const createShortUrl = async (
+  payload: urlPayload
+) => {
   const response = await fetch(
     `${API_BASE_URL}/create-url`,
     {
@@ -68,7 +77,15 @@ export const getUrlList = async () => {
  * ====================================
  */
 
-export const updateUrl = async (payload: urlPayload, id:string) => {
+export const updateUrl = async (
+  payload: editUrlPayload,
+  id: string
+) => {
+  const finalPayload = {
+    status: "a",
+    ...payload,          // payload can override if explicitly passed
+  };
+
   const response = await fetch(
     `${API_BASE_URL}/update-url/${id}`,
     {
@@ -76,7 +93,7 @@ export const updateUrl = async (payload: urlPayload, id:string) => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(finalPayload),
     }
   );
 
@@ -85,4 +102,23 @@ export const updateUrl = async (payload: urlPayload, id:string) => {
   }
 
   return response.json();
-}
+};
+
+export const deleteUrl = async (id: string) => {
+  const response = await fetch(
+    `${API_BASE_URL}/update-url/${id}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status: "d" }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to delete URL");
+  }
+
+  return response.json();
+};
