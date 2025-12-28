@@ -335,6 +335,11 @@ const UrlShortenerPage = () => {
 
           {isLoadingUrls ? (
             <h1>loading...</h1>
+          ) : urls.length === 0 ? (
+            <div className="text-center text-black/25 text-body-1 py-8 space-y-4">
+              <h1 className="text-h3">{`( •_•)>⌐■-■`}</h1>
+              <h2 className="text-h6">Nothing to show here...</h2>
+            </div>
           ) : (
             <div className="space-y-4">
               {urls.map((url) => (
@@ -468,10 +473,10 @@ const UrlShortenerPage = () => {
 
                   <div className="border border-black/25 rounded-xl p-4">
                     <p className="font-bold text-body-1">
-                      {/* {selectedLink.shortUrl} */}
+                      http://72.62.122.54:8001/{selectedLink.shortCode}
                     </p>
                     <p className="text-body-2 text-black/50">
-                      {/* {selectedLink.targetUrl} */}
+                      {selectedLink.originalUrl}
                     </p>
                   </div>
 
