@@ -42,7 +42,7 @@ const UrlShortenerPage = () => {
     expiresAt?: string | null;
   } | null>(null);
 
-  const { data: urlsData, isLoading: isLoadingUrls } = useGetUrlList();
+  const { data: urlsData, isLoading: isLoadingUrls, refetch } = useGetUrlList();
   const createUrl = useCreateUrl();
   const updateUrl = useUpdateUrl();
   const deleteUrl = useDeleteUrl();
@@ -81,8 +81,6 @@ const UrlShortenerPage = () => {
 
     createUrl.mutate(payload, {
       onSuccess: (created) => {
-        console.log("Created:", created);
-
         setCreatedLink({
           shortUrl: created.shortCode ?? shortCode,
           targetUrl: created.originalUrl ?? targetUrl,
@@ -94,6 +92,7 @@ const UrlShortenerPage = () => {
         setTargetUrl("");
         setShortCode("");
         setExpiryDate("");
+        refetch();
       },
       onError: (error) => {
         console.error(error);
@@ -124,6 +123,7 @@ const UrlShortenerPage = () => {
         setEditTargetUrl("");
         setEditShortCode("");
         setEditExpiryDate("");
+        refetch();
       },
       onError: (error) => {
         console.error(error);
@@ -139,6 +139,7 @@ const UrlShortenerPage = () => {
       onSuccess: () => {
         setDeletePopup(false);
         setSelectedLink(null);
+        refetch();
       },
       onError: (error) => {
         console.error(error);
