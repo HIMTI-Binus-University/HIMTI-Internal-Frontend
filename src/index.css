@@ -8,3 +8,288 @@ body {
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Gradient CSS - Login Page */
+@keyframes smoothGradient1 {
+  0% {
+    transform: translate(10%, 10%) scale(1) rotate(0deg);
+    -webkit-transform: translate(10%, 10%) scale(1) rotate(0deg);
+    -moz-transform: translate(10%, 10%) scale(1) rotate(0deg);
+    -ms-transform: translate(10%, 10%) scale(1) rotate(0deg);
+    -o-transform: translate(10%, 10%) scale(1) rotate(0deg);
+  }
+  10% {
+    transform: translate(30%, 20%) scale(1.1) rotate(36deg);
+  }
+  20% {
+    transform: translate(50%, 70%) scale(0.9) rotate(72deg);
+  }
+  30% {
+    transform: translate(80%, 40%) scale(1.05) rotate(108deg);
+  }
+  40% {
+    transform: translate(20%, 50%) scale(0.95) rotate(144deg);
+  }
+  50% {
+    transform: translate(60%, 80%) scale(1.15) rotate(180deg);
+  }
+  60% {
+    transform: translate(25%, 30%) scale(0.85) rotate(216deg);
+  }
+  70% {
+    transform: translate(70%, 15%) scale(1.08) rotate(252deg);
+  }
+  80% {
+    transform: translate(15%, 60%) scale(0.92) rotate(288deg);
+  }
+  90% {
+    transform: translate(80%, 25%) scale(1.12) rotate(324deg);
+  }
+  100% {
+    transform: translate(10%, 10%) scale(1) rotate(360deg);
+  }
+}
+
+@keyframes smoothGradient2 {
+  0% {
+    transform: translate(80%, 20%) scale(1) rotate(0deg);
+  }
+  12.5% {
+    transform: translate(20%, 40%) scale(0.9) rotate(45deg);
+  }
+  25% {
+    transform: translate(60%, 15%) scale(1.2) rotate(90deg);
+  }
+  37.5% {
+    transform: translate(40%, 60%) scale(0.8) rotate(135deg);
+  }
+  50% {
+    transform: translate(80%, 60%) scale(1.1) rotate(180deg);
+  }
+  62.5% {
+    transform: translate(15%, 30%) scale(0.95) rotate(225deg);
+  }
+  75% {
+    transform: translate(50%, 25%) scale(1.05) rotate(270deg);
+  }
+  87.5% {
+    transform: translate(25%, 80%) scale(0.85) rotate(315deg);
+  }
+  100% {
+    transform: translate(80%, 20%) scale(1) rotate(360deg);
+  }
+}
+
+@keyframes smoothGradient3 {
+  0% {
+    transform: translate(30%, 80%) scale(1) rotate(0deg);
+  }
+  14.3% {
+    transform: translate(75%, 70%) scale(1.2) rotate(51deg);
+  }
+  28.6% {
+    transform: translate(15%, 40%) scale(0.8) rotate(103deg);
+  }
+  42.9% {
+    transform: translate(40%, 15%) scale(1.1) rotate(154deg);
+  }
+  57.1% {
+    transform: translate(70%, 85%) scale(0.9) rotate(206deg);
+  }
+  71.4% {
+    transform: translate(90%, 50%) scale(1.05) rotate(257deg);
+  }
+  85.7% {
+    transform: translate(20%, 20%) scale(0.95) rotate(309deg);
+  }
+  100% {
+    transform: translate(30%, 80%) scale(1) rotate(360deg);
+  }
+}
+
+@keyframes smoothGradient4 {
+  0% {
+    transform: translate(60%, 60%) scale(1) rotate(0deg);
+  }
+  11.1% {
+    transform: translate(25%, 90%) scale(1.15) rotate(40deg);
+  }
+  22.2% {
+    transform: translate(85%, 30%) scale(0.85) rotate(80deg);
+  }
+  33.3% {
+    transform: translate(15%, 25%) scale(1.1) rotate(120deg);
+  }
+  44.4% {
+    transform: translate(70%, 40%) scale(0.95) rotate(160deg);
+  }
+  55.6% {
+    transform: translate(40%, 15%) scale(1.05) rotate(200deg);
+  }
+  66.7% {
+    transform: translate(90%, 60%) scale(0.9) rotate(240deg);
+  }
+  77.8% {
+    transform: translate(15%, 75%) scale(1.12) rotate(280deg);
+  }
+  88.9% {
+    transform: translate(50%, 20%) scale(0.88) rotate(320deg);
+  }
+  100% {
+    transform: translate(60%, 60%) scale(1) rotate(360deg);
+  }
+}
+
+@keyframes smoothFloatMorph {
+  0% {
+    transform: translate(50%, 50%) rotate(0deg) scale(1);
+    border-radius: 50%;
+  }
+  8.3% {
+    transform: translate(40%, 35%) rotate(30deg) scale(1.1);
+    border-radius: 60% 40% 50% 50%;
+  }
+  16.7% {
+    transform: translate(65%, 70%) rotate(60deg) scale(0.9);
+    border-radius: 40% 60% 50% 50%;
+  }
+  25% {
+    transform: translate(30%, 70%) rotate(90deg) scale(1.05);
+    border-radius: 50% 50% 40% 60%;
+  }
+  33.3% {
+    transform: translate(75%, 25%) rotate(120deg) scale(0.95);
+    border-radius: 60% 50% 50% 40%;
+  }
+  41.7% {
+    transform: translate(20%, 40%) rotate(150deg) scale(1.08);
+    border-radius: 40% 50% 60% 50%;
+  }
+  50% {
+    transform: translate(60%, 85%) rotate(180deg) scale(0.92);
+    border-radius: 50% 40% 50% 60%;
+  }
+  58.3% {
+    transform: translate(15%, 60%) rotate(210deg) scale(1.12);
+    border-radius: 60% 50% 40% 50%;
+  }
+  66.7% {
+    transform: translate(80%, 20%) rotate(240deg) scale(0.88);
+    border-radius: 50% 60% 50% 40%;
+  }
+  75% {
+    transform: translate(35%, 25%) rotate(270deg) scale(1.03);
+    border-radius: 40% 50% 60% 50%;
+  }
+  83.3% {
+    transform: translate(70%, 65%) rotate(300deg) scale(0.97);
+    border-radius: 50% 40% 50% 60%;
+  }
+  91.7% {
+    transform: translate(25%, 30%) rotate(330deg) scale(1.07);
+    border-radius: 60% 50% 40% 50%;
+  }
+  100% {
+    transform: translate(50%, 50%) rotate(360deg) scale(1);
+    border-radius: 50%;
+  }
+}
+
+@keyframes smoothGradient5 {
+  0% {
+    transform: translate(40%, 30%) scale(1) rotate(0deg);
+  }
+  16.7% {
+    transform: translate(20%, 70%) scale(1.1) rotate(60deg);
+  }
+  33.3% {
+    transform: translate(70%, 15%) scale(0.9) rotate(120deg);
+  }
+  50% {
+    transform: translate(15%, 60%) scale(1.05) rotate(180deg);
+  }
+  66.7% {
+    transform: translate(85%, 75%) scale(0.95) rotate(240deg);
+  }
+  83.3% {
+    transform: translate(50%, 20%) scale(1.08) rotate(300deg);
+  }
+  100% {
+    transform: translate(40%, 30%) scale(1) rotate(360deg);
+  }
+}
+
+@keyframes smoothGradient6 {
+  0% {
+    transform: translate(75%, 45%) scale(1) rotate(0deg);
+  }
+  20% {
+    transform: translate(90%, 25%) scale(0.85) rotate(72deg);
+  }
+  40% {
+    transform: translate(25%, 85%) scale(1.15) rotate(144deg);
+  }
+  60% {
+    transform: translate(60%, 90%) scale(0.9) rotate(216deg);
+  }
+  80% {
+    transform: translate(10%, 20%) scale(1.05) rotate(288deg);
+  }
+  100% {
+    transform: translate(75%, 45%) scale(1) rotate(360deg);
+  }
+}
+
+.animate-smoothGradient1 {
+  animation: smoothGradient1 35s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+}
+
+.animate-smoothGradient2 {
+  animation: smoothGradient2 42s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+}
+
+.animate-smoothGradient3 {
+  animation: smoothGradient3 38s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+}
+
+.animate-smoothGradient4 {
+  animation: smoothGradient4 45s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+}
+
+.animate-smoothFloatMorph {
+  animation: smoothFloatMorph 50s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+}
+
+.animate-smoothGradient5 {
+  animation: smoothGradient5 40s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+}
+
+.animate-smoothGradient6 {
+  animation: smoothGradient6 47s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+}
+
+.animate-smoothGradient1Reverse {
+  animation: smoothGradient1 48s cubic-bezier(0.25, 0.1, 0.25, 1) infinite
+    reverse;
+}
+
+.animate-smoothGradient2Reverse {
+  animation: smoothGradient2 52s cubic-bezier(0.25, 0.1, 0.25, 1) infinite
+    reverse;
+}
+
+.animate-smoothGradient3Reverse {
+  animation: smoothGradient3 44s cubic-bezier(0.25, 0.1, 0.25, 1) infinite
+    reverse;
+}

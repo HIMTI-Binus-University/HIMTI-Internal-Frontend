@@ -1,0 +1,104 @@
+name: Deploy Frontend Dev
+
+on:
+  push:
+    branches: [ "dev" ] 
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Inject Secret Files
+        env:
+          # Kita masukin secret ke Env Var dulu biar aman dari escaping shell
+          VAL_KEYS_DEV: ${{ secrets.FILE_KEYS_DEV }}
+          VAL_API_DEV: ${{ secrets.FILE_API_SERVICE_DEV }}
+        run: |
+          cd src/constants
+          
+          # Gunakan printf, bukan echo, supaya formatting persis sama
+          printf "%s" "$VAL_KEYS_DEV" > keys-dev.ts
+          printf "%s" "$VAL_API_DEV" > api-service-dev.ts
+          
+          # Debug: Cek apakah file ada isinya (tanpa nampilin isinya)
+          echo "Cek ukuran file:"
+          ls -l keys-dev.ts api-service-dev.ts
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: type=raw,value=dev
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cek file di runner
+        run: ls -la
+
+      - name: Copy docker-compose to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "~/dev-himti-internal-frontend"
+
+      - name: Execute remote ssh commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            # Folder Dev
+            mkdir -p ~/dev-himti-internal-frontend
+            cd ~/dev-himti-internal-frontend
+            
+            # Login Docker
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # 👇 SET VARIABEL KHUSUS DEV DI SINI
+            export GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
+            export IMAGE_TAG=dev
+            export FRONTEND_PORT=3000
+            
+            # Pull & Up (Docker akan baca variabel yang di-export di atas)
+            docker compose pull app
+            docker compose up -d
+            
+            docker image prune -f
