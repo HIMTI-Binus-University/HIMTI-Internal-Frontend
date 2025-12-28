@@ -12,7 +12,6 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaSignOutAlt,
-  FaPlusCircle,
   FaUserCircle
 } from "react-icons/fa";
 
@@ -89,13 +88,6 @@ const Sidebar = ({ isOpen, onClose }:SidebarProps) => {
               <div
                 className="absolute bottom-full left-0 mb-2 w-full bg-white rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in duration-150"
               >
-                <button
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  <FaPlusCircle className="text-gray-400" />
-                  Add another account
-                </button>
-
                 <button
                   className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 border-t"
                 >
