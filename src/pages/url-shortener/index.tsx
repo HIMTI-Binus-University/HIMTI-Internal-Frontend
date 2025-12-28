@@ -1,100 +1,185 @@
 import { useState } from "react";
-import { Sidebar, Button } from "@/components/Utils";
+
+import { Sidebar, Button, LinkDetails, Popup } from "@/components/Utils";
+
+import { FaSearch, FaPlus, FaBars, FaRegCopy } from "react-icons/fa";
 
 import {
-  FaChevronDown,
-  FaChevronUp,
-  FaSignOutAlt,
-  FaUserAlt,
-  FaPlusCircle,
-  FaSearch,
-  FaRegCopy,
-  FaPencilAlt,
-  FaTrashAlt,
-  FaPlus,
-} from "react-icons/fa";
-
-import {
-  LinkIconV2,
-  ProfileIcon,
   CalendarIcon,
   ExpiredIcon,
   DownRightIcon,
+  LinkIconV2,
 } from "@/components/icons";
 
-const UrlShortenerPage = () => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [expiryDate, setExpiryDate] = useState("");
+import {
+  useGetUrlList,
+  useCreateUrl,
+  useUpdateUrl,
+  useDeleteUrl,
+} from "@/hooks/url-shortener";
+import type { UrlItem } from "@/types/url-shortener";
 
-  const toggleDropdown = () => {
-    setIsDropdownOpen(!isDropdownOpen);
+const UrlShortenerPage = () => {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [popupCopied, setPopupCopied] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expiryDate, setExpiryDate] = useState("");
+  const [selectedLink, setSelectedLink] = useState<UrlItem | null>(null);
+  const [editTargetUrl, setEditTargetUrl] = useState("");
+  const [editShortCode, setEditShortCode] = useState("");
+  const [editExpiryDate, setEditExpiryDate] = useState("");
+
+  const [showConfirmPopup, setConfirmPopup] = useState(false);
+  const [showDeletePopup, setDeletePopup] = useState(false);
+  const [showEditPopup, setEditPopup] = useState(false);
+
+  const [targetUrl, setTargetUrl] = useState("");
+  const [shortCode, setShortCode] = useState("");
+  const [createdLink, setCreatedLink] = useState<{
+    shortUrl: string;
+    targetUrl: string;
+    createdAt?: string;
+    expiresAt?: string | null;
+  } | null>(null);
+
+  const { data: urlsData, isLoading: isLoadingUrls } = useGetUrlList();
+  const createUrl = useCreateUrl();
+  const updateUrl = useUpdateUrl();
+  const deleteUrl = useDeleteUrl();
+
+  const urls = urlsData?.data || [];
+
+  const normalizeUrl = (input: string): string => {
+    let url = input.trim();
+
+    if (!/^https?:\/\//i.test(url)) {
+      url = `https://${url}`;
+    }
+
+    try {
+      const parsed = new URL(url);
+
+      parsed.hostname = parsed.hostname.replace(/^www\./i, "");
+
+      return parsed.toString();
+    } catch {
+      return url;
+    }
+  };
+
+  const handleCreateLink = () => {
+    if (!targetUrl || !shortCode) {
+      alert("Target URL and Short Code are required");
+      return;
+    }
+
+    const payload = {
+      originalUrl: normalizeUrl(targetUrl),
+      shortCode,
+      expiresAt: expiryDate ? new Date(expiryDate).toISOString() : null,
+    };
+
+    createUrl.mutate(payload, {
+      onSuccess: (created) => {
+        console.log("Created:", created);
+
+        setCreatedLink({
+          shortUrl: created.shortCode ?? shortCode,
+          targetUrl: created.originalUrl ?? targetUrl,
+          createdAt: created.createdAt ?? new Date().toISOString(),
+          expiresAt: created.expiresAt ?? expiryDate,
+        });
+
+        setConfirmPopup(true);
+        setTargetUrl("");
+        setShortCode("");
+        setExpiryDate("");
+      },
+      onError: (error) => {
+        console.error(error);
+        alert("Failed to create short link");
+      },
+    });
+  };
+
+  const handleSaveEditUrl = () => {
+    if (!selectedLink) return;
+
+    if (!editTargetUrl || !editShortCode) {
+      alert("Target URL and Short Code are required");
+      return;
+    }
+
+    const payload = {
+      id: selectedLink.id,
+      originalUrl: normalizeUrl(editTargetUrl),
+      shortCode: editShortCode,
+      expiresAt: editExpiryDate ? new Date(editExpiryDate).toISOString() : null,
+    };
+
+    updateUrl.mutate(payload, {
+      onSuccess: () => {
+        setEditPopup(false);
+        setSelectedLink(null);
+        setEditTargetUrl("");
+        setEditShortCode("");
+        setEditExpiryDate("");
+      },
+      onError: (error) => {
+        console.error(error);
+        alert("Failed to update link");
+      },
+    });
+  };
+
+  const handleDeleteUrl = () => {
+    if (!selectedLink) return;
+
+    deleteUrl.mutate(selectedLink.id, {
+      onSuccess: () => {
+        setDeletePopup(false);
+        setSelectedLink(null);
+      },
+      onError: (error) => {
+        console.error(error);
+        alert("Failed to delete link");
+      },
+    });
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-grayscale-50">
-      <Sidebar />
+    <div className="min-h-screen w-full bg-grayscale-50">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <main className="flex-1 ml-[393px] px-8 py-6 font-sans">
+      <main
+        className="flex-1 ml-[393px] max-xl:ml-0 px-8 py-6 font-sans
+                       max-md:px-4 max-md:py-3"
+      >
         <header className="flex justify-between items-center mb-8 relative">
-          <div className="flex items-center gap-5 p-2">
-            <LinkIconV2 width={80} height={80} />
-            <h2 className="text-h3 font-bold text-black/50 ">URL Shortener</h2>
-          </div>
-
-          <div className="relative">
-            <div
-              onClick={toggleDropdown}
-              className="flex items-center gap-3 cursor-pointer select-none py-2 px-3 rounded-lg hover:bg-grayscale-100 transition-colors"
+          <div className="flex flex-row gap-4">
+            <button
+              className="xl:hidden p-2 rounded-lg hover:bg-grayscale-100"
+              onClick={() => setSidebarOpen(true)}
             >
-              <ProfileIcon width={32} height={32} className="rounded-full" />
+              <FaBars size={24} />
+            </button>
 
-              <div className="text-h6 text-black/50">
-                Logged in as{" "}
-                <span className="font-bold text-black">Daffa Fayyaz</span>
-              </div>
-
-              {isDropdownOpen ? (
-                <FaChevronUp size={12} className="text-gray-500" />
-              ) : (
-                <FaChevronDown size={12} className="text-gray-500" />
-              )}
+            <div className="flex items-center gap-5 p-2">
+              <LinkIconV2
+                width={80}
+                height={80}
+                className="max-xl:w-[60px] max-xl:h-[60px]"
+              />
+              <h2 className="text-h3 max-xl:text-h4 max-xl:font-bold max-lg:text-h5 max-lg:font-bold  font-bold text-black/50 ">
+                URL Shortener
+              </h2>
             </div>
-
-            {/* NOTE: Ini Popup di figma jadi nnti revisi lagi */}
-            {/* NOTE: JANGAN ADA YANG PAKE WARNA SELAIN YANG ADA DI TAILWIND CONFIG */}
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-3 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div className="p-4 flex items-center gap-3 border-b border-gray-50 bg-gray-50/50">
-                  <FaUserAlt
-                    size={35}
-                    className="text-gray-300 p-1 border-2 border-gray-200 rounded-full"
-                  />
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-gray-800">
-                      Daffa Fayyaz
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      daffafayyaz@gmail.com
-                    </span>
-                  </div>
-                </div>
-                <div className="p-2">
-                  <button className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors text-left">
-                    <FaPlusCircle className="text-gray-400" /> Add another
-                    account
-                  </button>
-                  <button className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors text-left font-medium border-t border-gray-50 mt-1">
-                    <FaSignOutAlt /> Sign out of all accounts
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </header>
 
         {/* FORM CREATE LINK */}
         <div className="bg-white rounded-xl shadow p-6 mb-8">
-          <h3 className="text-h6 font-bold mb-6">Create New Link</h3>
+          <h3 className="text-h5 font-bold mb-6">Create New Link</h3>
 
           <div className="space-y-4">
             <div>
@@ -102,21 +187,28 @@ const UrlShortenerPage = () => {
               <input
                 type="text"
                 placeholder="www.youtube.com"
+                value={targetUrl}
+                onChange={(e) => setTargetUrl(e.target.value)}
                 className="w-full border  border-black/25 rounded-xl p-4 outline-none text-body-2"
               />
             </div>
 
-            <div className="gap-4 grid grid-cols-2">
+            <div
+              className="gap-4 grid grid-cols-2
+                            max-xl:flex max-xl:flex-col"
+            >
               <div className="flex-1">
                 <label className="block text-body-1 mb-1">Short Link</label>
 
                 <div className="flex rounded-xl overflow-hidden border border-black/25">
-                  <span className="bg-grayscale-100 text-black/70 text-body1 px-3 flex items-center whitespace-nowrap font-bold">
+                  <span className="bg-grayscale-100 text-black/70 text-body1 px-3 flex items-center whitespace-nowrap font-bold max-md:hidden">
                     https://himtibinus.or.id/
                   </span>
 
                   <input
                     type="text"
+                    value={shortCode}
+                    onChange={(e) => setShortCode(e.target.value)}
                     className="flex-1 p-4  outline-none text-body-2 "
                     placeholder="ReallyCoolVideos"
                   />
@@ -150,78 +242,260 @@ const UrlShortenerPage = () => {
                 />
               </div>
             </div>
-            
-            <Button text="Create Link" icon={<FaPlus/>}></Button>
+
+            <Button
+              text="Create Link"
+              icon={<FaPlus />}
+              onClick={handleCreateLink}
+              loading={createUrl.isPending}
+              disabled={createUrl.isPending}
+            />
           </div>
         </div>
+
+        {/* LINK CREATION CONFIRMATION POPUP */}
+        {showConfirmPopup && createdLink && (
+          <Popup
+            component={
+              <div className="relative bg-white rounded-xl shadow-xl p-5">
+                <div className="flex flex-col gap-4">
+                  <h3 className="text-h5 font-bold">Link Created</h3>
+                  <div className="flex flex-col gap-2 border border-black/25 rounded-xl p-6">
+                    <div className="flex flex-row items-center justify-start gap-4">
+                      <p className="font-bold text-h6">
+                        http://72.62.122.54:8001/{createdLink.shortUrl}
+                      </p>
+                      <button
+                        className="hover:text-primary-600 transition-colors"
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            `http://72.62.122.54:8001/${createdLink.shortUrl}`
+                          );
+                          setPopupCopied(true);
+
+                          setTimeout(() => {
+                            setPopupCopied(false);
+                          }, 1500);
+                        }}
+                      >
+                        {popupCopied ? (
+                          <h6 className="text-body-3">Copied!</h6>
+                        ) : (
+                          <FaRegCopy />
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-body-1">
+                      <DownRightIcon />
+                      <span>{createdLink.targetUrl}</span>
+                    </div>
+
+                    <div className="flex items-center gap-6 text-body-3 text-black/50 mt-2">
+                      <div className="flex items-center gap-1">
+                        <CalendarIcon />
+                        Created on {createdLink.createdAt}
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <ExpiredIcon />
+
+                        {createdLink.expiresAt
+                          ? `Expires on ${createdLink.expiresAt}`
+                          : "Never expires"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => setConfirmPopup(false)}
+                    text="Done"
+                  ></Button>
+                </div>
+              </div>
+            }
+          />
+        )}
+
         {/* CARD URL */}
         <div className="bg-white rounded-xl shadow p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-h6 font-bold">Existing Links</h3>
+            <h3 className="text-h5 font-bold">Existing Links</h3>
           </div>
 
-          <div className="flex gap-3 mb-6"> 
+          <div className="flex gap-3 mb-6">
             <input
               type="text"
               placeholder="Search..."
               className="border outline-none rounded-xl py-3 px-4 border-black/25  w-full text-body-2"
             />
-            <Button text="Search" icon={<FaSearch/>}></Button>
+            <Button text="Search" icon={<FaSearch />}></Button>
           </div>
 
-          <div className="space-y-4">
-            {[1, 2].map((item) => (
-              <div
-                key={item}
-                className="border shadow-sm cursor-pointer border-black/25 rounded-xl p-5 flex justify-between items-start hover:scale-[101%] transition-transform"
-              >
-                <div className="space-y-2">
-                  <p className="font-bold text-h6">
-                    link.himtibinus.or.id/ReallyCoolVideos
-                  </p>
+          {isLoadingUrls ? (
+            <h1>loading...</h1>
+          ) : (
+            <div className="space-y-4">
+              {urls.map((url) => (
+                <LinkDetails
+                  key={url.id}
+                  short={`https://himtibinus.or.id/${url.shortCode}`}
+                  target={url.originalUrl}
+                  created={url.createdAt}
+                  expires={url.expiresAt ?? null}
+                  isCopied={copiedId === url.id}
+                  onEdit={() => {
+                    setSelectedLink(url);
 
-                  <div className="flex font-medium items-center gap-2 text-body-1">
-                    <DownRightIcon />
-                    <span>www.youtube.com</span>
-                  </div>
+                    setEditTargetUrl(url.originalUrl);
+                    setEditShortCode(url.shortCode);
+                    setEditExpiryDate(
+                      url.expiresAt ? url.expiresAt.slice(0, 16) : ""
+                    );
 
-                  <div className="flex items-center gap-6 text-body-3 text-black/50 mt-2">
-                    <div className="flex items-center justify-center gap-1">
-                      <CalendarIcon />
-                      Created on 20 December, 2025
-                    </div>
+                    console.log(url.id);
 
-                    <div className="flex items-center gap-1 text-body-3 text-black/50">
-                      <ExpiredIcon />
-                      Expires on 21 December, 2025, 23:59:59
-                    </div>
-                  </div>
-                </div>
+                    setEditPopup(true);
+                  }}
+                  onDelete={() => {
+                    setSelectedLink(url);
+                    setDeletePopup(true);
+                  }}
+                  onCopy={() => {
+                    navigator.clipboard.writeText(
+                      `http://72.62.122.54:8001/${url.shortCode}`
+                    );
+                    setCopiedId(url.id);
 
-                <div className="flex items-center gap-1 text-gray-400">
-                  <button className="hover:bg-grayscale-100 p-1.5 rounded-md transition-colors">
-                    <FaRegCopy />
-                  </button>
-                  <button className="hover:bg-grayscale-100 p-1.5 rounded-md transition-colors">
-                    <FaPencilAlt />
-                  </button>
-                  <button className="hover:bg-grayscale-100 p-1.5 rounded-md transition-colors">
-                    <FaTrashAlt />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+                    setTimeout(() => {
+                      setCopiedId(null);
+                    }, 1500);
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* NOTE: JANGAN ADA YANG PAKE WARNA SELAIN YANG ADA DI TAILWIND CONFIG */}
-        {/* <div className="border-4 border-dashed border-blue-100 bg-white rounded-2xl h-[65vh] flex flex-col items-center justify-center text-blue-300 gap-4 shadow-inner">
-          <h3 className="text-2xl font-black uppercase tracking-widest">
-            Area Form & List
-          </h3>
-          <p className="text-blue-200 font-medium italic">untuk form</p>
-        </div> */}
+        {/* EDIT FORM */}
+        {showEditPopup && selectedLink && (
+          <Popup
+            component={
+              <div className="relative bg-white rounded-xl shadow-xl p-6 w-[480px]">
+                <div className="flex flex-col gap-4">
+                  <h3 className="text-h5 font-bold">Edit Link</h3>
+
+                  <div>
+                    <label className="block text-body-1 mb-1">
+                      Target Link
+                    </label>
+                    <input
+                      type="text"
+                      value={editTargetUrl}
+                      onChange={(e) => setEditTargetUrl(e.target.value)}
+                      className="w-full border border-black/25 rounded-xl p-4 outline-none text-body-1"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-body-1 mb-1">Short Link</label>
+                    <div className="flex rounded-xl overflow-hidden border border-black/25">
+                      <span className="bg-grayscale-100 px-3 flex items-center font-bold max-md:hidden">
+                        https://himtibinus.or.id/
+                      </span>
+                      <input
+                        type="text"
+                        value={editShortCode}
+                        onChange={(e) =>
+                          setEditShortCode(
+                            e.target.value.replace("himtibinus.or.id/", "")
+                          )
+                        }
+                        className="flex-1 p-4 outline-none text-body-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-body-1 mb-1">
+                      Link Expiry Date
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={editExpiryDate}
+                      onChange={(e) => setEditExpiryDate(e.target.value)}
+                      className="w-full border border-black/25 rounded-xl p-4 outline-none text-body-1"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button
+                      text="Cancel"
+                      onClick={() => {
+                        setEditPopup(false);
+                        setSelectedLink(null);
+                        setEditTargetUrl("");
+                        setEditShortCode("");
+                        setEditExpiryDate("");
+                      }}
+                      type="danger"
+                    />
+                    <Button
+                      text="Save Changes"
+                      icon={<FaPlus />}
+                      onClick={handleSaveEditUrl}
+                    />
+                  </div>
+                </div>
+              </div>
+            }
+          />
+        )}
+
+        {/* DELETE POPUP */}
+        {showDeletePopup && selectedLink && (
+          <Popup
+            component={
+              <div className="relative bg-white rounded-xl shadow-xl p-6 w-[420px]">
+                <div className="flex flex-col gap-4">
+                  <h3 className="text-h5 font-bold text-danger">Delete Link</h3>
+
+                  <p className="text-body-1 text-black/70">
+                    Are you sure you want to delete this link? This action
+                    cannot be undone.
+                  </p>
+
+                  <div className="border border-black/25 rounded-xl p-4">
+                    <p className="font-bold text-body-1">
+                      {/* {selectedLink.shortUrl} */}
+                    </p>
+                    <p className="text-body-2 text-black/50">
+                      {/* {selectedLink.targetUrl} */}
+                    </p>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button
+                      text="Cancel"
+                      type="warning"
+                      onClick={() => {
+                        setDeletePopup(false);
+                        setSelectedLink(null);
+                      }}
+                    />
+
+                    <Button
+                      text="Delete"
+                      type="danger"
+                      onClick={handleDeleteUrl}
+                    />
+                  </div>
+                </div>
+              </div>
+            }
+          />
+        )}
       </main>
     </div>
   );

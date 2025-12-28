@@ -28,6 +28,16 @@ export default {
           800: "#676767",
           900: "#4f4f4f",
         },
+        danger: {
+          400: "#e36a6a",
+          500: "#d14545",
+          600: "#b83a3a",
+        },
+        warning: {
+          400: "#f5c84d",
+          500: "#efb100",
+          600: "#d39b00",
+        },
       },
       fontFamily: {
         sans: ["Public Sans", "sans-serif"],

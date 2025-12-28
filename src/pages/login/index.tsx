@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { GoogleLogo } from "@/components/icons/GoogleLogo";
 import HimtiLogo from "@/components/icons/HimtiLogo";
-import { useLoginWithGoogle } from "@/hooks/auth-user/query";
+import { useLoginWithGoogle } from "@/api/auth/queries";
 
 const TypingHelloAnimation = () => {
   const greetings = [
