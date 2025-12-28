@@ -3,8 +3,9 @@
  *
  * Default export untuk development
  * Ganti import sesuai environment:
- * - Local: ./keys-local
+ * - Dev Local: ./keys-dev-local
  * - Dev: ./keys-dev
+ * - Prod: ./keys-prod
  */
 
-export { default } from './keys-local'
+export { default } from "./keys-prod";

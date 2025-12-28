@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 import { Sidebar, Button, LinkDetails, Popup } from "@/components/Utils";
 
@@ -11,25 +11,13 @@ import {
   LinkIconV2,
 } from "@/components/icons";
 
-// FUNCTION IMPORTS
 import {
-  createShortUrl,
-  getUrlList,
-  updateUrl,
-  deleteUrl,
-} from "@/api/users/urlQueries";
-
-type UrlItem = {
-  id: string;
-  shortCode: string;
-  originalUrl: string;
-  expiresAt: string | null;
-  status: string;
-  createdAt: string;
-  createdBy: string;
-  updatedAt: string;
-  updatedBy: string | null;
-};
+  useGetUrlList,
+  useCreateUrl,
+  useUpdateUrl,
+  useDeleteUrl,
+} from "@/hooks/url-shortener";
+import type { UrlItem } from "@/types/url-shortener";
 
 const UrlShortenerPage = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -41,15 +29,12 @@ const UrlShortenerPage = () => {
   const [editShortCode, setEditShortCode] = useState("");
   const [editExpiryDate, setEditExpiryDate] = useState("");
 
-  // POPUPS
   const [showConfirmPopup, setConfirmPopup] = useState(false);
   const [showDeletePopup, setDeletePopup] = useState(false);
   const [showEditPopup, setEditPopup] = useState(false);
 
-  // BACKEND OEPRATIONAL VARIABLES
   const [targetUrl, setTargetUrl] = useState("");
   const [shortCode, setShortCode] = useState("");
-  const [urls, setUrls] = useState<UrlItem[]>([]);
   const [createdLink, setCreatedLink] = useState<{
     shortUrl: string;
     targetUrl: string;
@@ -57,9 +42,12 @@ const UrlShortenerPage = () => {
     expiresAt?: string | null;
   } | null>(null);
 
-  //BACKEND LOADING VARIABLES
-  const [isCreating, setIsCreating] = useState(false);
-  const [isLoadingUrls, setIsLoadingUrls] = useState(false);
+  const { data: urlsData, isLoading: isLoadingUrls } = useGetUrlList();
+  const createUrl = useCreateUrl();
+  const updateUrl = useUpdateUrl();
+  const deleteUrl = useDeleteUrl();
+
+  const urls = urlsData?.data || [];
 
   const normalizeUrl = (input: string): string => {
     let url = input.trim();
@@ -79,66 +67,42 @@ const UrlShortenerPage = () => {
     }
   };
 
-  const handleCreateLink = async () => {
+  const handleCreateLink = () => {
     if (!targetUrl || !shortCode) {
       alert("Target URL and Short Code are required");
       return;
     }
 
-    try {
-      setIsCreating(true);
+    const payload = {
+      originalUrl: normalizeUrl(targetUrl),
+      shortCode,
+      expiresAt: expiryDate ? new Date(expiryDate).toISOString() : null,
+    };
 
-      const payload: {
-        originalUrl: string;
-        shortCode: string;
-        expiresAt?: string;
-      } = {
-        originalUrl: normalizeUrl(targetUrl),
-        shortCode,
-      };
+    createUrl.mutate(payload, {
+      onSuccess: (created) => {
+        console.log("Created:", created);
 
-      if (expiryDate) {
-        payload.expiresAt = new Date(expiryDate).toISOString();
-      }
+        setCreatedLink({
+          shortUrl: created.shortCode ?? shortCode,
+          targetUrl: created.originalUrl ?? targetUrl,
+          createdAt: created.createdAt ?? new Date().toISOString(),
+          expiresAt: created.expiresAt ?? expiryDate,
+        });
 
-      const created = await createShortUrl(payload);
-
-      console.log("Created:", created);
-
-      setCreatedLink({
-        shortUrl: created.shortUrl ?? shortCode,
-        targetUrl: created.originalUrl ?? targetUrl,
-        createdAt: created.createdAt ?? new Date().toISOString(),
-        expiresAt: created.expiresAt ?? expiryDate,
-      });
-
-      setConfirmPopup(true);
-
-      setTargetUrl("");
-      setShortCode("");
-      setExpiryDate("");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to create short link");
-    } finally {
-      setIsCreating(false);
-    }
+        setConfirmPopup(true);
+        setTargetUrl("");
+        setShortCode("");
+        setExpiryDate("");
+      },
+      onError: (error) => {
+        console.error(error);
+        alert("Failed to create short link");
+      },
+    });
   };
 
-  const handleGetUrlList = async () => {
-    try {
-      setIsLoadingUrls(true);
-      const res = await getUrlList();
-      setUrls(res.data);
-    } catch (error) {
-      console.error(error);
-      alert("Failed to fetch url list");
-    } finally {
-      setIsLoadingUrls(false);
-    }
-  };
-
-  const handleSaveEditUrl = async () => {
+  const handleSaveEditUrl = () => {
     if (!selectedLink) return;
 
     if (!editTargetUrl || !editShortCode) {
@@ -146,49 +110,42 @@ const UrlShortenerPage = () => {
       return;
     }
 
-    try {
-      const payload = {
-        originalUrl: normalizeUrl(editTargetUrl),
-        shortCode: editShortCode,
-        expiresAt: editExpiryDate
-          ? new Date(editExpiryDate).toISOString()
-          : null,
-      };
+    const payload = {
+      id: selectedLink.id,
+      originalUrl: normalizeUrl(editTargetUrl),
+      shortCode: editShortCode,
+      expiresAt: editExpiryDate ? new Date(editExpiryDate).toISOString() : null,
+    };
 
-      await updateUrl(payload, selectedLink.id);
-
-      await handleGetUrlList();
-
-      setEditPopup(false);
-      setSelectedLink(null);
-      setEditTargetUrl("");
-      setEditShortCode("");
-      setEditExpiryDate("");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to update link");
-    }
+    updateUrl.mutate(payload, {
+      onSuccess: () => {
+        setEditPopup(false);
+        setSelectedLink(null);
+        setEditTargetUrl("");
+        setEditShortCode("");
+        setEditExpiryDate("");
+      },
+      onError: (error) => {
+        console.error(error);
+        alert("Failed to update link");
+      },
+    });
   };
 
-  const handleDeleteUrl = async () => {
+  const handleDeleteUrl = () => {
     if (!selectedLink) return;
 
-    try {
-      await deleteUrl(selectedLink.id);
-
-      await handleGetUrlList();
-
-      setDeletePopup(false);
-      setSelectedLink(null);
-    } catch (error) {
-      console.error(error);
-      alert("Failed to delete link");
-    }
+    deleteUrl.mutate(selectedLink.id, {
+      onSuccess: () => {
+        setDeletePopup(false);
+        setSelectedLink(null);
+      },
+      onError: (error) => {
+        console.error(error);
+        alert("Failed to delete link");
+      },
+    });
   };
-
-  useEffect(() => {
-    handleGetUrlList();
-  }, []);
 
   return (
     <div className="min-h-screen w-full bg-grayscale-50">
@@ -232,7 +189,7 @@ const UrlShortenerPage = () => {
                 placeholder="www.youtube.com"
                 value={targetUrl}
                 onChange={(e) => setTargetUrl(e.target.value)}
-                className="w-full border  border-black/25 rounded-xl p-4 outline-none text-body-1"
+                className="w-full border  border-black/25 rounded-xl p-4 outline-none text-body-2"
               />
             </div>
 
@@ -252,7 +209,7 @@ const UrlShortenerPage = () => {
                     type="text"
                     value={shortCode}
                     onChange={(e) => setShortCode(e.target.value)}
-                    className="flex-1 p-4  outline-none text-body-1 "
+                    className="flex-1 p-4  outline-none text-body-2 "
                     placeholder="ReallyCoolVideos"
                   />
                 </div>
@@ -262,16 +219,26 @@ const UrlShortenerPage = () => {
                 <label className="block text-body-1 mb-1">
                   Link Expiry Date{" "}
                   <span className="text-body-2 text-black/50">
-                    (leave blank if doesn’t expire.)
+                    (leave blank if it doesn't need an expiry date)
                   </span>
                 </label>
                 <input
                   type="datetime-local"
                   value={expiryDate}
                   onChange={(e) => setExpiryDate(e.target.value)}
+                  placeholder="DD/MM/YYYY HH:MM:SS"
                   className={`w-full border border-black/25 ${
                     expiryDate ? "text-black" : "text-black/25"
-                  } outline-none rounded-xl p-4 text-body-1`}
+                  } outline-none rounded-xl p-4 text-body-2 [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
+                  onClick={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    const rect = target.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const iconWidth = 40;
+                    if (clickX < rect.width - iconWidth) {
+                      e.preventDefault();
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -280,8 +247,8 @@ const UrlShortenerPage = () => {
               text="Create Link"
               icon={<FaPlus />}
               onClick={handleCreateLink}
-              loading={isCreating}
-              disabled={isCreating}
+              loading={createUrl.isPending}
+              disabled={createUrl.isPending}
             />
           </div>
         </div>
@@ -302,7 +269,7 @@ const UrlShortenerPage = () => {
                         className="hover:text-primary-600 transition-colors"
                         onClick={() => {
                           navigator.clipboard.writeText(
-                            `http://72.62.122.54:8001/${createdLink.shortUrl}`,
+                            `http://72.62.122.54:8001/${createdLink.shortUrl}`
                           );
                           setPopupCopied(true);
 
@@ -361,7 +328,7 @@ const UrlShortenerPage = () => {
             <input
               type="text"
               placeholder="Search..."
-              className="border outline-none rounded-xl py-3 px-4 border-black/25  w-full text-body-1"
+              className="border outline-none rounded-xl py-3 px-4 border-black/25  w-full text-body-2"
             />
             <Button text="Search" icon={<FaSearch />}></Button>
           </div>
@@ -384,7 +351,7 @@ const UrlShortenerPage = () => {
                     setEditTargetUrl(url.originalUrl);
                     setEditShortCode(url.shortCode);
                     setEditExpiryDate(
-                      url.expiresAt ? url.expiresAt.slice(0, 16) : "",
+                      url.expiresAt ? url.expiresAt.slice(0, 16) : ""
                     );
 
                     console.log(url.id);
@@ -397,7 +364,7 @@ const UrlShortenerPage = () => {
                   }}
                   onCopy={() => {
                     navigator.clipboard.writeText(
-                      `http://72.62.122.54:8001/${url.shortCode}`,
+                      `http://72.62.122.54:8001/${url.shortCode}`
                     );
                     setCopiedId(url.id);
 
@@ -442,7 +409,7 @@ const UrlShortenerPage = () => {
                         value={editShortCode}
                         onChange={(e) =>
                           setEditShortCode(
-                            e.target.value.replace("himtibinus.or.id/", ""),
+                            e.target.value.replace("himtibinus.or.id/", "")
                           )
                         }
                         className="flex-1 p-4 outline-none text-body-1"
