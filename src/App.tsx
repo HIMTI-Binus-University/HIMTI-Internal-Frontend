@@ -1,5 +1,5 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import { publicRoutes } from './config/routes'
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { publicRoutes } from "./config/routes";
 
 function App() {
   return (
@@ -21,7 +21,7 @@ function App() {
                   />
                 ))}
               </Route>
-            )
+            );
           }
           return (
             <Route
@@ -29,11 +29,11 @@ function App() {
               element={<route.component />}
               key={route.key}
             />
-          )
+          );
         })}
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;
