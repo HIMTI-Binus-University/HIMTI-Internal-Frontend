@@ -1,0 +1,10 @@
+services:
+  app: 
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/himti_frontend:${IMAGE_TAG}
+    
+    container_name: himti_frontend_${IMAGE_TAG} 
+    restart: always
+    
+    ports:
+      - "${FRONTEND_PORT}:80" # Mapping port dinamis (Dev:3000, Prod:80)
+

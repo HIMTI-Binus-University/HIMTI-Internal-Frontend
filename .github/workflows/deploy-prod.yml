@@ -1,0 +1,97 @@
+name: Deploy Frontend Production
+
+on:
+  push:
+    branches: [ "prod" ] 
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Inject Secret Files (Production)
+        run: |
+          cd src/constants
+          
+          echo "${{ secrets.FILE_KEYS_PROD }}" > keys-prod.ts
+          echo "${{ secrets.FILE_API_SERVICE_PROD }}" > api-service-prod.ts
+          
+          ls -la
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest 
+            # Tag 'latest' untuk production
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VITE_API_URL=http://72.62.122.54:8000
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 1. Copy docker-compose ke folder PROD di VPS
+      - name: Copy docker-compose to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "~/prod-himti-internal-frontend" # Folder beda dengan dev
+
+      # 2. Login SSH & Restart Container
+- name: Execute remote ssh commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            mkdir -p ~/prod-himti-internal-frontend
+            cd ~/prod-himti-internal-frontend
+            
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            export GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
+            export IMAGE_TAG=latest
+            export FRONTEND_PORT=80  
+            # (Pake port 80 biar bisa diakses langsung tanpa port di browser)
+            
+            # Pull & Up
+            docker compose pull app
+            docker compose up -d
+            
+            docker image prune -f
