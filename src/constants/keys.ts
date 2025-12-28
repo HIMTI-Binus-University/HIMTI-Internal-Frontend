@@ -8,4 +8,4 @@
  * - Prod: ./keys-prod
  */
 
-export { default } from "./keys-prod";
+export { default } from "./keys-dev";
