@@ -19,15 +19,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create Secret Files
+      - name: Inject Secret Files
+        env:
+          # Kita masukin secret ke Env Var dulu biar aman dari escaping shell
+          VAL_KEYS_DEV: ${{ secrets.FILE_KEYS_DEV }}
+          VAL_API_DEV: ${{ secrets.FILE_API_SERVICE_DEV }}
         run: |
           cd src/constants
           
-          # tulis secret
-          echo "${{ secrets.FILE_KEYS_DEV }}" > keys-dev.ts
-          echo "${{ secrets.FILE_API_SERVICE_DEV }}" > api-service-dev.ts
+          # Gunakan printf, bukan echo, supaya formatting persis sama
+          printf "%s" "$VAL_KEYS_DEV" > keys-dev.ts
+          printf "%s" "$VAL_API_DEV" > api-service-dev.ts
           
-          ls -la
+          # Debug: Cek apakah file ada isinya (tanpa nampilin isinya)
+          echo "Cek ukuran file:"
+          ls -l keys-dev.ts api-service-dev.ts
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
