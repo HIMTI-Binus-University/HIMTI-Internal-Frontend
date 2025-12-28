@@ -90,32 +90,6 @@ const UrlShortenerPage = () => {
           expiresAt: created.expiresAt ?? expiryDate,
         });
 
-<<<<<<< HEAD
-      const created = await createShortUrl(payload);
-
-      console.log("Created:", created);
-      
-      await handleGetUrlList();
-
-      setCreatedLink({
-        shortUrl: created.shortUrl ?? shortCode,
-        targetUrl: created.originalUrl ?? targetUrl,
-        createdAt: created.createdAt ?? new Date().toISOString(),
-        expiresAt: created.expiresAt ?? expiryDate,
-      });
-
-      setConfirmPopup(true);
-
-      setTargetUrl("");
-      setShortCode("");
-      setExpiryDate("");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to create short link");
-    } finally {
-      setIsCreating(false);
-    }
-=======
         setConfirmPopup(true);
         setTargetUrl("");
         setShortCode("");
@@ -126,7 +100,6 @@ const UrlShortenerPage = () => {
         alert("Failed to create short link");
       },
     });
->>>>>>> c43f428ff97e09f1fb40cc159889555a8d80e72d
   };
 
   const handleSaveEditUrl = () => {
@@ -137,36 +110,6 @@ const UrlShortenerPage = () => {
       return;
     }
 
-<<<<<<< HEAD
-    try {
-      const payload: {
-        originalUrl: string;
-        shortCode: string;
-        expiresAt?: string;
-      } = {
-        originalUrl: normalizeUrl(editTargetUrl),
-        shortCode: editShortCode,
-      };
-
-      // ONLY include expiresAt if user sets it
-      if (editExpiryDate) {
-        payload.expiresAt = new Date(editExpiryDate).toISOString();
-      }
-
-      await updateUrl(payload, selectedLink.id);
-
-      await handleGetUrlList();
-
-      setEditPopup(false);
-      setSelectedLink(null);
-      setEditTargetUrl("");
-      setEditShortCode("");
-      setEditExpiryDate("");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to update link");
-    }
-=======
     const payload = {
       id: selectedLink.id,
       originalUrl: normalizeUrl(editTargetUrl),
@@ -187,7 +130,6 @@ const UrlShortenerPage = () => {
         alert("Failed to update link");
       },
     });
->>>>>>> c43f428ff97e09f1fb40cc159889555a8d80e72d
   };
 
   const handleDeleteUrl = () => {
