@@ -62,6 +62,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cek file di runner
+        run: ls -la
+
       - name: Copy docker-compose to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
