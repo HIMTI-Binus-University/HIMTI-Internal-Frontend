@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { GoogleLogo } from "@/components/icons/GoogleLogo";
-import HimtiLogo from "@/components/icons/HimtiLogo";
+import HimtiLogov2 from "@/components/icons/HimtiLogov2";
 import { useLoginWithGoogle } from "@/api/auth/queries";
 
 const TypingHelloAnimation = () => {
@@ -78,8 +78,8 @@ export const LoginPage = () => {
       <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8  py-8">
         <div className="bg-white max-w-xs w-full py-8 px-10 rounded-sm">
           <div className="mb-6 flex items-center flex-col">
-            <div className="w-16 flex items-center mb-6">
-              <HimtiLogo width={64} height={75} className="bg-red" />
+            <div className="w-16 flex items-center mb-2">
+              <HimtiLogov2 width={64} height={75} className="bg-red" />
             </div>
           </div>
 
@@ -109,7 +109,7 @@ export const LoginPage = () => {
           <div className="flex items-center text-grayscale-700 justify-center gap-1 text-center text-sm font-normal mt-6">
             <span className="">Can't sign in?</span>
             <a
-              href="https://teams.microsoft.com/l/chat/0/0?users=abraham.sudjatmoko@binus.edu"
+              href="https://wa.me/6285716303865"
               target="_blank"
               rel="noopener noreferrer"
               className="underline font-bold"
