@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { GoogleLogo } from "@/components/icons/GoogleLogo";
 import HimtiLogov2 from "@/components/icons/HimtiLogov2";
-import { useLoginWithGoogle } from "@/api/auth/queries";
+import { authClient } from "@/utils/auth-client";
 
 const TypingHelloAnimation = () => {
   const greetings = [
@@ -56,21 +56,32 @@ const TypingHelloAnimation = () => {
 };
 
 export const LoginPage = () => {
-  const loginWithGoogle = useLoginWithGoogle();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleGoogleLogin = () => {
-    loginWithGoogle.mutate({
-      provider: "google",
-      callbackURL: window.location.origin,
-    });
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+
+    await authClient.signIn.social(
+      {
+        provider: "google",
+        callbackURL: window.location.origin,
+      },
+      {
+        onSuccess: () => {
+          setIsLoading(false);
+        },
+        onError: (ctx) => {
+          alert(ctx.error.message);
+          setIsLoading(false);
+        },
+      },
+    );
   };
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* GRADIENT */}
       <div className="absolute inset-0 overflow-hidden bg-gradient-to-r from-primary-500 to-primary-800 h-full">
         <div className="z-10 flex h-full flex-col items-center justify-center space-y-4"></div>
-
         <div className="absolute -top-0 right-0 h-[800px] w-[800px] blur-[100px] rounded-full bg-grayscale-50/30  animate-smoothGradient1"></div>
       </div>
 
@@ -94,18 +105,26 @@ export const LoginPage = () => {
           </p>
 
           <button
-            className="w-full flex items-center  justify-center  bg-[#F5F5F5] text-[#8F8F8F] hover:text-white px-4 py-2 rounded-sm hover:bg-primary-500 transition duration-200"
+            className="w-full flex items-center  justify-center  bg-[#F5F5F5] text-[#8F8F8F] hover:text-white px-4 py-2 rounded-sm hover:bg-primary-500 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleGoogleLogin}
+            disabled={isLoading}
           >
-            <div className="w-5 h-5">
-              <GoogleLogo />
-            </div>
-            <div className="w-3"></div>
-            <span className="text-base font-bold hidden sm:inline">
-              Sign in with Google
-            </span>
-            <span className="text-base font-bold sm:hidden">Sign in</span>
+            {isLoading ? (
+              <span className="text-base font-bold">Loading...</span>
+            ) : (
+              <>
+                <div className="w-5 h-5">
+                  <GoogleLogo />
+                </div>
+                <div className="w-3"></div>
+                <span className="text-base font-bold hidden sm:inline">
+                  Sign in with Google
+                </span>
+                <span className="text-base font-bold sm:hidden">Sign in</span>
+              </>
+            )}
           </button>
+
           <div className="flex items-center text-grayscale-700 justify-center gap-1 text-center text-sm font-normal mt-6">
             <span className="">Can't sign in?</span>
             <a
@@ -118,6 +137,7 @@ export const LoginPage = () => {
             </a>
           </div>
         </div>
+
         {/* Footer */}
         <div className="relative z-10 text-center text-white text-sm pt-12">
           <h1 className="text-xs -bottom-0 sm:text-md sm:-bottom-5 -right-48 absolute w-96">
