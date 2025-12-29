@@ -270,7 +270,7 @@ const UrlShortenerPage = () => {
                         className="hover:text-primary-600 transition-colors"
                         onClick={() => {
                           navigator.clipboard.writeText(
-                            `http://72.62.122.54:8001/${createdLink.shortUrl}`
+                            `http://72.62.122.54:8001/${createdLink.shortUrl}`,
                           );
                           setPopupCopied(true);
 
@@ -357,7 +357,7 @@ const UrlShortenerPage = () => {
                     setEditTargetUrl(url.originalUrl);
                     setEditShortCode(url.shortCode);
                     setEditExpiryDate(
-                      url.expiresAt ? url.expiresAt.slice(0, 16) : ""
+                      url.expiresAt ? url.expiresAt.slice(0, 16) : "",
                     );
 
                     console.log(url.id);
@@ -370,7 +370,7 @@ const UrlShortenerPage = () => {
                   }}
                   onCopy={() => {
                     navigator.clipboard.writeText(
-                      `http://72.62.122.54:8001/${url.shortCode}`
+                      `http://72.62.122.54:8001/${url.shortCode}`,
                     );
                     setCopiedId(url.id);
 
@@ -415,7 +415,7 @@ const UrlShortenerPage = () => {
                         value={editShortCode}
                         onChange={(e) =>
                           setEditShortCode(
-                            e.target.value.replace("himtibinus.or.id/", "")
+                            e.target.value.replace("himtibinus.or.id/", ""),
                           )
                         }
                         className="flex-1 p-4 outline-none text-body-1"
