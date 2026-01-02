@@ -21,7 +21,6 @@ jobs:
 
       - name: Inject Secret Files
         env:
-          # Kita masukin secret ke Env Var dulu biar aman dari escaping shell
           VAL_KEYS_DEV: ${{ secrets.FILE_KEYS_DEV }}
           VAL_API_DEV: ${{ secrets.FILE_API_SERVICE_DEV }}
         run: |
@@ -92,7 +91,6 @@ jobs:
             # Login Docker
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # 👇 SET VARIABEL KHUSUS DEV DI SINI
             export GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
             export IMAGE_TAG=dev
             export FRONTEND_PORT=3000
