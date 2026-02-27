@@ -28,7 +28,7 @@ jobs:
         run: |
           printf "%s\n" "$ENV_CONTENT" > .env
           
-          echo "✅ File .env berhasil di-generate!"
+          echo ".env file successfully injected!"
           ls -l .env
 
       - name: Install Dependencies
