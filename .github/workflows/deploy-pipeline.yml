@@ -1,0 +1,97 @@
+name: Frontend CI/CD to cPanel
+
+on:
+  push:
+    branches: [ "dev", "main" ]
+
+jobs:
+  # ============================================
+  # JOB 1: BUILD & UPLOAD ARTIFACT
+  # ============================================
+  build:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Generate .env File
+        env:
+          # Ambil full text .env berdasarkan branch
+          ENV_CONTENT: ${{ github.ref == 'refs/heads/main' && secrets.ENV_PROD || secrets.ENV_DEV }}
+        run: |
+          printf "%s\n" "$ENV_CONTENT" > .env
+          
+          echo "✅ File .env berhasil di-generate!"
+          ls -l .env
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Application
+        run: npm run build
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist-${{ github.ref_name }}
+          path: dist/
+          retention-days: 1
+
+  # ============================================
+  # JOB 2: DEPLOY TO DEV
+  # ============================================
+  deploy-dev:
+    name: Deploy to DEV
+    needs: build
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-dev
+          path: ./dist-dev
+
+      - name: Deploy to cPanel (DEV)
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USERNAME }}
+          key: ${{ secrets.SSH_KEY_CPANEL }}
+          port: 22
+          source: "./dist-dev/*"
+          target: "/home/himtibin/public_html/_HIMTI_2026/DEV_HIMTI_CORE_FRONTEND/" 
+          strip_components: 1
+
+  # ============================================
+  # JOB 3: DEPLOY TO PROD
+  # ============================================
+  deploy-prod:
+    name: Deploy to PROD
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-main
+          path: ./dist-prod
+
+      - name: Deploy to cPanel (PROD)
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USERNAME }}
+          key: ${{ secrets.SSH_KEY_CPANEL }}
+          port: 22
+          source: "./dist-prod/*"
+          target: "/home/himtibin/public_html/_HIMTI_2026/HIMTI_CORE_FRONTEND"
+          strip_components: 1

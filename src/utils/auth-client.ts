@@ -1,7 +1,7 @@
 // src/lib/auth-client.ts
 import { createAuthClient } from "better-auth/client";
-import { ApiService } from "@/constants/api-service-dev";
+import { API_URL } from "@/constants/api-service";
 
 export const authClient = createAuthClient({
-  baseURL: ApiService.baseURL,
+  baseURL: API_URL,
 });
