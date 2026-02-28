@@ -26,7 +26,7 @@ export const useGetUrlList = () => {
 };
 
 export const useMutationCreateUrl = (
-  options?: UseMutationOptions<UrlItem, AxiosError, CreateUrlPayload>
+  options?: UseMutationOptions<UrlItem, AxiosError, CreateUrlPayload>,
 ) => {
   const queryClient = useQueryClient();
 
@@ -41,7 +41,7 @@ export const useMutationCreateUrl = (
 };
 
 export const useMutationUpdateUrl = (
-  options?: UseMutationOptions<UrlItem, AxiosError, UpdateUrlPayload>
+  options?: UseMutationOptions<UrlItem, AxiosError, UpdateUrlPayload>,
 ) => {
   const queryClient = useQueryClient();
 
@@ -66,7 +66,7 @@ export const useMutationUpdateUrl = (
 
 // Soft delete - sets status to 'd' (deleted)
 export const useMutationDeleteUrl = (
-  options?: UseMutationOptions<UrlItem, AxiosError, string>
+  options?: UseMutationOptions<UrlItem, AxiosError, string>,
 ) => {
   const queryClient = useQueryClient();
 
