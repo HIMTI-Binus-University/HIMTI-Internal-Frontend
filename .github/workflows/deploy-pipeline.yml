@@ -70,6 +70,29 @@ jobs:
           target: "/home/himtibin/public_html/_HIMTI2026/DEV_HIMTI_CORE_FRONTEND/" 
           strip_components: 1
 
+      - name: Inject .htaccess for React Router
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USERNAME }}
+          key: ${{ secrets.SSH_KEY_CPANEL }}
+          port: 22
+          script: |
+            TARGET_DIR="/home/himtibin/public_html/_HIMTI2026/DEV_HIMTI_CORE_FRONTEND"
+            
+            # Membuat file .htaccess langsung di dalam folder target DEV
+            cat << 'EOF' > $TARGET_DIR/.htaccess
+            <IfModule mod_rewrite.c>
+              RewriteEngine On
+              RewriteBase /
+              RewriteCond %{REQUEST_FILENAME} !-f
+              RewriteCond %{REQUEST_FILENAME} !-d
+              RewriteRule ^.*$ /index.html [QSA,L]
+            </IfModule>
+            EOF
+            
+            echo ".htaccess successfully injected to $TARGET_DIR"
+
   # ============================================
   # JOB 3: DEPLOY TO PROD
   # ============================================
@@ -95,3 +118,26 @@ jobs:
           source: "dist-prod"
           target: "/home/himtibin/public_html/_HIMTI2026/HIMTI_CORE_FRONTEND/"
           strip_components: 1 
+
+      - name: Inject .htaccess for React Router
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USERNAME }}
+          key: ${{ secrets.SSH_KEY_CPANEL }}
+          port: 22
+          script: |
+            TARGET_DIR="/home/himtibin/public_html/_HIMTI2026/HIMTI_CORE_FRONTEND"
+            
+            # Membuat file .htaccess langsung di dalam folder target PROD
+            cat << 'EOF' > $TARGET_DIR/.htaccess
+            <IfModule mod_rewrite.c>
+              RewriteEngine On
+              RewriteBase /
+              RewriteCond %{REQUEST_FILENAME} !-f
+              RewriteCond %{REQUEST_FILENAME} !-d
+              RewriteRule ^.*$ /index.html [QSA,L]
+            </IfModule>
+            EOF
+            
+            echo ".htaccess successfully injected to $TARGET_DIR"
