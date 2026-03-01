@@ -67,7 +67,7 @@ jobs:
           key: ${{ secrets.SSH_KEY_CPANEL }}
           port: 22
           source: "./dist-dev/*"
-          target: "/home/himtibin/public_html/_HIMTI_2026/DEV_HIMTI_CORE_FRONTEND/" 
+          target: "/home/himtibin/public_html/_HIMTI2026/DEV_HIMTI_CORE_FRONTEND/" 
           strip_components: 1
 
   # ============================================
@@ -93,5 +93,5 @@ jobs:
           key: ${{ secrets.SSH_KEY_CPANEL }}
           port: 22
           source: "./dist-prod/*"
-          target: "/home/himtibin/public_html/_HIMTI_2026/HIMTI_CORE_FRONTEND/"
+          target: "/home/himtibin/public_html/_HIMTI2026/HIMTI_CORE_FRONTEND/"
           strip_components: 1 
