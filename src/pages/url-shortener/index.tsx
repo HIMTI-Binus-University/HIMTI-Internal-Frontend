@@ -203,7 +203,7 @@ const UrlShortenerPage = () => {
 
                 <div className="flex rounded-xl overflow-hidden border border-black/25">
                   <span className="bg-grayscale-100 text-black/70 text-body1 px-3 flex items-center whitespace-nowrap font-bold max-md:hidden">
-                    https://himtibinus.or.id/
+                    https://link.himtibinus.or.id/
                   </span>
 
                   <input
@@ -264,13 +264,13 @@ const UrlShortenerPage = () => {
                   <div className="flex flex-col gap-2 border border-black/25 rounded-xl p-6">
                     <div className="flex flex-row items-center justify-start gap-4">
                       <p className="font-bold text-h6">
-                        http://72.62.122.54:8001/{createdLink.shortUrl}
+                        https://link.himtibinus.or.id/{createdLink.shortUrl}
                       </p>
                       <button
                         className="hover:text-primary-600 transition-colors"
                         onClick={() => {
                           navigator.clipboard.writeText(
-                            `http://72.62.122.54:8001/${createdLink.shortUrl}`,
+                            `https://link.himtibinus.or.id/${createdLink.shortUrl}`,
                           );
                           setPopupCopied(true);
 
@@ -360,8 +360,6 @@ const UrlShortenerPage = () => {
                       url.expiresAt ? url.expiresAt.slice(0, 16) : "",
                     );
 
-                    console.log(url.id);
-
                     setEditPopup(true);
                   }}
                   onDelete={() => {
@@ -370,7 +368,7 @@ const UrlShortenerPage = () => {
                   }}
                   onCopy={() => {
                     navigator.clipboard.writeText(
-                      `http://72.62.122.54:8001/${url.shortCode}`,
+                      `https://link.himtibinus.or.id/${url.shortCode}`,
                     );
                     setCopiedId(url.id);
 
@@ -474,7 +472,7 @@ const UrlShortenerPage = () => {
 
                   <div className="border border-black/25 rounded-xl p-4">
                     <p className="font-bold text-body-1">
-                      http://72.62.122.54:8001/{selectedLink.shortCode}
+                      https://link.himtibinus.or.id/{selectedLink.shortCode}
                     </p>
                     <p className="text-body-2 text-black/50">
                       {selectedLink.originalUrl}
