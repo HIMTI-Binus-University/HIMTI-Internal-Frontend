@@ -11,6 +11,7 @@ export const publicRoutes: Route[] = [
     component: HomePage,
     path: "/",
     isEnabled: true,
+    isProtected: false,
   },
   {
     key: "router-login",
@@ -19,6 +20,7 @@ export const publicRoutes: Route[] = [
     component: LoginPage,
     path: "/login",
     isEnabled: true,
+    isProtected: false,
   },
   {
     key: "router-url-shortener",
@@ -27,6 +29,8 @@ export const publicRoutes: Route[] = [
     component: UrlShortenerPage,
     path: "/url-shortener",
     isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_urls",
   },
 ];
 

@@ -3,6 +3,7 @@ import { API_URL } from "./api-service";
 export const Api = {
   // Auth endpoints
   authSignInSocial: `${API_URL}/api/auth/sign-in/social`,
+  getMe: `${API_URL}/api/registration/me`,
 
   // URL Shortener endpoints
   urlCreate: `${API_URL}/api/url/create-url`,

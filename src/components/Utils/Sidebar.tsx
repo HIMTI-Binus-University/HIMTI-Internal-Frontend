@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { authClient } from "@/utils/auth-client";
 import { useNavigate } from "react-router-dom";
-import { useStore } from "@nanostores/react";
 
 import {
   HimtiLogo,
@@ -26,7 +25,7 @@ type SidebarProps = {
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const [isUserOpen, setIsUserOpen] = useState(false);
   const navigate = useNavigate();
-  const { data: session, isPending } = useStore(authClient.useSession);
+  const { data: session, isPending } = authClient.useSession();
 
   const handleSignOut = async () => {
     await authClient.signOut({

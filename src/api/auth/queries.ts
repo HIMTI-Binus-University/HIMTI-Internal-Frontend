@@ -1,31 +1,14 @@
-import { useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import apiClient from "@/config/api-client";
 import { Api } from "@/constants/api";
+import type { UserMeResponse } from "@/types/auth";
 
-export interface LoginWithGooglePayload {
-  provider: "google";
-  callbackURL: string;
-}
-
-export interface LoginWithGoogleResponse {
-  url: string;
-  redirect: boolean;
-}
-
-
-// Login with Google
-export const useLoginWithGoogle = () => {
-  return useMutation({
-    mutationFn: (payload: LoginWithGooglePayload) =>
-      apiClient
-        .post<LoginWithGoogleResponse>(Api.authSignInSocial, payload, {
-          withCredentials: true,
-        })
-        .then((res) => res.data),
-    onSuccess: (data) => {
-      if (data.url && data.redirect) {
-        window.location.href = data.url;
-      }
-    },
+export const useGetMe = (enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: () =>
+      apiClient.get<UserMeResponse>(Api.getMe).then((res) => res.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: enabled,
   });
 };
