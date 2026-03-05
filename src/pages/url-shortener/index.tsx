@@ -346,7 +346,7 @@ const UrlShortenerPage = () => {
               {urls.map((url) => (
                 <LinkDetails
                   key={url.id}
-                  short={`https://himtibinus.or.id/${url.shortCode}`}
+                  short={`https://link.himtibinus.or.id/${url.shortCode}`}
                   target={url.originalUrl}
                   created={url.createdAt}
                   expires={url.expiresAt ?? null}
@@ -406,7 +406,7 @@ const UrlShortenerPage = () => {
                     <label className="block text-body-1 mb-1">Short Link</label>
                     <div className="flex rounded-xl overflow-hidden border border-black/25">
                       <span className="bg-grayscale-100 px-3 flex items-center font-bold max-md:hidden">
-                        https://himtibinus.or.id/
+                        https://link.himtibinus.or.id/
                       </span>
                       <input
                         type="text"
