@@ -318,7 +318,7 @@ const UrlShortenerPage = () => {
           />
         )}
 
-        {/* CARD URL */}
+        {/* CARD URLs */}
         <div className="bg-white rounded-xl shadow p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
