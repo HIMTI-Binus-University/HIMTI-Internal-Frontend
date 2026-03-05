@@ -32,10 +32,8 @@ dist-ssr
 
 # Environment-specific configuration files
 src/constants/keys-dev.ts
-src/constants/keys-local.ts
-src/constants/keys-uat.ts
+src/constants/keys-dev-local.ts
 src/constants/keys-prod.ts
 src/constants/api-service-dev.ts
-src/constants/api-service-local.ts
-src/constants/api-service-uat.ts
+src/constants/api-service-dev-local.ts
 src/constants/api-service-prod.ts

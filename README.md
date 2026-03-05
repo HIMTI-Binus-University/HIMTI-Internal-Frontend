@@ -365,3 +365,27 @@ function ArticlesPage() {
   // ... rest of your component
 }
 ```
+
+## 🎨 Tailwind Design System
+
+### Custom Colors
+
+**Primary (Brand):** `primary-{50-900}` - `bg-primary-500`, `text-primary-700`
+
+**Grayscale (Neutral):** `grayscale-{50-900}` - `bg-grayscale-100`, `text-grayscale-800`
+
+### Typography
+
+**Font:** Public Sans (default)
+
+**Headings:** `text-h1` (61px) hingga `text-h6` (20px)
+
+**Body:** `text-body-1` (16px), `text-body-2` (13px), `text-body-3` (10px)
+
+**Contoh:**
+
+```jsx
+<h1 className="text-h1 text-primary-700">Heading</h1>
+<p className="text-body-1 text-grayscale-900">Body text</p>
+<button className="bg-primary-500 text-white text-body-1">Button</button>
+```
