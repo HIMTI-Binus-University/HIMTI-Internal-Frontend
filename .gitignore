@@ -30,6 +30,10 @@ dist-ssr
 .env.test.local
 .env.production.local
 
+# Claude
+.claude/
+CLAUDE.md
+
 # Environment-specific configuration files
 src/constants/keys-dev.ts
 src/constants/keys-dev-local.ts
