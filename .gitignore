@@ -31,8 +31,8 @@ dist-ssr
 .env.production.local
 
 # Claude
-.claude/
 CLAUDE.md
+.claude/
 
 # Environment-specific configuration files
 src/constants/keys-dev.ts

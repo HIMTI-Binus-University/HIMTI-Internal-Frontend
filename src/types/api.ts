@@ -3,6 +3,6 @@
  */
 
 export interface Api {
-  baseURL: string
-  timeout?: number
+  baseURL: string;
+  timeout?: number;
 }

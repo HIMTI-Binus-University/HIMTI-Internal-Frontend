@@ -8,5 +8,6 @@
  * - UAT: ./api-service-uat
  * - Prod: ./api-service-prod
  */
+// endpoint portnya diganti ke 3000 nanti dioper ke 8001 pake nginx, inii biar bisa redirect ke port 3000 buat auth
 
-export * from "./api-service-dev";
+export const API_URL = import.meta.env.VITE_API_URL;

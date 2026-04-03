@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AxiosError } from "axios";
 
 import { Sidebar, Button, LinkDetails, Popup } from "@/components/Utils";
 
@@ -33,6 +34,8 @@ const UrlShortenerPage = () => {
   const [showDeletePopup, setDeletePopup] = useState(false);
   const [showEditPopup, setEditPopup] = useState(false);
 
+  const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
+
   const [targetUrl, setTargetUrl] = useState("");
   const [shortCode, setShortCode] = useState("");
   const [createdLink, setCreatedLink] = useState<{
@@ -42,7 +45,7 @@ const UrlShortenerPage = () => {
     expiresAt?: string | null;
   } | null>(null);
 
-  const { data: urlsData, isLoading: isLoadingUrls } = useGetUrlList();
+  const { data: urlsData, isLoading: isLoadingUrls, refetch } = useGetUrlList();
   const createUrl = useCreateUrl();
   const updateUrl = useUpdateUrl();
   const deleteUrl = useDeleteUrl();
@@ -68,8 +71,11 @@ const UrlShortenerPage = () => {
   };
 
   const handleCreateLink = () => {
-    if (!targetUrl || !shortCode) {
-      alert("Target URL and Short Code are required");
+    const frontendErrors: Record<string, string> = {};
+    if (!targetUrl) frontendErrors.originalUrl = "Target URL is required";
+    if (!shortCode) frontendErrors.shortCode = "Short code is required";
+    if (Object.keys(frontendErrors).length > 0) {
+      setCreateErrors(frontendErrors);
       return;
     }
 
@@ -81,8 +87,6 @@ const UrlShortenerPage = () => {
 
     createUrl.mutate(payload, {
       onSuccess: (created) => {
-        console.log("Created:", created);
-
         setCreatedLink({
           shortUrl: created.shortCode ?? shortCode,
           targetUrl: created.originalUrl ?? targetUrl,
@@ -90,14 +94,27 @@ const UrlShortenerPage = () => {
           expiresAt: created.expiresAt ?? expiryDate,
         });
 
+        setCreateErrors({});
         setConfirmPopup(true);
         setTargetUrl("");
         setShortCode("");
         setExpiryDate("");
+        refetch();
       },
       onError: (error) => {
         console.error(error);
-        alert("Failed to create short link");
+        const axiosError = error as AxiosError;
+        const zodErrors = (axiosError.response?.data as { errors?: Record<string, { _errors?: string[] }> } | undefined)?.errors;
+        if (zodErrors) {
+          const mapped: Record<string, string> = {};
+          for (const key of Object.keys(zodErrors)) {
+            const first = zodErrors[key]?._errors?.[0];
+            if (first) mapped[key] = first;
+          }
+          setCreateErrors(mapped);
+        } else {
+          alert("Failed to create short link");
+        }
       },
     });
   };
@@ -124,6 +141,7 @@ const UrlShortenerPage = () => {
         setEditTargetUrl("");
         setEditShortCode("");
         setEditExpiryDate("");
+        refetch();
       },
       onError: (error) => {
         console.error(error);
@@ -139,6 +157,7 @@ const UrlShortenerPage = () => {
       onSuccess: () => {
         setDeletePopup(false);
         setSelectedLink(null);
+        refetch();
       },
       onError: (error) => {
         console.error(error);
@@ -188,9 +207,10 @@ const UrlShortenerPage = () => {
                 type="text"
                 placeholder="www.youtube.com"
                 value={targetUrl}
-                onChange={(e) => setTargetUrl(e.target.value)}
-                className="w-full border  border-black/25 rounded-xl p-4 outline-none text-body-2"
+                onChange={(e) => { setTargetUrl(e.target.value); setCreateErrors((prev) => ({ ...prev, originalUrl: "" })); }}
+                className={`w-full border rounded-xl p-4 outline-none text-body-2 ${createErrors.originalUrl ? "border-danger" : "border-black/25"}`}
               />
+              {createErrors.originalUrl && <p className="text-danger text-body-3 mt-1">{createErrors.originalUrl}</p>}
             </div>
 
             <div
@@ -200,19 +220,20 @@ const UrlShortenerPage = () => {
               <div className="flex-1">
                 <label className="block text-body-1 mb-1">Short Link</label>
 
-                <div className="flex rounded-xl overflow-hidden border border-black/25">
+                <div className={`flex rounded-xl overflow-hidden border ${createErrors.shortCode ? "border-danger" : "border-black/25"}`}>
                   <span className="bg-grayscale-100 text-black/70 text-body1 px-3 flex items-center whitespace-nowrap font-bold max-md:hidden">
-                    https://himtibinus.or.id/
+                    https://link.himtibinus.or.id/
                   </span>
 
                   <input
                     type="text"
                     value={shortCode}
-                    onChange={(e) => setShortCode(e.target.value)}
-                    className="flex-1 p-4  outline-none text-body-2 "
+                    onChange={(e) => { setShortCode(e.target.value); setCreateErrors((prev) => ({ ...prev, shortCode: "" })); }}
+                    className="flex-1 p-4 outline-none text-body-2"
                     placeholder="ReallyCoolVideos"
                   />
                 </div>
+                {createErrors.shortCode && <p className="text-danger text-body-3 mt-1">{createErrors.shortCode}</p>}
               </div>
 
               <div className="w-full">
@@ -225,9 +246,9 @@ const UrlShortenerPage = () => {
                 <input
                   type="datetime-local"
                   value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
+                  onChange={(e) => { setExpiryDate(e.target.value); setCreateErrors((prev) => ({ ...prev, expiresAt: "" })); }}
                   placeholder="DD/MM/YYYY HH:MM:SS"
-                  className={`w-full border border-black/25 ${
+                  className={`w-full border ${createErrors.expiresAt ? "border-danger" : "border-black/25"} ${
                     expiryDate ? "text-black" : "text-black/25"
                   } outline-none rounded-xl p-4 text-body-2 [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
                   onClick={(e) => {
@@ -240,6 +261,7 @@ const UrlShortenerPage = () => {
                     }
                   }}
                 />
+                {createErrors.expiresAt && <p className="text-danger text-body-3 mt-1">{createErrors.expiresAt}</p>}
               </div>
             </div>
 
@@ -263,13 +285,13 @@ const UrlShortenerPage = () => {
                   <div className="flex flex-col gap-2 border border-black/25 rounded-xl p-6">
                     <div className="flex flex-row items-center justify-start gap-4">
                       <p className="font-bold text-h6">
-                        http://72.62.122.54:8001/{createdLink.shortUrl}
+                        https://link.himtibinus.or.id/{createdLink.shortUrl}
                       </p>
                       <button
                         className="hover:text-primary-600 transition-colors"
                         onClick={() => {
                           navigator.clipboard.writeText(
-                            `http://72.62.122.54:8001/${createdLink.shortUrl}`
+                            `https://link.himtibinus.or.id/${createdLink.shortUrl}`,
                           );
                           setPopupCopied(true);
 
@@ -317,7 +339,7 @@ const UrlShortenerPage = () => {
           />
         )}
 
-        {/* CARD URL */}
+        {/* CARD URLs */}
         <div className="bg-white rounded-xl shadow p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -345,7 +367,7 @@ const UrlShortenerPage = () => {
               {urls.map((url) => (
                 <LinkDetails
                   key={url.id}
-                  short={`https://himtibinus.or.id/${url.shortCode}`}
+                  short={`https://link.himtibinus.or.id/${url.shortCode}`}
                   target={url.originalUrl}
                   created={url.createdAt}
                   expires={url.expiresAt ?? null}
@@ -356,10 +378,8 @@ const UrlShortenerPage = () => {
                     setEditTargetUrl(url.originalUrl);
                     setEditShortCode(url.shortCode);
                     setEditExpiryDate(
-                      url.expiresAt ? url.expiresAt.slice(0, 16) : ""
+                      url.expiresAt ? url.expiresAt.slice(0, 16) : "",
                     );
-
-                    console.log(url.id);
 
                     setEditPopup(true);
                   }}
@@ -369,7 +389,7 @@ const UrlShortenerPage = () => {
                   }}
                   onCopy={() => {
                     navigator.clipboard.writeText(
-                      `http://72.62.122.54:8001/${url.shortCode}`
+                      `https://link.himtibinus.or.id/${url.shortCode}`,
                     );
                     setCopiedId(url.id);
 
@@ -407,14 +427,14 @@ const UrlShortenerPage = () => {
                     <label className="block text-body-1 mb-1">Short Link</label>
                     <div className="flex rounded-xl overflow-hidden border border-black/25">
                       <span className="bg-grayscale-100 px-3 flex items-center font-bold max-md:hidden">
-                        https://himtibinus.or.id/
+                        https://link.himtibinus.or.id/
                       </span>
                       <input
                         type="text"
                         value={editShortCode}
                         onChange={(e) =>
                           setEditShortCode(
-                            e.target.value.replace("himtibinus.or.id/", "")
+                            e.target.value.replace("himtibinus.or.id/", ""),
                           )
                         }
                         className="flex-1 p-4 outline-none text-body-1"
@@ -473,7 +493,7 @@ const UrlShortenerPage = () => {
 
                   <div className="border border-black/25 rounded-xl p-4">
                     <p className="font-bold text-body-1">
-                      http://72.62.122.54:8001/{selectedLink.shortCode}
+                      https://link.himtibinus.or.id/{selectedLink.shortCode}
                     </p>
                     <p className="text-body-2 text-black/50">
                       {selectedLink.originalUrl}

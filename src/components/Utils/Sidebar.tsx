@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { authClient } from "@/utils/auth-client";
+import { useNavigate } from "react-router-dom";
 
 import {
   HimtiLogo,
@@ -12,16 +14,28 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaSignOutAlt,
-  FaUserCircle
+  FaUserCircle,
 } from "react-icons/fa";
 
 type SidebarProps = {
   isOpen: boolean;
   onClose: () => void;
-}
+};
 
-const Sidebar = ({ isOpen, onClose }:SidebarProps) => {
+const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const [isUserOpen, setIsUserOpen] = useState(false);
+  const navigate = useNavigate();
+  const { data: session, isPending } = authClient.useSession();
+
+  const handleSignOut = async () => {
+    await authClient.signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          navigate("/login");
+        },
+      },
+    });
+  };
 
   return (
     <>
@@ -60,21 +74,39 @@ const Sidebar = ({ isOpen, onClose }:SidebarProps) => {
             <MenuItem icon={CertificateIcon} label="Certificate Generator" />
           </nav>
         </div>
-        
+
         <div className="flex flex-col gap-4">
           <div className="w-full relative">
             <button
               onClick={() => setIsUserOpen(!isUserOpen)}
-              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white/10 transition-colors text-left
-              "
+              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white/10 transition-colors text-left"
             >
-              <FaUserCircle className="text-white w-9 h-9" />
+              {session?.user?.image ? (
+                <img
+                  src={session.user.image}
+                  alt="Profile"
+                  className="w-9 h-9 rounded-full object-cover"
+                />
+              ) : (
+                <FaUserCircle className="text-white w-9 h-9" />
+              )}
 
               <div className="flex-1">
-                <p className="text-sm font-bold leading-tight">Daffa Fayyaz</p>
-                <p className="text-xs text-white/60">
-                  daffafayyaz@gmail.com
-                </p>
+                {isPending ? (
+                  <div className="animate-pulse flex flex-col gap-1">
+                    <div className="h-4 w-24 bg-white/20 rounded"></div>
+                    <div className="h-3 w-32 bg-white/20 rounded"></div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm font-bold leading-tight">
+                      {session?.user?.name || "Daffa Fayyaz"}
+                    </p>
+                    <p className="text-xs text-white/60 truncate max-w-[200px]">
+                      {session?.user?.email || "daffafayyaz@gmail.com"}
+                    </p>
+                  </>
+                )}
               </div>
 
               {isUserOpen ? (
@@ -85,10 +117,9 @@ const Sidebar = ({ isOpen, onClose }:SidebarProps) => {
             </button>
 
             {isUserOpen && (
-              <div
-                className="absolute bottom-full left-0 mb-2 w-full bg-white rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in duration-150"
-              >
+              <div className="absolute bottom-full left-0 mb-2 w-full bg-white rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in duration-150">
                 <button
+                  onClick={handleSignOut}
                   className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 border-t"
                 >
                   <FaSignOutAlt />
