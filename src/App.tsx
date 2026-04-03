@@ -1,12 +1,15 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { publicRoutes } from "./config/routes";
+import { publicRoutes, linkRoutes } from "./config/routes";
 import { ProtectedRoute } from "@/components/Utils/ProtectedRoute";
+
+const isLinkSubdomain = window.location.hostname.includes("link.himtibinus");
+const activeRoutes = isLinkSubdomain ? linkRoutes : publicRoutes;
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {publicRoutes.map((route) => {
+        {activeRoutes.map((route) => {
           // Determine if we should wrap this component
           const Component = route.component;
           const element = route.isProtected ? (

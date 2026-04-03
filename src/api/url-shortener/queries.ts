@@ -14,6 +14,18 @@ import type {
   UrlListResponse,
 } from "@/types/url-shortener";
 
+export const useGetUrlByShortCode = (shortCode: string) => {
+  return useQuery({
+    queryKey: ["url", shortCode],
+    queryFn: () =>
+      apiClient
+        .get<UrlItem>(Api.urlResolve.replace(":shortCode", shortCode))
+        .then((res) => res.data),
+    enabled: !!shortCode,
+    retry: false,
+  });
+};
+
 export const useGetUrlList = () => {
   return useQuery({
     queryKey: ["urls"],

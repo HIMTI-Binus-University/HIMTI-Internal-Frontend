@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AxiosError } from "axios";
 
 import { Sidebar, Button, LinkDetails, Popup } from "@/components/Utils";
 
@@ -32,6 +33,8 @@ const UrlShortenerPage = () => {
   const [showConfirmPopup, setConfirmPopup] = useState(false);
   const [showDeletePopup, setDeletePopup] = useState(false);
   const [showEditPopup, setEditPopup] = useState(false);
+
+  const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
 
   const [targetUrl, setTargetUrl] = useState("");
   const [shortCode, setShortCode] = useState("");
@@ -68,8 +71,11 @@ const UrlShortenerPage = () => {
   };
 
   const handleCreateLink = () => {
-    if (!targetUrl || !shortCode) {
-      alert("Target URL and Short Code are required");
+    const frontendErrors: Record<string, string> = {};
+    if (!targetUrl) frontendErrors.originalUrl = "Target URL is required";
+    if (!shortCode) frontendErrors.shortCode = "Short code is required";
+    if (Object.keys(frontendErrors).length > 0) {
+      setCreateErrors(frontendErrors);
       return;
     }
 
@@ -88,6 +94,7 @@ const UrlShortenerPage = () => {
           expiresAt: created.expiresAt ?? expiryDate,
         });
 
+        setCreateErrors({});
         setConfirmPopup(true);
         setTargetUrl("");
         setShortCode("");
@@ -96,7 +103,18 @@ const UrlShortenerPage = () => {
       },
       onError: (error) => {
         console.error(error);
-        alert("Failed to create short link");
+        const axiosError = error as AxiosError;
+        const zodErrors = (axiosError.response?.data as { errors?: Record<string, { _errors?: string[] }> } | undefined)?.errors;
+        if (zodErrors) {
+          const mapped: Record<string, string> = {};
+          for (const key of Object.keys(zodErrors)) {
+            const first = zodErrors[key]?._errors?.[0];
+            if (first) mapped[key] = first;
+          }
+          setCreateErrors(mapped);
+        } else {
+          alert("Failed to create short link");
+        }
       },
     });
   };
@@ -189,9 +207,10 @@ const UrlShortenerPage = () => {
                 type="text"
                 placeholder="www.youtube.com"
                 value={targetUrl}
-                onChange={(e) => setTargetUrl(e.target.value)}
-                className="w-full border  border-black/25 rounded-xl p-4 outline-none text-body-2"
+                onChange={(e) => { setTargetUrl(e.target.value); setCreateErrors((prev) => ({ ...prev, originalUrl: "" })); }}
+                className={`w-full border rounded-xl p-4 outline-none text-body-2 ${createErrors.originalUrl ? "border-danger" : "border-black/25"}`}
               />
+              {createErrors.originalUrl && <p className="text-danger text-body-3 mt-1">{createErrors.originalUrl}</p>}
             </div>
 
             <div
@@ -201,7 +220,7 @@ const UrlShortenerPage = () => {
               <div className="flex-1">
                 <label className="block text-body-1 mb-1">Short Link</label>
 
-                <div className="flex rounded-xl overflow-hidden border border-black/25">
+                <div className={`flex rounded-xl overflow-hidden border ${createErrors.shortCode ? "border-danger" : "border-black/25"}`}>
                   <span className="bg-grayscale-100 text-black/70 text-body1 px-3 flex items-center whitespace-nowrap font-bold max-md:hidden">
                     https://link.himtibinus.or.id/
                   </span>
@@ -209,11 +228,12 @@ const UrlShortenerPage = () => {
                   <input
                     type="text"
                     value={shortCode}
-                    onChange={(e) => setShortCode(e.target.value)}
-                    className="flex-1 p-4  outline-none text-body-2 "
+                    onChange={(e) => { setShortCode(e.target.value); setCreateErrors((prev) => ({ ...prev, shortCode: "" })); }}
+                    className="flex-1 p-4 outline-none text-body-2"
                     placeholder="ReallyCoolVideos"
                   />
                 </div>
+                {createErrors.shortCode && <p className="text-danger text-body-3 mt-1">{createErrors.shortCode}</p>}
               </div>
 
               <div className="w-full">
@@ -226,9 +246,9 @@ const UrlShortenerPage = () => {
                 <input
                   type="datetime-local"
                   value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
+                  onChange={(e) => { setExpiryDate(e.target.value); setCreateErrors((prev) => ({ ...prev, expiresAt: "" })); }}
                   placeholder="DD/MM/YYYY HH:MM:SS"
-                  className={`w-full border border-black/25 ${
+                  className={`w-full border ${createErrors.expiresAt ? "border-danger" : "border-black/25"} ${
                     expiryDate ? "text-black" : "text-black/25"
                   } outline-none rounded-xl p-4 text-body-2 [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
                   onClick={(e) => {
@@ -241,6 +261,7 @@ const UrlShortenerPage = () => {
                     }
                   }}
                 />
+                {createErrors.expiresAt && <p className="text-danger text-body-3 mt-1">{createErrors.expiresAt}</p>}
               </div>
             </div>
 
