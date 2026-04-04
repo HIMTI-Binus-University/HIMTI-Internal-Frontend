@@ -11,6 +11,7 @@ import type {
   UrlItem,
   CreateUrlPayload,
   UpdateUrlPayload,
+  DeleteUrlPayload,
   UrlListResponse,
 } from "@/types/url-shortener";
 
@@ -19,7 +20,7 @@ export const useGetUrlByShortCode = (shortCode: string) => {
     queryKey: ["url", shortCode],
     queryFn: () =>
       apiClient
-        .get<UrlItem>(Api.urlResolve.replace(":shortCode", shortCode))
+        .get<UrlItem>(Api.urlLink.replace(":shortCode", shortCode))
         .then((res) => res.data),
     enabled: !!shortCode,
     retry: false,
@@ -78,14 +79,14 @@ export const useMutationUpdateUrl = (
 
 // Soft delete - sets status to 'd' (deleted)
 export const useMutationDeleteUrl = (
-  options?: UseMutationOptions<UrlItem, AxiosError, string>,
+  options?: UseMutationOptions<UrlItem, AxiosError, DeleteUrlPayload>,
 ) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) =>
+    mutationFn: ({ id, shortCode }: DeleteUrlPayload) =>
       apiClient
-        .put<UrlItem>(Api.urlUpdate.replace(":id", id), { status: "d" })
+        .patch<UrlItem>(Api.urlDelete.replace(":id", id), { shortCode, status: "d" })
         .then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["urls"] });

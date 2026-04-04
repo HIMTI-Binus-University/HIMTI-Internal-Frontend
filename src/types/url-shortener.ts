@@ -24,6 +24,11 @@ export interface UpdateUrlPayload {
   expiresAt?: string | null;
 }
 
+export interface DeleteUrlPayload {
+  id: string;
+  shortCode: string;
+}
+
 export interface UrlListResponse {
   data: UrlItem[];
 }
