@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { AxiosError } from "axios";
-import { format } from "date-fns";
+// import { format } from "date-fns";
 
 import { Sidebar } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+// import { Calendar } from "@/components/ui/calendar";
+// import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 
-import { FaPlus, FaBars, FaRegCopy, FaPencilAlt, FaTrashAlt } from "react-icons/fa";
+import {
+  FaPlus,
+  FaBars,
+  FaRegCopy,
+  FaPencilAlt,
+  FaTrashAlt,
+} from "react-icons/fa";
 
 import {
   CalendarIcon,
@@ -56,7 +62,7 @@ import { shortLinkConfig } from "@/config/runtime";
 //   hasError?: boolean;
 //   placeholder?: string;
 // }) => {
-  
+
 //   const handleDaySelect = (day: Date | undefined) => {
 //     if (!day) {
 //       onChange(undefined);
@@ -106,6 +112,7 @@ import { shortLinkConfig } from "@/config/runtime";
 //   );
 // };
 
+// Url Shortener Page
 const UrlShortenerPage = () => {
   const shortLinkPrefix = shortLinkConfig.displayPrefix;
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -115,7 +122,9 @@ const UrlShortenerPage = () => {
   const [selectedLink, setSelectedLink] = useState<UrlItem | null>(null);
   const [editTargetUrl, setEditTargetUrl] = useState("");
   const [editShortCode, setEditShortCode] = useState("");
-  const [editExpiryDate, setEditExpiryDate] = useState<Date | undefined>(undefined);
+  const [editExpiryDate, setEditExpiryDate] = useState<Date | undefined>(
+    undefined,
+  );
 
   const [showConfirmPopup, setConfirmPopup] = useState(false);
   const [showDeletePopup, setDeletePopup] = useState(false);
@@ -176,7 +185,7 @@ const UrlShortenerPage = () => {
           shortUrl: created.shortCode ?? shortCode,
           targetUrl: created.originalUrl ?? targetUrl,
           createdAt: created.createdAt ?? new Date().toISOString(),
-          expiresAt: created.expiresAt ?? (expiryDate?.toISOString() ?? null),
+          expiresAt: created.expiresAt ?? expiryDate?.toISOString() ?? null,
         });
 
         setCreateErrors({});
@@ -189,7 +198,11 @@ const UrlShortenerPage = () => {
       onError: (error) => {
         console.error(error);
         const axiosError = error as AxiosError;
-        const zodErrors = (axiosError.response?.data as { errors?: Record<string, { _errors?: string[] }> } | undefined)?.errors;
+        const zodErrors = (
+          axiosError.response?.data as
+            | { errors?: Record<string, { _errors?: string[] }> }
+            | undefined
+        )?.errors;
         if (zodErrors) {
           const mapped: Record<string, string> = {};
           for (const key of Object.keys(zodErrors)) {
@@ -238,17 +251,20 @@ const UrlShortenerPage = () => {
   const handleDeleteUrl = () => {
     if (!selectedLink) return;
 
-    deleteUrl.mutate({ id: selectedLink.id, shortCode: selectedLink.shortCode }, {
-      onSuccess: () => {
-        setDeletePopup(false);
-        setSelectedLink(null);
-        refetch();
+    deleteUrl.mutate(
+      { id: selectedLink.id, shortCode: selectedLink.shortCode },
+      {
+        onSuccess: () => {
+          setDeletePopup(false);
+          setSelectedLink(null);
+          refetch();
+        },
+        onError: (error) => {
+          console.error(error);
+          alert("Failed to delete link");
+        },
       },
-      onError: (error) => {
-        console.error(error);
-        alert("Failed to delete link");
-      },
-    });
+    );
   };
 
   const closeEditPopup = () => {
@@ -263,11 +279,9 @@ const UrlShortenerPage = () => {
     <div className="flex min-h-screen w-full bg-semantic-background overflow-x-hidden">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <main
-        className="flex-1 min-w-0 p-10 font-sans max-md:px-4 max-md:py-3"
-      >
-        <header className="flex justify-between items-center relative min-w-0">
-          <div className="flex flex-row gap-4 min-w-0">
+      <main className="flex-1 p-10 font-sans max-md:px-4 max-md:py-3">
+        <header className="flex justify-between items-center relative">
+          <div className="flex flex-row gap-4">
             <button
               className="xl:hidden p-2 rounded-lg hover:bg-semantic-muted opacity-30"
               onClick={() => setSidebarOpen(true)}
@@ -294,7 +308,9 @@ const UrlShortenerPage = () => {
 
           <div className="space-y-4">
             <div>
-              <Label htmlFor="targetUrl" className="mb-3">Target Link</Label>
+              <Label htmlFor="targetUrl" className="mb-3">
+                Target Link
+              </Label>
               <Input
                 id="targetUrl"
                 type="text"
@@ -307,15 +323,21 @@ const UrlShortenerPage = () => {
                 className={`${createErrors.originalUrl ? "border-semantic-danger" : ""}`}
               />
               {createErrors.originalUrl && (
-                <p className="text-semantic-danger text-body-2 mt-2">{createErrors.originalUrl}</p>
+                <p className="text-semantic-danger text-body-2 mt-2">
+                  {createErrors.originalUrl}
+                </p>
               )}
             </div>
 
             <div className="flex-1">
-              <Label htmlFor="shortCode" className="mb-3">Short Link</Label>
+              <Label htmlFor="shortCode" className="mb-3">
+                Short Link
+              </Label>
               <div
                 className={`flex rounded-xl overflow-hidden border mt-1 ${
-                  createErrors.shortCode ? "border-semantic-danger" : "border-semantic-border"
+                  createErrors.shortCode
+                    ? "border-semantic-danger"
+                    : "border-semantic-border"
                 }`}
               >
                 <span className="min-w-0 max-w-full shrink truncate bg-semantic-muted text-semantic-foreground/70 text-body1 px-3 flex items-center whitespace-nowrap font-bold max-md:hidden">
@@ -334,11 +356,13 @@ const UrlShortenerPage = () => {
                 />
               </div>
               {createErrors.shortCode && (
-                <p className="text-semantic-danger text-body-2 mt-2">{createErrors.shortCode}</p>
+                <p className="text-semantic-danger text-body-2 mt-2">
+                  {createErrors.shortCode}
+                </p>
               )}
             </div>
 
-              {/* <div className="w-full">
+            {/* <div className="w-full">
                 <Label className="mb-3">
                   Link Expiry Date <span className="text-black/30">(leave blank if no expiry date)</span>
                 </Label>
@@ -356,10 +380,7 @@ const UrlShortenerPage = () => {
               </div> */}
 
             <div className="flex justify-end">
-              <Button
-                onClick={handleCreateLink}
-                disabled={createUrl.isPending}
-              >
+              <Button onClick={handleCreateLink} disabled={createUrl.isPending}>
                 {createUrl.isPending ? (
                   "Loading..."
                 ) : (
@@ -406,7 +427,9 @@ const UrlShortenerPage = () => {
 
                 <div className="flex items-center gap-2 text-body-1 min-w-0">
                   <DownRightIcon className="shrink-0" />
-                  <span className="break-all min-w-0">{createdLink.targetUrl}</span>
+                  <span className="break-all min-w-0">
+                    {createdLink.targetUrl}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-6 text-body-3 text-semantic-foreground/50 mt-2">
@@ -468,7 +491,9 @@ const UrlShortenerPage = () => {
                         </div>
                         <div className="flex items-center gap-1">
                           <ExpiredIcon />
-                          {url.expiresAt ? `Expires on ${url.expiresAt}` : "Never expires"}
+                          {url.expiresAt
+                            ? `Expires on ${url.expiresAt}`
+                            : "Never expires"}
                         </div>
                       </div>
                     </div>
@@ -522,7 +547,12 @@ const UrlShortenerPage = () => {
         </div>
 
         {/* EDIT DIALOG */}
-        <Dialog open={showEditPopup} onOpenChange={(open) => { if (!open) closeEditPopup(); }}>
+        <Dialog
+          open={showEditPopup}
+          onOpenChange={(open) => {
+            if (!open) closeEditPopup();
+          }}
+        >
           <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
               <DialogTitle>Edit Link</DialogTitle>
@@ -530,7 +560,9 @@ const UrlShortenerPage = () => {
 
             <div className="flex flex-col gap-4">
               <div>
-                <Label htmlFor="editTargetUrl" className="mb-3">Target Link</Label>
+                <Label htmlFor="editTargetUrl" className="mb-3">
+                  Target Link
+                </Label>
                 <Input
                   id="editTargetUrl"
                   type="text"
@@ -541,7 +573,9 @@ const UrlShortenerPage = () => {
               </div>
 
               <div>
-                <Label htmlFor="editShortCode" className="mb-3">Short Link</Label>
+                <Label htmlFor="editShortCode" className="mb-3">
+                  Short Link
+                </Label>
                 <div className="flex rounded-xl overflow-hidden border border-semantic-border mt-1">
                   <span className="min-w-0 max-w-full shrink truncate bg-semantic-muted px-3 flex items-center font-bold max-md:hidden">
                     {shortLinkPrefix}
@@ -551,7 +585,9 @@ const UrlShortenerPage = () => {
                     type="text"
                     value={editShortCode}
                     onChange={(e) =>
-                      setEditShortCode(shortLinkConfig.toEditableShortCode(e.target.value))
+                      setEditShortCode(
+                        shortLinkConfig.toEditableShortCode(e.target.value),
+                      )
                     }
                     className="flex-1 border-0 rounded-none text-body-1"
                   />
@@ -591,11 +627,10 @@ const UrlShortenerPage = () => {
         >
           <AlertDialogContent className="sm:max-w-[420px]">
             <AlertDialogHeader>
-              <AlertDialogTitle className="">
-                Delete Link
-              </AlertDialogTitle>
+              <AlertDialogTitle className="">Delete Link</AlertDialogTitle>
               <AlertDialogDescription className="text-semantic-foreground/70">
-                Are you sure you want to delete this link? This action cannot be undone.
+                Are you sure you want to delete this link? This action cannot be
+                undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
 
@@ -604,7 +639,9 @@ const UrlShortenerPage = () => {
                 <p className="font-bold text-body-1 truncate">
                   {shortLinkConfig.buildShortUrl(selectedLink.shortCode)}
                 </p>
-                <p className="text-body-2 text-semantic-foreground/50 truncate">{selectedLink.originalUrl}</p>
+                <p className="text-body-2 text-semantic-foreground/50 truncate">
+                  {selectedLink.originalUrl}
+                </p>
               </div>
             )}
 
