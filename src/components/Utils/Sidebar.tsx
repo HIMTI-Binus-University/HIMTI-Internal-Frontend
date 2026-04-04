@@ -3,10 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import {
   HimtiLogo,
-  DashboardIcon,
   LinkIcon,
-  EmailIcon,
-  CertificateIcon,
 } from "@/components/icons";
 
 import {
