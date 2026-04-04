@@ -48,7 +48,7 @@ const TypingHelloAnimation = () => {
   }, [displayText, isTyping, currentIndex, greetings]);
 
   return (
-    <h2 className="text-left text-3xl text-grayscale-700 flex font-extralight items-center">
+    <h2 className="text-left text-3xl text-semantic-foreground/60 flex font-extralight items-center">
       {displayText}
       <span className="animate-pulse">|</span>,
     </h2>
@@ -80,9 +80,9 @@ export const LoginPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden bg-gradient-to-r from-primary-500 to-primary-800 h-full">
+      <div className="absolute inset-0 overflow-hidden bg-gradient-to-r from-brand-primary-2 to-brand-primary-1 h-full">
         <div className="z-10 flex h-full flex-col items-center justify-center space-y-4"></div>
-        <div className="absolute -top-0 right-0 h-[800px] w-[800px] blur-[100px] rounded-full bg-grayscale-50/30  animate-smoothGradient1"></div>
+        <div className="absolute -top-0 right-0 h-[800px] w-[800px] blur-[100px] rounded-full bg-white/10 animate-smoothGradient1"></div>
       </div>
 
       {/* CARD */}
@@ -96,16 +96,16 @@ export const LoginPage = () => {
 
           <TypingHelloAnimation />
 
-          <h3 className="text-left text-4xl font-extrabold text-grayscale-900 mb-3">
+          <h3 className="text-left text-4xl font-extrabold text-semantic-foreground mb-3">
             Welcome
           </h3>
 
-          <p className="text-left text-md text-grayscale-800 mb-10">
+          <p className="text-left text-md text-semantic-foreground/70 mb-10">
             We're glad you're here! Sign in to get started and discover more.
           </p>
 
           <button
-            className="w-full flex items-center  justify-center  bg-[#F5F5F5] text-[#8F8F8F] hover:text-white px-4 py-2 rounded-sm hover:bg-primary-500 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center bg-semantic-input text-semantic-muted-foreground hover:text-white px-4 py-2 rounded-sm hover:bg-semantic-primary-1 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleGoogleLogin}
             disabled={isLoading}
           >
@@ -125,7 +125,7 @@ export const LoginPage = () => {
             )}
           </button>
 
-          <div className="flex items-center text-grayscale-700 justify-center gap-1 text-center text-sm font-normal mt-6">
+          <div className="flex items-center text-semantic-foreground/60 justify-center gap-1 text-center text-sm font-normal mt-6">
             <span className="">Can't sign in?</span>
             <a
               href="https://wa.me/6285716303865"

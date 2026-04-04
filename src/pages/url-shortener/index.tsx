@@ -1,8 +1,33 @@
 import { useState } from "react";
+import { AxiosError } from "axios";
+import { format } from "date-fns";
 
-import { Sidebar, Button, LinkDetails, Popup } from "@/components/Utils";
+import { Sidebar } from "@/components/Utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import { Card, CardContent } from "@/components/ui/card";
 
-import { FaSearch, FaPlus, FaBars, FaRegCopy } from "react-icons/fa";
+import { FaPlus, FaBars, FaRegCopy, FaPencilAlt, FaTrashAlt } from "react-icons/fa";
 
 import {
   CalendarIcon,
@@ -18,20 +43,85 @@ import {
   useDeleteUrl,
 } from "@/hooks/url-shortener";
 import type { UrlItem } from "@/types/url-shortener";
+import { shortLinkConfig } from "@/config/runtime";
+
+// const DateTimePicker = ({
+//   value,
+//   onChange,
+//   hasError,
+//   placeholder = "Pick a date & time",
+// }: {
+//   value: Date | undefined;
+//   onChange: (date: Date | undefined) => void;
+//   hasError?: boolean;
+//   placeholder?: string;
+// }) => {
+  
+//   const handleDaySelect = (day: Date | undefined) => {
+//     if (!day) {
+//       onChange(undefined);
+//       return;
+//     }
+//     const updated = new Date(day);
+//     if (value) {
+//       updated.setHours(value.getHours(), value.getMinutes(), 0, 0);
+//     }
+//     onChange(updated);
+//   };
+
+//   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+//     const [hours, minutes] = e.target.value.split(":").map(Number);
+//     const updated = value ? new Date(value) : new Date();
+//     updated.setHours(hours, minutes, 0, 0);
+//     onChange(updated);
+//   };
+
+//   return (
+//     <Popover>
+//       <PopoverTrigger asChild>
+//         <button
+//           type="button"
+//           className={`flex w-full items-center gap-3 rounded-xl border px-4 py-4 text-left text-md ${
+//             hasError ? "border-semantic-danger" : "border-semantic-border"
+//           } ${!value ? "text-semantic-foreground/25" : "text-semantic-foreground"}`}
+//         >
+//           <CalendarIcon className="shrink-0" />
+//           <span className="truncate min-w-0 flex-1">{value ? format(value, "MMM d, yyyy HH:mm") : placeholder}</span>
+//         </button>
+//       </PopoverTrigger>
+//       <PopoverContent className="w-auto p-0" align="start">
+//         <Calendar mode="single" selected={value} onSelect={handleDaySelect} />
+//         <div className="border-t p-3 flex flex-col gap-2">
+//           <Label className="text-body-2 text-semantic-foreground/50">Time</Label>
+//           <Input
+//             type="time"
+//             value={value ? format(value, "HH:mm") : ""}
+//             onChange={handleTimeChange}
+//             disabled={!value}
+//             className="text-body-2"
+//           />
+//         </div>
+//       </PopoverContent>
+//     </Popover>
+//   );
+// };
 
 const UrlShortenerPage = () => {
+  const shortLinkPrefix = shortLinkConfig.displayPrefix;
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [popupCopied, setPopupCopied] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [expiryDate, setExpiryDate] = useState("");
+  const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
   const [selectedLink, setSelectedLink] = useState<UrlItem | null>(null);
   const [editTargetUrl, setEditTargetUrl] = useState("");
   const [editShortCode, setEditShortCode] = useState("");
-  const [editExpiryDate, setEditExpiryDate] = useState("");
+  const [editExpiryDate, setEditExpiryDate] = useState<Date | undefined>(undefined);
 
   const [showConfirmPopup, setConfirmPopup] = useState(false);
   const [showDeletePopup, setDeletePopup] = useState(false);
   const [showEditPopup, setEditPopup] = useState(false);
+
+  const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
 
   const [targetUrl, setTargetUrl] = useState("");
   const [shortCode, setShortCode] = useState("");
@@ -58,9 +148,7 @@ const UrlShortenerPage = () => {
 
     try {
       const parsed = new URL(url);
-
       parsed.hostname = parsed.hostname.replace(/^www\./i, "");
-
       return parsed.toString();
     } catch {
       return url;
@@ -68,15 +156,18 @@ const UrlShortenerPage = () => {
   };
 
   const handleCreateLink = () => {
-    if (!targetUrl || !shortCode) {
-      alert("Target URL and Short Code are required");
+    const frontendErrors: Record<string, string> = {};
+    if (!targetUrl) frontendErrors.originalUrl = "Target URL is required";
+    if (!shortCode) frontendErrors.shortCode = "Short code is required";
+    if (Object.keys(frontendErrors).length > 0) {
+      setCreateErrors(frontendErrors);
       return;
     }
 
     const payload = {
       originalUrl: normalizeUrl(targetUrl),
       shortCode,
-      expiresAt: expiryDate ? new Date(expiryDate).toISOString() : null,
+      expiresAt: expiryDate ? expiryDate.toISOString() : null,
     };
 
     createUrl.mutate(payload, {
@@ -85,18 +176,30 @@ const UrlShortenerPage = () => {
           shortUrl: created.shortCode ?? shortCode,
           targetUrl: created.originalUrl ?? targetUrl,
           createdAt: created.createdAt ?? new Date().toISOString(),
-          expiresAt: created.expiresAt ?? expiryDate,
+          expiresAt: created.expiresAt ?? (expiryDate?.toISOString() ?? null),
         });
 
+        setCreateErrors({});
         setConfirmPopup(true);
         setTargetUrl("");
         setShortCode("");
-        setExpiryDate("");
+        setExpiryDate(undefined);
         refetch();
       },
       onError: (error) => {
         console.error(error);
-        alert("Failed to create short link");
+        const axiosError = error as AxiosError;
+        const zodErrors = (axiosError.response?.data as { errors?: Record<string, { _errors?: string[] }> } | undefined)?.errors;
+        if (zodErrors) {
+          const mapped: Record<string, string> = {};
+          for (const key of Object.keys(zodErrors)) {
+            const first = zodErrors[key]?._errors?.[0];
+            if (first) mapped[key] = first;
+          }
+          setCreateErrors(mapped);
+        } else {
+          alert("Failed to create short link");
+        }
       },
     });
   };
@@ -113,7 +216,7 @@ const UrlShortenerPage = () => {
       id: selectedLink.id,
       originalUrl: normalizeUrl(editTargetUrl),
       shortCode: editShortCode,
-      expiresAt: editExpiryDate ? new Date(editExpiryDate).toISOString() : null,
+      expiresAt: editExpiryDate ? editExpiryDate.toISOString() : null,
     };
 
     updateUrl.mutate(payload, {
@@ -122,7 +225,7 @@ const UrlShortenerPage = () => {
         setSelectedLink(null);
         setEditTargetUrl("");
         setEditShortCode("");
-        setEditExpiryDate("");
+        setEditExpiryDate(undefined);
         refetch();
       },
       onError: (error) => {
@@ -135,7 +238,7 @@ const UrlShortenerPage = () => {
   const handleDeleteUrl = () => {
     if (!selectedLink) return;
 
-    deleteUrl.mutate(selectedLink.id, {
+    deleteUrl.mutate({ id: selectedLink.id, shortCode: selectedLink.shortCode }, {
       onSuccess: () => {
         setDeletePopup(false);
         setSelectedLink(null);
@@ -148,18 +251,25 @@ const UrlShortenerPage = () => {
     });
   };
 
+  const closeEditPopup = () => {
+    setEditPopup(false);
+    setSelectedLink(null);
+    setEditTargetUrl("");
+    setEditShortCode("");
+    setEditExpiryDate(undefined);
+  };
+
   return (
-    <div className="min-h-screen w-full bg-grayscale-50">
+    <div className="flex min-h-screen w-full bg-semantic-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main
-        className="flex-1 ml-[393px] max-xl:ml-0 px-8 py-6 font-sans
-                       max-md:px-4 max-md:py-3"
+        className="flex-1 p-10 font-sans max-md:px-4 max-md:py-3"
       >
-        <header className="flex justify-between items-center mb-8 relative">
+        <header className="flex justify-between items-center relative">
           <div className="flex flex-row gap-4">
             <button
-              className="xl:hidden p-2 rounded-lg hover:bg-grayscale-100"
+              className="xl:hidden p-2 rounded-lg hover:bg-semantic-muted opacity-30"
               onClick={() => setSidebarOpen(true)}
             >
               <FaBars size={24} />
@@ -171,7 +281,7 @@ const UrlShortenerPage = () => {
                 height={80}
                 className="max-xl:w-[60px] max-xl:h-[60px]"
               />
-              <h2 className="text-h3 max-xl:text-h4 max-xl:font-bold max-lg:text-h5 max-lg:font-bold  font-bold text-black/50 ">
+              <h2 className="text-h3 max-xl:text-h4 max-xl:font-bold max-lg:text-h5 max-lg:font-bold font-bold text-semantic-foreground/50">
                 URL Shortener
               </h2>
             </div>
@@ -184,322 +294,331 @@ const UrlShortenerPage = () => {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-body-1 mb-1">Target Link</label>
-              <input
+              <Label htmlFor="targetUrl" className="mb-3">Target Link</Label>
+              <Input
+                id="targetUrl"
                 type="text"
                 placeholder="www.youtube.com"
                 value={targetUrl}
-                onChange={(e) => setTargetUrl(e.target.value)}
-                className="w-full border  border-black/25 rounded-xl p-4 outline-none text-body-2"
+                onChange={(e) => {
+                  setTargetUrl(e.target.value);
+                  setCreateErrors((prev) => ({ ...prev, originalUrl: "" }));
+                }}
+                className={`${createErrors.originalUrl ? "border-semantic-danger" : ""}`}
               />
+              {createErrors.originalUrl && (
+                <p className="text-semantic-danger text-body-2 mt-2">{createErrors.originalUrl}</p>
+              )}
             </div>
 
-            <div
-              className="gap-4 grid grid-cols-2
-                            max-xl:flex max-xl:flex-col"
-            >
-              <div className="flex-1">
-                <label className="block text-body-1 mb-1">Short Link</label>
-
-                <div className="flex rounded-xl overflow-hidden border border-black/25">
-                  <span className="bg-grayscale-100 text-black/70 text-body1 px-3 flex items-center whitespace-nowrap font-bold max-md:hidden">
-                    https://link.himtibinus.or.id/
-                  </span>
-
-                  <input
-                    type="text"
-                    value={shortCode}
-                    onChange={(e) => setShortCode(e.target.value)}
-                    className="flex-1 p-4  outline-none text-body-2 "
-                    placeholder="ReallyCoolVideos"
-                  />
-                </div>
-              </div>
-
-              <div className="w-full">
-                <label className="block text-body-1 mb-1">
-                  Link Expiry Date{" "}
-                  <span className="text-body-2 text-black/50">
-                    (leave blank if it doesn't need an expiry date)
-                  </span>
-                </label>
-                <input
-                  type="datetime-local"
-                  value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
-                  placeholder="DD/MM/YYYY HH:MM:SS"
-                  className={`w-full border border-black/25 ${
-                    expiryDate ? "text-black" : "text-black/25"
-                  } outline-none rounded-xl p-4 text-body-2 [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
-                  onClick={(e) => {
-                    const target = e.target as HTMLInputElement;
-                    const rect = target.getBoundingClientRect();
-                    const clickX = e.clientX - rect.left;
-                    const iconWidth = 40;
-                    if (clickX < rect.width - iconWidth) {
-                      e.preventDefault();
-                    }
+            <div className="flex-1">
+              <Label htmlFor="shortCode" className="mb-3">Short Link</Label>
+              <div
+                className={`flex rounded-xl overflow-hidden border mt-1 ${
+                  createErrors.shortCode ? "border-semantic-danger" : "border-semantic-border"
+                }`}
+              >
+                <span className="bg-semantic-muted text-semantic-foreground/70 text-body1 px-3 flex items-center whitespace-nowrap font-bold max-md:hidden">
+                  {shortLinkPrefix}
+                </span>
+                <Input
+                  id="shortCode"
+                  type="text"
+                  value={shortCode}
+                  onChange={(e) => {
+                    setShortCode(e.target.value);
+                    setCreateErrors((prev) => ({ ...prev, shortCode: "" }));
                   }}
+                  className="flex-1 border-0 rounded-none text-md"
+                  placeholder="ReallyCoolVideos"
                 />
               </div>
+              {createErrors.shortCode && (
+                <p className="text-semantic-danger text-body-2 mt-2">{createErrors.shortCode}</p>
+              )}
             </div>
 
-            <Button
-              text="Create Link"
-              icon={<FaPlus />}
-              onClick={handleCreateLink}
-              loading={createUrl.isPending}
-              disabled={createUrl.isPending}
-            />
+              {/* <div className="w-full">
+                <Label className="mb-3">
+                  Link Expiry Date <span className="text-black/30">(leave blank if no expiry date)</span>
+                </Label>
+                <DateTimePicker
+                  value={expiryDate}
+                  onChange={(date) => {
+                    setExpiryDate(date);
+                    setCreateErrors((prev) => ({ ...prev, expiresAt: "" }));
+                  }}
+                  hasError={!!createErrors.expiresAt}
+                />
+                {createErrors.expiresAt && (
+                  <p className="text-semantic-danger text-body-2 mt-2">{createErrors.expiresAt}</p>
+                )}
+              </div> */}
+
+            <div className="flex justify-end">
+              <Button
+                onClick={handleCreateLink}
+                disabled={createUrl.isPending}
+              >
+                {createUrl.isPending ? (
+                  "Loading..."
+                ) : (
+                  <>
+                    <FaPlus />
+                    Create Link
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* LINK CREATION CONFIRMATION POPUP */}
-        {showConfirmPopup && createdLink && (
-          <Popup
-            component={
-              <div className="relative bg-white rounded-xl shadow-xl p-5">
-                <div className="flex flex-col gap-4">
-                  <h3 className="text-h5 font-bold">Link Created</h3>
-                  <div className="flex flex-col gap-2 border border-black/25 rounded-xl p-6">
-                    <div className="flex flex-row items-center justify-start gap-4">
-                      <p className="font-bold text-h6">
-                        https://link.himtibinus.or.id/{createdLink.shortUrl}
-                      </p>
-                      <button
-                        className="hover:text-primary-600 transition-colors"
-                        onClick={() => {
-                          navigator.clipboard.writeText(
-                            `https://link.himtibinus.or.id/${createdLink.shortUrl}`,
-                          );
-                          setPopupCopied(true);
+        {/* LINK CREATION CONFIRMATION DIALOG */}
+        {createdLink && (
+          <Dialog open={showConfirmPopup} onOpenChange={setConfirmPopup}>
+            <DialogContent className="sm:max-w-[480px]">
+              <DialogHeader>
+                <DialogTitle className="text-h5">Link Created</DialogTitle>
+              </DialogHeader>
 
-                          setTimeout(() => {
-                            setPopupCopied(false);
-                          }, 1500);
-                        }}
-                      >
-                        {popupCopied ? (
-                          <h6 className="text-body-3">Copied!</h6>
-                        ) : (
-                          <FaRegCopy />
-                        )}
-                      </button>
-                    </div>
+              <div className="flex flex-col gap-2 border border-semantic-border rounded-xl p-6">
+                <div className="flex flex-row items-center justify-start gap-4 min-w-0">
+                  <p className="font-bold text-h6 break-all min-w-0 flex-1">
+                    {shortLinkConfig.buildShortUrl(createdLink.shortUrl)}
+                  </p>
+                  <button
+                    className="shrink-0 hover:text-semantic-primary-1 transition-colors"
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        shortLinkConfig.buildShortUrl(createdLink.shortUrl),
+                      );
+                      setPopupCopied(true);
+                      setTimeout(() => setPopupCopied(false), 1500);
+                    }}
+                  >
+                    {popupCopied ? (
+                      <span className="text-body-3">Copied!</span>
+                    ) : (
+                      <FaRegCopy />
+                    )}
+                  </button>
+                </div>
 
-                    <div className="flex items-center gap-2 text-body-1">
-                      <DownRightIcon />
-                      <span>{createdLink.targetUrl}</span>
-                    </div>
+                <div className="flex items-center gap-2 text-body-1 min-w-0">
+                  <DownRightIcon className="shrink-0" />
+                  <span className="break-all min-w-0">{createdLink.targetUrl}</span>
+                </div>
 
-                    <div className="flex items-center gap-6 text-body-3 text-black/50 mt-2">
-                      <div className="flex items-center gap-1">
-                        <CalendarIcon />
-                        Created on {createdLink.createdAt}
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        <ExpiredIcon />
-
-                        {createdLink.expiresAt
-                          ? `Expires on ${createdLink.expiresAt}`
-                          : "Never expires"}
-                      </div>
-                    </div>
+                <div className="flex items-center gap-6 text-body-3 text-semantic-foreground/50 mt-2">
+                  <div className="flex items-center gap-1">
+                    <CalendarIcon />
+                    Created on {createdLink.createdAt}
                   </div>
-
-                  <Button
-                    onClick={() => setConfirmPopup(false)}
-                    text="Done"
-                  ></Button>
+                  <div className="flex items-center gap-1">
+                    <ExpiredIcon />
+                    {createdLink.expiresAt
+                      ? `Expires on ${createdLink.expiresAt}`
+                      : "Never expires"}
+                  </div>
                 </div>
               </div>
-            }
-          />
+
+              <DialogFooter>
+                <Button onClick={() => setConfirmPopup(false)}>Done</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         )}
 
         {/* CARD URLs */}
         <div className="bg-white rounded-xl shadow p-6">
-          {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-h5 font-bold">Existing Links</h3>
-          </div>
-
-          <div className="flex gap-3 mb-6">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="border outline-none rounded-xl py-3 px-4 border-black/25  w-full text-body-2"
-            />
-            <Button text="Search" icon={<FaSearch />}></Button>
           </div>
 
           {isLoadingUrls ? (
             <h1>loading...</h1>
           ) : urls.length === 0 ? (
-            <div className="text-center text-black/25 text-body-1 py-8 space-y-4">
+            <div className="text-center text-semantic-foreground/25 text-body-1 py-8 space-y-4">
               <h1 className="text-h3">{`( •_•)>⌐■-■`}</h1>
               <h2 className="text-h6">Nothing to show here...</h2>
             </div>
           ) : (
             <div className="space-y-4">
               {urls.map((url) => (
-                <LinkDetails
+                <Card
                   key={url.id}
-                  short={`https://link.himtibinus.or.id/${url.shortCode}`}
-                  target={url.originalUrl}
-                  created={url.createdAt}
-                  expires={url.expiresAt ?? null}
-                  isCopied={copiedId === url.id}
-                  onEdit={() => {
-                    setSelectedLink(url);
+                  className="border-semantic-border cursor-pointer hover:scale-[101%] transition-transform"
+                >
+                  <CardContent className="p-5 flex flex-row max-sm:flex-col max-sm:gap-4 justify-between items-start gap-3">
+                    <div className="flex flex-col gap-2 min-w-0 flex-1">
+                      <p className="font-bold text-h6 max-lg:text-body-1 max-lg:font-bold break-all whitespace-normal">
+                        {shortLinkConfig.buildShortUrl(url.shortCode)}
+                      </p>
 
-                    setEditTargetUrl(url.originalUrl);
-                    setEditShortCode(url.shortCode);
-                    setEditExpiryDate(
-                      url.expiresAt ? url.expiresAt.slice(0, 16) : "",
-                    );
+                      <div className="flex flex-row items-center gap-2 text-body-1 max-lg:text-body-2 min-w-0">
+                        <DownRightIcon className="shrink-0" />
+                        <span className="truncate">{url.originalUrl}</span>
+                      </div>
 
-                    setEditPopup(true);
-                  }}
-                  onDelete={() => {
-                    setSelectedLink(url);
-                    setDeletePopup(true);
-                  }}
-                  onCopy={() => {
-                    navigator.clipboard.writeText(
-                      `https://link.himtibinus.or.id/${url.shortCode}`,
-                    );
-                    setCopiedId(url.id);
+                      <div className="flex flex-row max-lg:flex-col gap-6 max-lg:gap-2 text-body-3 text-semantic-foreground/50 mt-2">
+                        <div className="flex items-center gap-1">
+                          <CalendarIcon />
+                          Created on {url.createdAt}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <ExpiredIcon />
+                          {url.expiresAt ? `Expires on ${url.expiresAt}` : "Never expires"}
+                        </div>
+                      </div>
+                    </div>
 
-                    setTimeout(() => {
-                      setCopiedId(null);
-                    }, 1500);
-                  }}
-                />
+                    <div className="flex items-center gap-3 text-gray-400 shrink-0">
+                      <button
+                        className="hover:text-semantic-primary-1 transition-colors"
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            shortLinkConfig.buildShortUrl(url.shortCode),
+                          );
+                          setCopiedId(url.id);
+                          setTimeout(() => setCopiedId(null), 1500);
+                        }}
+                      >
+                        {copiedId === url.id ? (
+                          <span className="text-body-3">Copied!</span>
+                        ) : (
+                          <FaRegCopy />
+                        )}
+                      </button>
+                      <button
+                        className="hover:text-semantic-warning transition-colors"
+                        onClick={() => {
+                          setSelectedLink(url);
+                          setEditTargetUrl(url.originalUrl);
+                          setEditShortCode(url.shortCode);
+                          setEditExpiryDate(
+                            url.expiresAt ? new Date(url.expiresAt) : undefined,
+                          );
+                          setEditPopup(true);
+                        }}
+                      >
+                        <FaPencilAlt />
+                      </button>
+                      <button
+                        className="hover:text-semantic-danger transition-colors"
+                        onClick={() => {
+                          setSelectedLink(url);
+                          setDeletePopup(true);
+                        }}
+                      >
+                        <FaTrashAlt />
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}
         </div>
 
-        {/* EDIT FORM */}
-        {showEditPopup && selectedLink && (
-          <Popup
-            component={
-              <div className="relative bg-white rounded-xl shadow-xl p-6 w-[480px]">
-                <div className="flex flex-col gap-4">
-                  <h3 className="text-h5 font-bold">Edit Link</h3>
+        {/* EDIT DIALOG */}
+        <Dialog open={showEditPopup} onOpenChange={(open) => { if (!open) closeEditPopup(); }}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>Edit Link</DialogTitle>
+            </DialogHeader>
 
-                  <div>
-                    <label className="block text-body-1 mb-1">
-                      Target Link
-                    </label>
-                    <input
-                      type="text"
-                      value={editTargetUrl}
-                      onChange={(e) => setEditTargetUrl(e.target.value)}
-                      className="w-full border border-black/25 rounded-xl p-4 outline-none text-body-1"
-                    />
-                  </div>
+            <div className="flex flex-col gap-4">
+              <div>
+                <Label htmlFor="editTargetUrl" className="mb-3">Target Link</Label>
+                <Input
+                  id="editTargetUrl"
+                  type="text"
+                  value={editTargetUrl}
+                  onChange={(e) => setEditTargetUrl(e.target.value)}
+                  className="mt-1 text-body-1"
+                />
+              </div>
 
-                  <div>
-                    <label className="block text-body-1 mb-1">Short Link</label>
-                    <div className="flex rounded-xl overflow-hidden border border-black/25">
-                      <span className="bg-grayscale-100 px-3 flex items-center font-bold max-md:hidden">
-                        https://link.himtibinus.or.id/
-                      </span>
-                      <input
-                        type="text"
-                        value={editShortCode}
-                        onChange={(e) =>
-                          setEditShortCode(
-                            e.target.value.replace("himtibinus.or.id/", ""),
-                          )
-                        }
-                        className="flex-1 p-4 outline-none text-body-1"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-body-1 mb-1">
-                      Link Expiry Date
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={editExpiryDate}
-                      onChange={(e) => setEditExpiryDate(e.target.value)}
-                      className="w-full border border-black/25 rounded-xl p-4 outline-none text-body-1"
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-2">
-                    <Button
-                      text="Cancel"
-                      onClick={() => {
-                        setEditPopup(false);
-                        setSelectedLink(null);
-                        setEditTargetUrl("");
-                        setEditShortCode("");
-                        setEditExpiryDate("");
-                      }}
-                      type="danger"
-                    />
-                    <Button
-                      text="Save Changes"
-                      icon={<FaPlus />}
-                      onClick={handleSaveEditUrl}
-                    />
-                  </div>
+              <div>
+                <Label htmlFor="editShortCode" className="mb-3">Short Link</Label>
+                <div className="flex rounded-xl overflow-hidden border border-semantic-border mt-1">
+                  <span className="bg-semantic-muted px-3 flex items-center font-bold max-md:hidden">
+                    {shortLinkPrefix}
+                  </span>
+                  <Input
+                    id="editShortCode"
+                    type="text"
+                    value={editShortCode}
+                    onChange={(e) =>
+                      setEditShortCode(shortLinkConfig.toEditableShortCode(e.target.value))
+                    }
+                    className="flex-1 border-0 rounded-none text-body-1"
+                  />
                 </div>
               </div>
+
+              {/* <div>
+                <Label className="mb-3">Link Expiry Date</Label>
+                <DateTimePicker
+                  value={editExpiryDate}
+                  onChange={setEditExpiryDate}
+                />
+              </div> */}
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={closeEditPopup}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEditUrl}>
+                <FaPlus />
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* DELETE ALERT DIALOG */}
+        <AlertDialog
+          open={showDeletePopup}
+          onOpenChange={(open) => {
+            if (!open) {
+              setDeletePopup(false);
+              setSelectedLink(null);
             }
-          />
-        )}
+          }}
+        >
+          <AlertDialogContent className="sm:max-w-[420px]">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="">
+                Delete Link
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-semantic-foreground/70">
+                Are you sure you want to delete this link? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
 
-        {/* DELETE POPUP */}
-        {showDeletePopup && selectedLink && (
-          <Popup
-            component={
-              <div className="relative bg-white rounded-xl shadow-xl p-6 w-[420px]">
-                <div className="flex flex-col gap-4">
-                  <h3 className="text-h5 font-bold text-danger">Delete Link</h3>
-
-                  <p className="text-body-1 text-black/70">
-                    Are you sure you want to delete this link? This action
-                    cannot be undone.
-                  </p>
-
-                  <div className="border border-black/25 rounded-xl p-4">
-                    <p className="font-bold text-body-1">
-                      https://link.himtibinus.or.id/{selectedLink.shortCode}
-                    </p>
-                    <p className="text-body-2 text-black/50">
-                      {selectedLink.originalUrl}
-                    </p>
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-2">
-                    <Button
-                      text="Cancel"
-                      type="warning"
-                      onClick={() => {
-                        setDeletePopup(false);
-                        setSelectedLink(null);
-                      }}
-                    />
-
-                    <Button
-                      text="Delete"
-                      type="danger"
-                      onClick={handleDeleteUrl}
-                    />
-                  </div>
-                </div>
+            {selectedLink && (
+              <div className="border border-semantic-border rounded-xl p-4 min-w-0">
+                <p className="font-bold text-body-1 truncate">
+                  {shortLinkConfig.buildShortUrl(selectedLink.shortCode)}
+                </p>
+                <p className="text-body-2 text-semantic-foreground/50 truncate">{selectedLink.originalUrl}</p>
               </div>
-            }
-          />
-        )}
+            )}
+
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteUrl}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </div>
   );
