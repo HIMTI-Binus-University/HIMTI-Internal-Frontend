@@ -276,7 +276,7 @@ const UrlShortenerPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-semantic-background overflow-x-hidden">
+    <div className="flex min-h-screen w-full bg-semantic-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="flex-1 p-10 font-sans max-md:px-4 max-md:py-3">
