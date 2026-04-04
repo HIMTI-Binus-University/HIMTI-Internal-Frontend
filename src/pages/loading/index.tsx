@@ -16,15 +16,15 @@ const RedirectLoadingPage = () => {
 
   if (isError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-grayscale-50">
-        <p className="text-body-1 text-black/50">Link not found.</p>
+      <div className="min-h-screen flex items-center justify-center bg-semantic-background">
+        <p className="text-body-1 text-semantic-foreground/50">Link not found.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-grayscale-50">
-      <p className="text-body-1 text-black/50">Redirecting...</p>
+    <div className="min-h-screen flex items-center justify-center bg-semantic-background">
+      <p className="text-body-1 text-semantic-foreground/50">Redirecting...</p>
     </div>
   );
 };

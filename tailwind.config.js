@@ -3,43 +3,41 @@ export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
       colors: {
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
         primary: {
-          50: "#eeff6",
-          100: "#c4cce4",
-          200: "#a8b4d7",
-          300: "#8091c5",
-          400: "#677cb9",
-          500: "#415ba8",
-          600: "#3b5399",
-          700: "#2e4177",
-          800: "#24325c",
-          900: "#1b2647",
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
         },
-        grayscale: {
-          50: "#f8f8f8",
-          100: "#eaeaea",
-          200: "#e0e0e0",
-          300: "#d1d1d1",
-          400: "#c9c9c9",
-          500: "#bbbbbb",
-          600: "#aaaaaa",
-          700: "#858585",
-          800: "#676767",
-          900: "#4f4f4f",
-        },
-        danger: {
-          400: "#e36a6a",
-          500: "#d14545",
-          600: "#b83a3a",
-        },
-        warning: {
-          400: "#f5c84d",
-          500: "#efb100",
-          600: "#d39b00",
-        },
-        white: "#ffffff",
-        black: "#000000",
         brand: {
           primary: {
             1: "#00214f",
@@ -52,7 +50,7 @@ export default {
           },
         },
         semantic: {
-          background:             "#f8fafc",
+          background:             "#EBECEC",
           foreground:             "#101010",
           "primary-1":            "#004cb5",
           "primary-2":            "#00214f",
@@ -69,8 +67,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["Public Sans", "sans-serif"],
-        display: ["Plus Jakarta Sans", "sans-serif"],
+        sans: ["Plus Jakarta Sans", "sans-serif"],
       },
       fontSize: {
         h1: ["61px", { lineHeight: "92px", fontWeight: "400", letterSpacing: "0%" }],
