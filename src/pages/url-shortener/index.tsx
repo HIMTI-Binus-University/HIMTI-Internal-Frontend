@@ -276,7 +276,7 @@ const UrlShortenerPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-semantic-background">
+    <div className="flex min-h-screen w-full bg-semantic-background overflow-x-hidden">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="flex-1 p-10 font-sans max-md:px-4 max-md:py-3">
@@ -289,13 +289,13 @@ const UrlShortenerPage = () => {
               <FaBars size={24} />
             </button>
 
-            <div className="flex items-center gap-5 p-2">
+            <div className="flex items-center gap-5 p-2 min-w-0">
               <LinkIconV2
                 width={80}
                 height={80}
                 className="max-xl:w-[60px] max-xl:h-[60px]"
               />
-              <h2 className="text-h3 max-xl:text-h4 max-xl:font-bold max-lg:text-h5 max-lg:font-bold font-bold text-semantic-foreground/50">
+              <h2 className="min-w-0 text-h3 max-xl:text-h4 max-xl:font-bold max-lg:text-h5 max-lg:font-bold font-bold text-semantic-foreground/50">
                 URL Shortener
               </h2>
             </div>
@@ -340,7 +340,7 @@ const UrlShortenerPage = () => {
                     : "border-semantic-border"
                 }`}
               >
-                <span className="bg-semantic-muted text-semantic-foreground/70 text-body1 px-3 flex items-center whitespace-nowrap font-bold max-md:hidden">
+                <span className="min-w-0 max-w-full shrink truncate bg-semantic-muted text-semantic-foreground/70 text-body1 px-3 flex items-center whitespace-nowrap font-bold max-md:hidden">
                   {shortLinkPrefix}
                 </span>
                 <Input
@@ -481,7 +481,7 @@ const UrlShortenerPage = () => {
 
                       <div className="flex flex-row items-center gap-2 text-body-1 max-lg:text-body-2 min-w-0">
                         <DownRightIcon className="shrink-0" />
-                        <span className="truncate">{url.originalUrl}</span>
+                        <span className="min-w-0 flex-1 break-all">{url.originalUrl}</span>
                       </div>
 
                       <div className="flex flex-row max-lg:flex-col gap-6 max-lg:gap-2 text-body-3 text-semantic-foreground/50 mt-2">
@@ -577,7 +577,7 @@ const UrlShortenerPage = () => {
                   Short Link
                 </Label>
                 <div className="flex rounded-xl overflow-hidden border border-semantic-border mt-1">
-                  <span className="bg-semantic-muted px-3 flex items-center font-bold max-md:hidden">
+                  <span className="min-w-0 max-w-full shrink truncate bg-semantic-muted px-3 flex items-center font-bold max-md:hidden">
                     {shortLinkPrefix}
                   </span>
                   <Input
