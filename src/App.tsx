@@ -1,8 +1,9 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { publicRoutes, linkRoutes } from "./config/routes";
 import { ProtectedRoute } from "@/components/Utils/ProtectedRoute";
+import { routeMode } from "@/config/runtime";
 
-const isLinkSubdomain = window.location.hostname.includes("link.himtibinus");
+const isLinkSubdomain = routeMode.isLinkHost(window.location.hostname);
 const activeRoutes = isLinkSubdomain ? linkRoutes : publicRoutes;
 
 function App() {

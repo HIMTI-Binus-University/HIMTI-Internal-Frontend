@@ -43,69 +43,71 @@ import {
   useDeleteUrl,
 } from "@/hooks/url-shortener";
 import type { UrlItem } from "@/types/url-shortener";
+import { shortLinkConfig } from "@/config/runtime";
 
-const DateTimePicker = ({
-  value,
-  onChange,
-  hasError,
-  placeholder = "Pick a date & time",
-}: {
-  value: Date | undefined;
-  onChange: (date: Date | undefined) => void;
-  hasError?: boolean;
-  placeholder?: string;
-}) => {
+// const DateTimePicker = ({
+//   value,
+//   onChange,
+//   hasError,
+//   placeholder = "Pick a date & time",
+// }: {
+//   value: Date | undefined;
+//   onChange: (date: Date | undefined) => void;
+//   hasError?: boolean;
+//   placeholder?: string;
+// }) => {
   
-  const handleDaySelect = (day: Date | undefined) => {
-    if (!day) {
-      onChange(undefined);
-      return;
-    }
-    const updated = new Date(day);
-    if (value) {
-      updated.setHours(value.getHours(), value.getMinutes(), 0, 0);
-    }
-    onChange(updated);
-  };
+//   const handleDaySelect = (day: Date | undefined) => {
+//     if (!day) {
+//       onChange(undefined);
+//       return;
+//     }
+//     const updated = new Date(day);
+//     if (value) {
+//       updated.setHours(value.getHours(), value.getMinutes(), 0, 0);
+//     }
+//     onChange(updated);
+//   };
 
-  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const [hours, minutes] = e.target.value.split(":").map(Number);
-    const updated = value ? new Date(value) : new Date();
-    updated.setHours(hours, minutes, 0, 0);
-    onChange(updated);
-  };
+//   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+//     const [hours, minutes] = e.target.value.split(":").map(Number);
+//     const updated = value ? new Date(value) : new Date();
+//     updated.setHours(hours, minutes, 0, 0);
+//     onChange(updated);
+//   };
 
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={`flex w-full items-center gap-3 rounded-xl border px-4 py-4 text-left text-md ${
-            hasError ? "border-semantic-danger" : "border-semantic-border"
-          } ${!value ? "text-semantic-foreground/25" : "text-semantic-foreground"}`}
-        >
-          <CalendarIcon className="shrink-0" />
-          <span className="truncate min-w-0 flex-1">{value ? format(value, "MMM d, yyyy HH:mm") : placeholder}</span>
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar mode="single" selected={value} onSelect={handleDaySelect} />
-        <div className="border-t p-3 flex flex-col gap-2">
-          <Label className="text-body-2 text-semantic-foreground/50">Time</Label>
-          <Input
-            type="time"
-            value={value ? format(value, "HH:mm") : ""}
-            onChange={handleTimeChange}
-            disabled={!value}
-            className="text-body-2"
-          />
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-};
+//   return (
+//     <Popover>
+//       <PopoverTrigger asChild>
+//         <button
+//           type="button"
+//           className={`flex w-full items-center gap-3 rounded-xl border px-4 py-4 text-left text-md ${
+//             hasError ? "border-semantic-danger" : "border-semantic-border"
+//           } ${!value ? "text-semantic-foreground/25" : "text-semantic-foreground"}`}
+//         >
+//           <CalendarIcon className="shrink-0" />
+//           <span className="truncate min-w-0 flex-1">{value ? format(value, "MMM d, yyyy HH:mm") : placeholder}</span>
+//         </button>
+//       </PopoverTrigger>
+//       <PopoverContent className="w-auto p-0" align="start">
+//         <Calendar mode="single" selected={value} onSelect={handleDaySelect} />
+//         <div className="border-t p-3 flex flex-col gap-2">
+//           <Label className="text-body-2 text-semantic-foreground/50">Time</Label>
+//           <Input
+//             type="time"
+//             value={value ? format(value, "HH:mm") : ""}
+//             onChange={handleTimeChange}
+//             disabled={!value}
+//             className="text-body-2"
+//           />
+//         </div>
+//       </PopoverContent>
+//     </Popover>
+//   );
+// };
 
 const UrlShortenerPage = () => {
+  const shortLinkPrefix = shortLinkConfig.displayPrefix;
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [popupCopied, setPopupCopied] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -317,7 +319,7 @@ const UrlShortenerPage = () => {
                 }`}
               >
                 <span className="bg-semantic-muted text-semantic-foreground/70 text-body1 px-3 flex items-center whitespace-nowrap font-bold max-md:hidden">
-                  https://link.himtibinus.or.id/
+                  {shortLinkPrefix}
                 </span>
                 <Input
                   id="shortCode"
@@ -382,13 +384,13 @@ const UrlShortenerPage = () => {
               <div className="flex flex-col gap-2 border border-semantic-border rounded-xl p-6">
                 <div className="flex flex-row items-center justify-start gap-4 min-w-0">
                   <p className="font-bold text-h6 break-all min-w-0 flex-1">
-                    https://link.himtibinus.or.id/{createdLink.shortUrl}
+                    {shortLinkConfig.buildShortUrl(createdLink.shortUrl)}
                   </p>
                   <button
                     className="shrink-0 hover:text-semantic-primary-1 transition-colors"
                     onClick={() => {
                       navigator.clipboard.writeText(
-                        `https://link.himtibinus.or.id/${createdLink.shortUrl}`,
+                        shortLinkConfig.buildShortUrl(createdLink.shortUrl),
                       );
                       setPopupCopied(true);
                       setTimeout(() => setPopupCopied(false), 1500);
@@ -451,7 +453,7 @@ const UrlShortenerPage = () => {
                   <CardContent className="p-5 flex flex-row max-sm:flex-col max-sm:gap-4 justify-between items-start gap-3">
                     <div className="flex flex-col gap-2 min-w-0 flex-1">
                       <p className="font-bold text-h6 max-lg:text-body-1 max-lg:font-bold break-all whitespace-normal">
-                        https://link.himtibinus.or.id/{url.shortCode}
+                        {shortLinkConfig.buildShortUrl(url.shortCode)}
                       </p>
 
                       <div className="flex flex-row items-center gap-2 text-body-1 max-lg:text-body-2 min-w-0">
@@ -476,7 +478,7 @@ const UrlShortenerPage = () => {
                         className="hover:text-semantic-primary-1 transition-colors"
                         onClick={() => {
                           navigator.clipboard.writeText(
-                            `https://link.himtibinus.or.id/${url.shortCode}`,
+                            shortLinkConfig.buildShortUrl(url.shortCode),
                           );
                           setCopiedId(url.id);
                           setTimeout(() => setCopiedId(null), 1500);
@@ -542,27 +544,27 @@ const UrlShortenerPage = () => {
                 <Label htmlFor="editShortCode" className="mb-3">Short Link</Label>
                 <div className="flex rounded-xl overflow-hidden border border-semantic-border mt-1">
                   <span className="bg-semantic-muted px-3 flex items-center font-bold max-md:hidden">
-                    https://link.himtibinus.or.id/
+                    {shortLinkPrefix}
                   </span>
                   <Input
                     id="editShortCode"
                     type="text"
                     value={editShortCode}
                     onChange={(e) =>
-                      setEditShortCode(e.target.value.replace("himtibinus.or.id/", ""))
+                      setEditShortCode(shortLinkConfig.toEditableShortCode(e.target.value))
                     }
                     className="flex-1 border-0 rounded-none text-body-1"
                   />
                 </div>
               </div>
 
-              <div>
+              {/* <div>
                 <Label className="mb-3">Link Expiry Date</Label>
                 <DateTimePicker
                   value={editExpiryDate}
                   onChange={setEditExpiryDate}
                 />
-              </div>
+              </div> */}
             </div>
 
             <DialogFooter className="gap-2">
@@ -600,7 +602,7 @@ const UrlShortenerPage = () => {
             {selectedLink && (
               <div className="border border-semantic-border rounded-xl p-4 min-w-0">
                 <p className="font-bold text-body-1 truncate">
-                  https://link.himtibinus.or.id/{selectedLink.shortCode}
+                  {shortLinkConfig.buildShortUrl(selectedLink.shortCode)}
                 </p>
                 <p className="text-body-2 text-semantic-foreground/50 truncate">{selectedLink.originalUrl}</p>
               </div>
