@@ -18,7 +18,9 @@ const StatusCard = ({ title, description, children }: StatusCardProps) => {
           <HimtiLogo width={58} height={68} className="shrink-0" />
           <div className="flex flex-col items-start text-left leading-none max-md:items-center max-md:text-center">
             <span className="text-ds-h2 font-bold text-white">HIMTI</span>
-            <span className="text-ds-h3 font-light text-white/80">Internal Tools</span>
+            <span className="text-ds-h3 font-light text-white/80">
+              Internal Tools
+            </span>
           </div>
         </div>
 
@@ -72,7 +74,8 @@ const RedirectLoadingPage = () => {
               </div>
 
               <p className="text-body-2 text-semantic-foreground/45">
-                No short code was provided, so we are taking you to the default destination.
+                No short code was provided, so we are taking you to the default
+                destination.
               </p>
             </div>
           </StatusCard>
