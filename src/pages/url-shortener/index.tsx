@@ -52,6 +52,7 @@ import {
 import type { UrlItem } from "@/types/url-shortener";
 import { shortLinkConfig } from "@/config/runtime";
 import qrcode from "qrcode";
+import qrLogoUrl from "@/components/assets/qrlogo.png";
 
 // const DateTimePicker = ({
 //   value,
@@ -126,7 +127,54 @@ function QRCodeDialog({
 
   useEffect(() => {
     if (!url) return;
-    qrcode.toDataURL(url, { width: 256, margin: 2 }).then(setDataUrl);
+    setDataUrl("");
+
+    qrcode.toDataURL(url, { width: 256, margin: 2 }).then((qrDataUrl) => {
+      const size = 256;
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d")!;
+
+      const qrImg = new Image();
+      qrImg.onload = () => {
+        ctx.drawImage(qrImg, 0, 0, size, size);
+
+        const logoH = size * 0.22;
+        const logoW = logoH * 0.9;
+        const logoX = (size - logoW) / 2;
+        const logoY = (size - logoH) / 2;
+        const pad = 5;
+        const bgW = logoW + pad * 2;
+        const bgH = logoH + pad * 2;
+        const bgX = logoX - pad;
+        const bgY = logoY - pad;
+        const r = 6;
+
+        // White rounded background behind logo
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.moveTo(bgX + r, bgY);
+        ctx.lineTo(bgX + bgW - r, bgY);
+        ctx.quadraticCurveTo(bgX + bgW, bgY, bgX + bgW, bgY + r);
+        ctx.lineTo(bgX + bgW, bgY + bgH - r);
+        ctx.quadraticCurveTo(bgX + bgW, bgY + bgH, bgX + bgW - r, bgY + bgH);
+        ctx.lineTo(bgX + r, bgY + bgH);
+        ctx.quadraticCurveTo(bgX, bgY + bgH, bgX, bgY + bgH - r);
+        ctx.lineTo(bgX, bgY + r);
+        ctx.quadraticCurveTo(bgX, bgY, bgX + r, bgY);
+        ctx.closePath();
+        ctx.fill();
+
+        const logoImg = new Image();
+        logoImg.onload = () => {
+          ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
+          setDataUrl(canvas.toDataURL("image/png"));
+        };
+        logoImg.src = qrLogoUrl;
+      };
+      qrImg.src = qrDataUrl;
+    });
   }, [url]);
 
   const shortCode = url?.split("/").pop() ?? "";
