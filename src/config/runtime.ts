@@ -25,6 +25,7 @@ const normalizeHost = (value: string) =>
     .trim()
     .toLowerCase()
     .replace(/^https?:\/\//, "")
+    .replace(/\/+$/, "")
     .replace(/\/.*$/, "");
 
 const isLocalHost = (hostname: string) =>

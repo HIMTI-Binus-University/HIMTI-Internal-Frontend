@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AxiosError } from "axios";
 // import { format } from "date-fns";
 
@@ -33,6 +33,7 @@ import {
   FaRegCopy,
   FaPencilAlt,
   FaTrashAlt,
+  FaQrcode,
 } from "react-icons/fa";
 
 import {
@@ -50,6 +51,7 @@ import {
 } from "@/hooks/url-shortener";
 import type { UrlItem } from "@/types/url-shortener";
 import { shortLinkConfig } from "@/config/runtime";
+import qrcode from "qrcode";
 
 // const DateTimePicker = ({
 //   value,
@@ -112,6 +114,48 @@ import { shortLinkConfig } from "@/config/runtime";
 //   );
 // };
 
+// QR Code Dialog
+function QRCodeDialog({
+  url,
+  onClose,
+}: {
+  url: string | null;
+  onClose: () => void;
+}) {
+  const [dataUrl, setDataUrl] = useState<string>("");
+
+  useEffect(() => {
+    if (!url) return;
+    qrcode.toDataURL(url, { width: 256, margin: 2 }).then(setDataUrl);
+  }, [url]);
+
+  const shortCode = url?.split("/").pop() ?? "";
+
+  return (
+    <Dialog open={!!url} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[340px]">
+        <DialogHeader>
+          <DialogTitle>QR Code</DialogTitle>
+          <p className="text-sm text-muted-foreground break-all">{url}</p>
+        </DialogHeader>
+        <div className="flex justify-center py-2">
+          {dataUrl && (
+            <img src={dataUrl} alt="QR Code" width={220} height={220} />
+          )}
+        </div>
+        <DialogFooter className="gap-2">
+          <a href={dataUrl} download={`qr-${shortCode}.png`}>
+            <Button disabled={!dataUrl}>Download PNG</Button>
+          </a>
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // Url Shortener Page
 const UrlShortenerPage = () => {
   const shortLinkPrefix = shortLinkConfig.displayPrefix;
@@ -129,6 +173,7 @@ const UrlShortenerPage = () => {
   const [showConfirmPopup, setConfirmPopup] = useState(false);
   const [showDeletePopup, setDeletePopup] = useState(false);
   const [showEditPopup, setEditPopup] = useState(false);
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
 
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
 
@@ -516,6 +561,15 @@ const UrlShortenerPage = () => {
                         )}
                       </button>
                       <button
+                        className="hover:text-semantic-primary-1 transition-colors"
+                        title="Generate QR Code"
+                        onClick={() =>
+                          setQrUrl(shortLinkConfig.buildShortUrl(url.shortCode))
+                        }
+                      >
+                        <FaQrcode />
+                      </button>
+                      <button
                         className="hover:text-semantic-warning transition-colors"
                         onClick={() => {
                           setSelectedLink(url);
@@ -614,6 +668,9 @@ const UrlShortenerPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* QR CODE DIALOG */}
+        <QRCodeDialog url={qrUrl} onClose={() => setQrUrl(null)} />
 
         {/* DELETE ALERT DIALOG */}
         <AlertDialog
