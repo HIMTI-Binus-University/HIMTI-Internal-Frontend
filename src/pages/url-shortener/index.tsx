@@ -717,7 +717,7 @@ const UrlShortenerPage = () => {
           </DialogContent>
         </Dialog>
 
-        {/* QR CODE DIALOG */}
+        {/* QR CODE DIALOG, IMPORTANT */}
         <QRCodeDialog url={qrUrl} onClose={() => setQrUrl(null)} />
 
         {/* DELETE ALERT DIALOG */}
