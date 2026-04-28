@@ -14,6 +14,7 @@ import type {
   DeleteUrlPayload,
   UrlListResponse,
 } from "@/types/url-shortener";
+import { Status } from "@/types/url-shortener";
 
 export const useGetUrlByShortCode = (shortCode: string) => {
   return useQuery({
@@ -32,7 +33,7 @@ export const useGetUrlList = () => {
     queryKey: ["urls"],
     queryFn: () =>
       apiClient
-        .get<UrlListResponse>(`${Api.urlList}?status=a`)
+        .get<UrlListResponse>(`${Api.urlList}?status=${Status.ACTIVE}`)
         .then((res) => res.data),
     staleTime: 5 * 60 * 1000,
   });
@@ -61,9 +62,8 @@ export const useMutationUpdateUrl = (
   return useMutation({
     mutationFn: (payload: UpdateUrlPayload) => {
       const { id, ...data } = payload;
-      // Set status 'a' (active) as default when updating
       const finalPayload = {
-        status: "a",
+        status: Status.ACTIVE,
         ...data,
       };
       return apiClient
@@ -77,7 +77,6 @@ export const useMutationUpdateUrl = (
   });
 };
 
-// Soft delete - sets status to 'd' (deleted)
 export const useMutationDeleteUrl = (
   options?: UseMutationOptions<UrlItem, AxiosError, DeleteUrlPayload>,
 ) => {
@@ -86,7 +85,7 @@ export const useMutationDeleteUrl = (
   return useMutation({
     mutationFn: ({ id, shortCode }: DeleteUrlPayload) =>
       apiClient
-        .patch<UrlItem>(Api.urlDelete.replace(":id", id), { shortCode, status: "d" })
+        .patch<UrlItem>(Api.urlDelete.replace(":id", id), { shortCode, status: Status.INACTIVE })
         .then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["urls"] });

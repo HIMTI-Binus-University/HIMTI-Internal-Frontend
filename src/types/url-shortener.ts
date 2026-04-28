@@ -1,9 +1,12 @@
+export const Status = { ACTIVE: 'ACTIVE', INACTIVE: 'INACTIVE' } as const;
+export type Status = (typeof Status)[keyof typeof Status];
+
 export interface UrlItem {
   id: string;
   shortCode: string;
   originalUrl: string;
   expiresAt: string | null;
-  status: string;
+  status: Status;
   createdAt: string;
   createdBy: string;
   updatedAt: string;
@@ -20,7 +23,7 @@ export interface UpdateUrlPayload {
   id: string;
   originalUrl: string;
   shortCode: string;
-  status?: string;
+  status?: Status;
   expiresAt?: string | null;
 }
 
