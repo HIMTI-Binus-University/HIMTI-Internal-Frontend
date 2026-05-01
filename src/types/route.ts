@@ -3,6 +3,8 @@ import { ComponentType } from "react";
 export type HimtiPermission =
   | "manage_urls"
   | "manage_users"
+  | "manage_roles"
+  | "manage_permissions"
   | "create_events"
   | "view_dashboard";
 
@@ -15,5 +17,6 @@ export interface Route {
   isEnabled: boolean;
   isProtected: boolean;
   requiredPermission?: HimtiPermission;
+  group?: string;
   children?: Route[];
 }

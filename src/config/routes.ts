@@ -3,6 +3,9 @@ import HomePage from "@/pages/home";
 import LoginPage from "@/pages/login";
 import UrlShortenerPage from "@/pages/url-shortener";
 import RedirectLoadingPage from "@/pages/loading";
+import RbacPermissionsPage from "@/pages/rbac/permissions";
+import RbacRolesPage from "@/pages/rbac/roles";
+import RbacUsersPage from "@/pages/rbac/users";
 
 export const publicRoutes: Route[] = [
   {
@@ -32,6 +35,40 @@ export const publicRoutes: Route[] = [
     isEnabled: true,
     isProtected: true,
     requiredPermission: "manage_urls",
+    group: "Tools",
+  },
+  {
+    key: "router-rbac-permissions",
+    title: "Permissions",
+    description: "RBAC Permissions Management",
+    component: RbacPermissionsPage,
+    path: "/rbac/permissions",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_permissions",
+    group: "RBAC",
+  },
+  {
+    key: "router-rbac-roles",
+    title: "Roles",
+    description: "RBAC Roles Management",
+    component: RbacRolesPage,
+    path: "/rbac/roles",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_roles",
+    group: "RBAC",
+  },
+  {
+    key: "router-rbac-users",
+    title: "Users",
+    description: "RBAC Users Management",
+    component: RbacUsersPage,
+    path: "/rbac/users",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_users",
+    group: "RBAC",
   },
   {
     key: "router-link-root-on-admin-host",

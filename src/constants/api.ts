@@ -12,4 +12,21 @@ export const Api = {
   urlDelete: `${API_URL}/api/url/delete/:id`,
   urlResolve: `${API_URL}/api/url/:shortCode`,
   urlLink: `${API_URL}/api/url/link/:shortCode`,
+
+  // Permission endpoints
+  permissionList: `${API_URL}/api/permission`,
+  permissionCreate: `${API_URL}/api/permission`,
+  permissionUpdate: `${API_URL}/api/permission/:id`,
+
+  // Role endpoints
+  roleList: `${API_URL}/api/roles`,
+  roleCreate: `${API_URL}/api/role`,
+  roleUpdate: `${API_URL}/api/role/:id`,
+  roleAssignPermission: `${API_URL}/api/role/assign-permission`,
+  roleRemovePermission: `${API_URL}/api/role/remove-permission`,
+
+  // User (RBAC) endpoints
+  userList: `${API_URL}/api/users`,
+  userAssignRole: `${API_URL}/api/role/assign-user`,
+  userRemoveRole: `${API_URL}/api/role/remove-user`,
 };

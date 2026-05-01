@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useGetUrlByShortCode } from "@/api/url-shortener/queries";
-import { HimtiLogo } from "@/components/icons";
+import HimtiLogo from "@/components/logos/HimtiLogo";
 import { runtimeConfig } from "@/config/runtime";
 
 type StatusCardProps = {

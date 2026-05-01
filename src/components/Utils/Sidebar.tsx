@@ -1,10 +1,7 @@
 import { authClient } from "@/utils/auth-client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 
-import {
-  HimtiLogo,
-  LinkIcon,
-} from "@/components/icons";
+import HimtiLogo from "@/components/logos/HimtiLogo";
 
 import {
   DropdownMenu,
@@ -13,16 +10,40 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { FaChevronDown, FaSignOutAlt, FaUserCircle } from "react-icons/fa";
+import {
+  FaChevronDown,
+  FaSignOutAlt,
+  FaUserCircle,
+  FaKey,
+  FaIdBadge,
+  FaUsers,
+  FaLink,
+} from "react-icons/fa";
+
+import { publicRoutes } from "@/config/routes";
+import { useGetMe } from "@/api/auth/queries";
+import type { Route } from "@/types/route";
+import React from "react";
 
 type SidebarProps = {
   isOpen: boolean;
   onClose: () => void;
 };
 
+type IconComponent = React.ComponentType<{ className?: string; width?: number; height?: number }>;
+
+const routeIconMap: Record<string, IconComponent> = {
+  "router-url-shortener": FaLink,
+  "router-rbac-permissions": FaKey,
+  "router-rbac-roles": FaIdBadge,
+  "router-rbac-users": FaUsers,
+};
+
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: session, isPending } = authClient.useSession();
+  const { data: meData } = useGetMe(!!session);
 
   const handleSignOut = async () => {
     await authClient.signOut({
@@ -33,6 +54,24 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       },
     });
   };
+
+  const navRoutes = publicRoutes
+    .filter((r) => r.isEnabled && r.isProtected && r.requiredPermission)
+    .filter(
+      (r) =>
+        !r.requiredPermission ||
+        meData?.permissions.includes(r.requiredPermission),
+    );
+
+  const groupedRoutes = navRoutes.reduce<Record<string, Route[]>>(
+    (acc, route) => {
+      const group = route.group ?? "Other";
+      if (!acc[group]) acc[group] = [];
+      acc[group].push(route);
+      return acc;
+    },
+    {},
+  );
 
   return (
     <>
@@ -54,15 +93,37 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       >
         <div className="flex flex-col gap-10">
           <div className="flex items-center gap-4 px-2">
-            <HimtiLogo width={64}/>
+            <HimtiLogo width={64} />
             <div className="flex flex-col">
               <span className="text-ds-h2 font-bold text-white">HIMTI</span>
-              <span className="text-ds-h3 font-light text-white/80">Internal Tools</span>
+              <span className="text-ds-h3 font-light text-white/80">
+                Internal Tools
+              </span>
             </div>
           </div>
 
-          <nav className="flex flex-col gap-1">
-            <MenuItem icon={LinkIcon} label="URL Shortener" active={true} />
+          <nav className="flex flex-col gap-6">
+            {Object.entries(groupedRoutes).map(([group, routes]) => (
+              <div key={group} className="flex flex-col gap-1">
+                <p className="text-ds-detail font-semibold uppercase tracking-widest text-white/40 mb-1">
+                  {group}
+                </p>
+                {routes.map((route) => {
+                  const Icon = routeIconMap[route.key];
+                  const isActive = location.pathname === route.path;
+                  return (
+                    <MenuItem
+                      key={route.key}
+                      icon={Icon}
+                      label={route.title}
+                      path={route.path}
+                      active={isActive}
+                      onClick={onClose}
+                    />
+                  );
+                })}
+              </div>
+            ))}
           </nav>
         </div>
 
@@ -98,10 +159,17 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                   )}
                 </div>
 
-                <FaChevronDown size={12} className="text-brand-primary-1/60 shrink-0" />
+                <FaChevronDown
+                  size={12}
+                  className="text-brand-primary-1/60 shrink-0"
+                />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="top" align="start" className="w-full min-w-[220px]">
+            <DropdownMenuContent
+              side="top"
+              align="start"
+              className="w-full min-w-[220px]"
+            >
               <DropdownMenuItem
                 onClick={handleSignOut}
                 className="text-red-600 focus:text-red-600 gap-3 cursor-pointer"
@@ -122,19 +190,24 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 };
 
 interface MenuItemProps {
-  icon: React.ComponentType<{
-    width?: number;
-    height?: number;
-    className?: string;
-  }>;
+  icon: IconComponent;
   label: string;
+  path: string;
   active?: boolean;
+  onClick?: () => void;
 }
 
-const MenuItem = ({ icon: Icon, label, active = false }: MenuItemProps) => {
+const MenuItem = ({
+  icon: Icon,
+  label,
+  path,
+  active = false,
+  onClick,
+}: MenuItemProps) => {
   return (
-    <a
-      href="#"
+    <Link
+      to={path}
+      onClick={onClick}
       className={`
         flex items-center gap-3 px-4 py-3 rounded-xl text-body-1 transition-all duration-200 group
         ${
@@ -149,9 +222,8 @@ const MenuItem = ({ icon: Icon, label, active = false }: MenuItemProps) => {
             ${active ? "opacity-100" : "opacity-70 group-hover:opacity-100"}
         `}
       />
-
       <span>{label}</span>
-    </a>
+    </Link>
   );
 };
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { GoogleLogo } from "@/components/icons/GoogleLogo";
-import HimtiLogov2 from "@/components/icons/HimtiLogov2";
+import { FaGoogle } from "react-icons/fa";
+import HimtiLogov2 from "@/components/logos/HimtiLogov2";
 import { authClient } from "@/utils/auth-client";
 
 const TypingHelloAnimation = () => {
@@ -113,9 +113,7 @@ export const LoginPage = () => {
               <span className="text-base font-bold">Loading...</span>
             ) : (
               <>
-                <div className="w-5 h-5">
-                  <GoogleLogo />
-                </div>
+                <FaGoogle size={18} />
                 <div className="w-3"></div>
                 <span className="text-base font-bold hidden sm:inline">
                   Sign in with Google
