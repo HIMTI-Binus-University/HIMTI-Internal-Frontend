@@ -26,7 +26,6 @@ function App() {
               <Route path={route.path} element={element} key={route.key}>
                 {route.children.map((childRoute) => {
                   const ChildComponent = childRoute.component;
-                  // Handle protection for children as well
                   const childElement = childRoute.isProtected ? (
                     <ProtectedRoute>
                       <ChildComponent />
