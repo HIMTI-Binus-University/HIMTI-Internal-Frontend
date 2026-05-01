@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { AxiosError } from "axios";
 // import { format } from "date-fns";
 
-import { Sidebar } from "@/components/Utils";
+import { PageLayout, Container, ContainerHeader } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +29,6 @@ import { Card, CardContent } from "@/components/ui/card";
 
 import {
   FaPlus,
-  FaBars,
   FaRegCopy,
   FaPencilAlt,
   FaTrashAlt,
@@ -144,7 +143,6 @@ const UrlShortenerPage = () => {
   const shortLinkPrefix = shortLinkConfig.displayPrefix;
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [popupCopied, setPopupCopied] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
   const [selectedLink, setSelectedLink] = useState<UrlItem | null>(null);
   const [editTargetUrl, setEditTargetUrl] = useState("");
@@ -304,31 +302,11 @@ const UrlShortenerPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-semantic-background">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-      <main className="flex-1 p-10 font-sans max-md:px-4 max-md:py-3">
-        <header className="flex justify-between items-center relative mb-8">
-          <div className="flex flex-row gap-4">
-            <button
-              className="xl:hidden p-2 rounded-lg hover:bg-semantic-muted opacity-30"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <FaBars size={24} />
-            </button>
-
-            <div className="flex items-center gap-5 p-2 min-w-0">
-              <FaLink size={48} className="text-semantic-foreground/30 max-xl:w-[36px] max-xl:h-[36px]" />
-              <h2 className="min-w-0 text-h3 max-xl:text-h4 max-xl:font-bold max-lg:text-h5 max-lg:font-bold font-bold text-semantic-foreground/50">
-                URL Shortener
-              </h2>
-            </div>
-          </div>
-        </header>
+    <PageLayout icon={FaLink} title="URL Shortener">
 
         {/* FORM CREATE LINK */}
-        <div className="bg-white rounded-xl shadow p-6 mb-8">
-          <h3 className="text-h5 font-bold mb-6">Create New Link</h3>
+        <Container>
+          <ContainerHeader>Create New Link</ContainerHeader>
 
           <div className="space-y-4">
             <div>
@@ -399,7 +377,7 @@ const UrlShortenerPage = () => {
               </Button>
             </div>
           </div>
-        </div>
+        </Container>
 
         {/* LINK CREATION CONFIRMATION DIALOG */}
         {createdLink && (
@@ -455,10 +433,8 @@ const UrlShortenerPage = () => {
         )}
 
         {/* CARD URLs */}
-        <div className="bg-white rounded-xl shadow p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-h5 font-bold">Existing Links</h3>
-          </div>
+        <Container>
+          <ContainerHeader>Existing Links</ContainerHeader>
 
           {isLoadingUrls ? (
             <h1>loading...</h1>
@@ -548,7 +524,7 @@ const UrlShortenerPage = () => {
               ))}
             </div>
           )}
-        </div>
+        </Container>
 
         {/* EDIT DIALOG */}
         <Dialog
@@ -655,8 +631,7 @@ const UrlShortenerPage = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </main>
-    </div>
+    </PageLayout>
   );
 };
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AxiosError } from "axios";
 
-import { Sidebar } from "@/components/Utils";
+import { PageLayout, Container, ContainerHeader } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,8 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 
-import { FaBars, FaPencilAlt, FaBan } from "react-icons/fa";
-import { FaIdBadge } from "react-icons/fa";
+import { FaPencilAlt, FaTrash, FaIdBadge } from "react-icons/fa";
 
 import { useGetPermissions, useGetRoles } from "@/api/rbac/queries";
 import {
@@ -37,8 +36,6 @@ import {
 import type { Role } from "@/types/rbac";
 
 const RbacRolesPage = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
   // Create form state
   const [newRoleName, setNewRoleName] = useState("");
   const [createError, setCreateError] = useState("");
@@ -164,35 +161,12 @@ const RbacRolesPage = () => {
   );
 
   return (
-    <div className="flex min-h-screen w-full bg-semantic-background">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-      <main className="flex-1 p-10 font-sans max-md:px-4 max-md:py-3">
-        <header className="flex justify-between items-center relative mb-8">
-          <div className="flex flex-row gap-4">
-            <button
-              className="xl:hidden p-2 rounded-lg hover:bg-semantic-muted opacity-30"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <FaBars size={24} />
-            </button>
-
-            <div className="flex items-center gap-5 p-2 min-w-0">
-              <FaIdBadge
-                size={48}
-                className="text-semantic-foreground/30 max-xl:w-[36px] max-xl:h-[36px]"
-              />
-              <h2 className="min-w-0 text-h3 max-xl:text-h4 max-xl:font-bold max-lg:text-h5 max-lg:font-bold font-bold text-semantic-foreground/50">
-                Roles
-              </h2>
-            </div>
-          </div>
-        </header>
+    <PageLayout icon={FaIdBadge} title="Roles">
 
         {/* Create form */}
-        <div className="bg-white rounded-xl shadow p-6 mb-8">
-          <h3 className="text-h5 font-bold mb-6">Add Role</h3>
-          <div className="flex flex-col gap-4 max-w-md">
+        <Container>
+          <ContainerHeader>Add Role</ContainerHeader>
+          <div className="flex flex-col gap-4 w-full">
             <div>
               <Label htmlFor="newRoleName" className="mb-3">
                 Role Name
@@ -200,7 +174,7 @@ const RbacRolesPage = () => {
               <Input
                 id="newRoleName"
                 type="text"
-                placeholder="e.g. Secretary"
+                placeholder="Registration Team"
                 value={newRoleName}
                 onChange={(e) => {
                   setNewRoleName(e.target.value);
@@ -218,16 +192,16 @@ const RbacRolesPage = () => {
             <Button
               onClick={handleCreate}
               disabled={createRole.isPending}
-              className="w-fit"
+              className="w-fit ml-auto"
             >
               {createRole.isPending ? "Adding..." : "Add Role"}
             </Button>
           </div>
-        </div>
+        </Container>
 
         {/* Roles list */}
-        <div className="bg-white rounded-xl shadow p-6">
-          <h3 className="text-h5 font-bold mb-6">All Roles</h3>
+        <Container>
+          <ContainerHeader>Manage Roles</ContainerHeader>
 
           {isLoading && (
             <p className="text-semantic-foreground/50 text-body-1">
@@ -249,15 +223,6 @@ const RbacRolesPage = () => {
                   <div className="flex items-center gap-3">
                     <span className="text-body-1 font-semibold text-semantic-foreground truncate">
                       {role.roleName}
-                    </span>
-                    <span
-                      className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${
-                        role.status === "ACTIVE"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-500"
-                      }`}
-                    >
-                      {role.status}
                     </span>
                   </div>
 
@@ -281,7 +246,7 @@ const RbacRolesPage = () => {
                     size="sm"
                     onClick={() => openEditDialog(role)}
                   >
-                    <FaPencilAlt size={12} className="mr-1.5" />
+                    <FaPencilAlt size={12}/>
                     Edit
                   </Button>
                   <Button
@@ -291,16 +256,15 @@ const RbacRolesPage = () => {
                     onClick={() => setDeactivateTarget(role)}
                     disabled={role.status === "INACTIVE"}
                   >
-                    <FaBan size={12} className="mr-1.5" />
-                    Deactivate
+                    <FaTrash size={12}/>
+                    Delete
                   </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
           </div>
-        </div>
-      </main>
+        </Container>
 
       {/* Edit dialog */}
       <Dialog
@@ -331,23 +295,6 @@ const RbacRolesPage = () => {
                   {editError}
                 </p>
               )}
-            </div>
-
-            <div>
-              <Label htmlFor="editRoleStatus" className="mb-2">
-                Status
-              </Label>
-              <select
-                id="editRoleStatus"
-                value={editStatus}
-                onChange={(e) =>
-                  setEditStatus(e.target.value as "ACTIVE" | "INACTIVE")
-                }
-                className="w-full border border-semantic-border rounded-lg px-3 py-2 text-body-1 text-semantic-foreground bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary-2"
-              >
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="INACTIVE">INACTIVE</option>
-              </select>
             </div>
 
             <div>
@@ -425,7 +372,7 @@ const RbacRolesPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageLayout>
   );
 };
 

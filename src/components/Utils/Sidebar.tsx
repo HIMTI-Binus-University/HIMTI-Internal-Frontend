@@ -12,6 +12,7 @@ import {
 
 import {
   FaChevronDown,
+  FaChevronLeft,
   FaSignOutAlt,
   FaUserCircle,
   FaKey,
@@ -85,21 +86,30 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
       <aside
         className={`
-          w-1/4 shrink-0 bg-brand-primary-1 text-white h-screen flex flex-col p-10 font-sans justify-between fixed left-0 top-0 z-40 overflow-y-auto xl:sticky xl:top-0
+          w-1/4 shrink-0 bg-brand-primary-1 text-white h-screen flex flex-col p-8 font-sans justify-between fixed left-0 top-0 z-40 overflow-y-auto xl:sticky xl:top-0
           transition-transform duration-300 ease-in-out xl:translate-x-0
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           max-md:w-96
         `}
       >
         <div className="flex flex-col gap-10">
-          <div className="flex items-center gap-4 px-2">
-            <HimtiLogo width={64} />
-            <div className="flex flex-col">
-              <span className="text-ds-h2 font-bold text-white">HIMTI</span>
-              <span className="text-ds-h3 font-light text-white/80">
-                Internal Tools
-              </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 px-2">
+              <HimtiLogo width={64} />
+              <div className="flex flex-col">
+                <span className="text-ds-h2 font-bold text-white">HIMTI</span>
+                <span className="text-ds-h3 font-light text-white/80">
+                  Internal Tools
+                </span>
+              </div>
             </div>
+            <button
+              onClick={onClose}
+              className="xl:hidden p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Close sidebar"
+            >
+              <FaChevronLeft size={20} />
+            </button>
           </div>
 
           <nav className="flex flex-col gap-6">

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AxiosError } from "axios";
 
-import { Sidebar } from "@/components/Utils";
+import { PageLayout, Container, ContainerHeader } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,16 +24,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 
-import { FaBars, FaPencilAlt, FaBan } from "react-icons/fa";
-import { FaKey } from "react-icons/fa";
+import { FaPencilAlt, FaTrash, FaKey } from "react-icons/fa";
 
 import { useGetPermissions } from "@/api/rbac/queries";
 import { useCreatePermission, useUpdatePermission } from "@/hooks/rbac/permissions";
 import type { Permission } from "@/types/rbac";
 
 const RbacPermissionsPage = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
   // Create form state
   const [newName, setNewName] = useState("");
   const [createError, setCreateError] = useState("");
@@ -115,35 +112,12 @@ const RbacPermissionsPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-semantic-background">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-      <main className="flex-1 p-10 font-sans max-md:px-4 max-md:py-3">
-        <header className="flex justify-between items-center relative mb-8">
-          <div className="flex flex-row gap-4">
-            <button
-              className="xl:hidden p-2 rounded-lg hover:bg-semantic-muted opacity-30"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <FaBars size={24} />
-            </button>
-
-            <div className="flex items-center gap-5 p-2 min-w-0">
-              <FaKey
-                size={48}
-                className="text-semantic-foreground/30 max-xl:w-[36px] max-xl:h-[36px]"
-              />
-              <h2 className="min-w-0 text-h3 max-xl:text-h4 max-xl:font-bold max-lg:text-h5 max-lg:font-bold font-bold text-semantic-foreground/50">
-                Permissions
-              </h2>
-            </div>
-          </div>
-        </header>
+    <PageLayout icon={FaKey} title="Permissions">
 
         {/* Create form */}
-        <div className="bg-white rounded-xl shadow p-6 mb-8">
-          <h3 className="text-h5 font-bold mb-6">Add Permission</h3>
-          <div className="flex flex-col gap-4 max-w-md">
+        <Container>
+          <ContainerHeader>Add Permission</ContainerHeader>
+          <div className="flex flex-col gap-4 w-full">
             <div>
               <Label htmlFor="newPermissionName" className="mb-3">
                 Permission Name
@@ -151,7 +125,7 @@ const RbacPermissionsPage = () => {
               <Input
                 id="newPermissionName"
                 type="text"
-                placeholder="e.g. manage_events"
+                placeholder="manage_everything"
                 value={newName}
                 onChange={(e) => {
                   setNewName(e.target.value);
@@ -169,16 +143,16 @@ const RbacPermissionsPage = () => {
             <Button
               onClick={handleCreate}
               disabled={createPermission.isPending}
-              className="w-fit"
+              className="w-fit ml-auto"
             >
               {createPermission.isPending ? "Adding..." : "Add Permission"}
             </Button>
           </div>
-        </div>
+        </Container>
 
         {/* Permissions list */}
-        <div className="bg-white rounded-xl shadow p-6">
-          <h3 className="text-h5 font-bold mb-6">All Permissions</h3>
+        <Container>
+          <ContainerHeader>Manage Permissions</ContainerHeader>
 
           {isLoading && (
             <p className="text-semantic-foreground/50 text-body-1">
@@ -200,15 +174,6 @@ const RbacPermissionsPage = () => {
                     <span className="text-body-1 font-semibold text-semantic-foreground truncate">
                       {permission.name}
                     </span>
-                    <span
-                      className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${
-                        permission.status === "ACTIVE"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-500"
-                      }`}
-                    >
-                      {permission.status}
-                    </span>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
@@ -217,7 +182,7 @@ const RbacPermissionsPage = () => {
                       size="sm"
                       onClick={() => openEditDialog(permission)}
                     >
-                      <FaPencilAlt size={12} className="mr-1.5" />
+                      <FaPencilAlt size={12}/>
                       Edit
                     </Button>
                     <Button
@@ -227,16 +192,15 @@ const RbacPermissionsPage = () => {
                       onClick={() => setDeactivateTarget(permission)}
                       disabled={permission.status === "INACTIVE"}
                     >
-                      <FaBan size={12} className="mr-1.5" />
-                      Deactivate
+                      <FaTrash size={12}/>
+                      Delete
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
-        </div>
-      </main>
+        </Container>
 
       {/* Edit dialog */}
       <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
@@ -264,23 +228,6 @@ const RbacPermissionsPage = () => {
                   {editError}
                 </p>
               )}
-            </div>
-
-            <div>
-              <Label htmlFor="editPermissionStatus" className="mb-2">
-                Status
-              </Label>
-              <select
-                id="editPermissionStatus"
-                value={editStatus}
-                onChange={(e) =>
-                  setEditStatus(e.target.value as "ACTIVE" | "INACTIVE")
-                }
-                className="w-full border border-semantic-border rounded-lg px-3 py-2 text-body-1 text-semantic-foreground bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary-2"
-              >
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="INACTIVE">INACTIVE</option>
-              </select>
             </div>
           </div>
 
@@ -324,7 +271,7 @@ const RbacPermissionsPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageLayout>
   );
 };
 

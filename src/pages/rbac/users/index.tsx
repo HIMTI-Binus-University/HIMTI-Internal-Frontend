@@ -1,9 +1,8 @@
 import { useState, useMemo } from "react";
 
-import { Sidebar } from "@/components/Utils";
+import { PageLayout, Container, ContainerHeader } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 
-import { FaBars, FaSearch, FaUserCircle, FaUsers } from "react-icons/fa";
+import { FaUserCircle, FaUsers } from "react-icons/fa";
 
 import { useGetUsers, useGetRoles } from "@/api/rbac/queries";
 import { useAssignUserRole, useRemoveUserRole } from "@/hooks/rbac/users";
@@ -21,7 +20,6 @@ import { authClient } from "@/utils/auth-client";
 import type { RbacUser } from "@/types/rbac";
 
 const RbacUsersPage = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Manage roles dialog state
@@ -84,59 +82,25 @@ const RbacUsersPage = () => {
     : null;
 
   return (
-    <div className="flex min-h-screen w-full bg-semantic-background">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <PageLayout icon={FaUsers} title="Users">
 
-      <main className="flex-1 p-10 font-sans max-md:px-4 max-md:py-3">
-        <header className="flex justify-between items-center relative mb-8">
-          <div className="flex flex-row gap-4">
-            <button
-              className="xl:hidden p-2 rounded-lg hover:bg-semantic-muted opacity-30"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <FaBars size={24} />
-            </button>
+        {/* Users grid */}
+        <Container>
+          <ContainerHeader>
+            {searchQuery
+              ? `Results for "${searchQuery}" (${filteredUsers.length})`
+              : `All Users (${users.length})`}
+          </ContainerHeader>
 
-            <div className="flex items-center gap-5 p-2 min-w-0">
-              <FaUsers
-                size={48}
-                className="text-semantic-foreground/30 max-xl:w-[36px] max-xl:h-[36px]"
-              />
-              <h2 className="min-w-0 text-h3 max-xl:text-h4 max-xl:font-bold max-lg:text-h5 max-lg:font-bold font-bold text-semantic-foreground/50">
-                Users
-              </h2>
-            </div>
-          </div>
-        </header>
-
-        {/* Search bar */}
-        <div className="bg-white rounded-xl shadow p-6 mb-8">
-          <Label htmlFor="userSearch" className="mb-3 block">
-            Search Users
-          </Label>
-          <div className="relative max-w-md">
-            <FaSearch
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-semantic-foreground/40 pointer-events-none"
-            />
+          <div className="relative w-full mb-6">
             <Input
               id="userSearch"
               type="text"
               placeholder="Search by name or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
             />
           </div>
-        </div>
-
-        {/* Users grid */}
-        <div className="bg-white rounded-xl shadow p-6">
-          <h3 className="text-h5 font-bold mb-6">
-            {searchQuery
-              ? `Results for "${searchQuery}" (${filteredUsers.length})`
-              : `All Users (${users.length})`}
-          </h3>
 
           {isLoading && (
             <p className="text-semantic-foreground/50 text-body-1">
@@ -150,7 +114,7 @@ const RbacUsersPage = () => {
             </p>
           )}
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div className="flex flex-col justify-center items-center gap-4">
             {filteredUsers.map((user) => (
               <UserCard
                 key={user.id}
@@ -160,8 +124,7 @@ const RbacUsersPage = () => {
               />
             ))}
           </div>
-        </div>
-      </main>
+        </Container>
 
       {/* Manage roles dialog */}
       <Dialog
@@ -220,7 +183,7 @@ const RbacUsersPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageLayout>
   );
 };
 
@@ -232,7 +195,7 @@ interface UserCardProps {
 
 const UserCard = ({ user, isSelf, onManageRoles }: UserCardProps) => {
   return (
-    <Card className="shadow-sm">
+    <Card className="shadow-sm w-full">
       <CardContent className="flex items-center gap-4 p-5">
         <div className="shrink-0">
           {user.image ? (
@@ -248,7 +211,7 @@ const UserCard = ({ user, isSelf, onManageRoles }: UserCardProps) => {
 
         <div className="flex-1 min-w-0">
           <p className="text-body-1 font-semibold text-semantic-foreground truncate">
-            {user.name}
+            {user.name} {isSelf ? "(You)" : ""}
           </p>
           <p className="text-body-2 text-semantic-foreground/60 truncate">
             {user.email}
