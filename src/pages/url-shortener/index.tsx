@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { AxiosError } from "axios";
 // import { format } from "date-fns";
 
-import { Sidebar } from "@/components/Utils";
+import { PageLayout, Container, ContainerHeader } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,19 +29,14 @@ import { Card, CardContent } from "@/components/ui/card";
 
 import {
   FaPlus,
-  FaBars,
   FaRegCopy,
   FaPencilAlt,
   FaTrashAlt,
   FaQrcode,
+  FaLink,
+  FaCalendarAlt,
+  FaArrowRight,
 } from "react-icons/fa";
-
-import {
-  CalendarIcon,
-  ExpiredIcon,
-  DownRightIcon,
-  LinkIconV2,
-} from "@/components/icons";
 
 import {
   useGetUrlList,
@@ -53,67 +48,6 @@ import type { UrlItem } from "@/types/url-shortener";
 import { shortLinkConfig } from "@/config/runtime";
 import qrcode from "qrcode";
 import qrLogoUrl from "@/components/assets/qrlogo.png";
-
-// const DateTimePicker = ({
-//   value,
-//   onChange,
-//   hasError,
-//   placeholder = "Pick a date & time",
-// }: {
-//   value: Date | undefined;
-//   onChange: (date: Date | undefined) => void;
-//   hasError?: boolean;
-//   placeholder?: string;
-// }) => {
-
-//   const handleDaySelect = (day: Date | undefined) => {
-//     if (!day) {
-//       onChange(undefined);
-//       return;
-//     }
-//     const updated = new Date(day);
-//     if (value) {
-//       updated.setHours(value.getHours(), value.getMinutes(), 0, 0);
-//     }
-//     onChange(updated);
-//   };
-
-//   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-//     const [hours, minutes] = e.target.value.split(":").map(Number);
-//     const updated = value ? new Date(value) : new Date();
-//     updated.setHours(hours, minutes, 0, 0);
-//     onChange(updated);
-//   };
-
-//   return (
-//     <Popover>
-//       <PopoverTrigger asChild>
-//         <button
-//           type="button"
-//           className={`flex w-full items-center gap-3 rounded-xl border px-4 py-4 text-left text-md ${
-//             hasError ? "border-semantic-danger" : "border-semantic-border"
-//           } ${!value ? "text-semantic-foreground/25" : "text-semantic-foreground"}`}
-//         >
-//           <CalendarIcon className="shrink-0" />
-//           <span className="truncate min-w-0 flex-1">{value ? format(value, "MMM d, yyyy HH:mm") : placeholder}</span>
-//         </button>
-//       </PopoverTrigger>
-//       <PopoverContent className="w-auto p-0" align="start">
-//         <Calendar mode="single" selected={value} onSelect={handleDaySelect} />
-//         <div className="border-t p-3 flex flex-col gap-2">
-//           <Label className="text-body-2 text-semantic-foreground/50">Time</Label>
-//           <Input
-//             type="time"
-//             value={value ? format(value, "HH:mm") : ""}
-//             onChange={handleTimeChange}
-//             disabled={!value}
-//             className="text-body-2"
-//           />
-//         </div>
-//       </PopoverContent>
-//     </Popover>
-//   );
-// };
 
 // QR Code Dialog
 function QRCodeDialog({
@@ -209,7 +143,6 @@ const UrlShortenerPage = () => {
   const shortLinkPrefix = shortLinkConfig.displayPrefix;
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [popupCopied, setPopupCopied] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
   const [selectedLink, setSelectedLink] = useState<UrlItem | null>(null);
   const [editTargetUrl, setEditTargetUrl] = useState("");
@@ -369,35 +302,11 @@ const UrlShortenerPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-semantic-background">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-      <main className="flex-1 p-10 font-sans max-md:px-4 max-md:py-3">
-        <header className="flex justify-between items-center relative">
-          <div className="flex flex-row gap-4">
-            <button
-              className="xl:hidden p-2 rounded-lg hover:bg-semantic-muted opacity-30"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <FaBars size={24} />
-            </button>
-
-            <div className="flex items-center gap-5 p-2 min-w-0">
-              <LinkIconV2
-                width={80}
-                height={80}
-                className="max-xl:w-[60px] max-xl:h-[60px]"
-              />
-              <h2 className="min-w-0 text-h3 max-xl:text-h4 max-xl:font-bold max-lg:text-h5 max-lg:font-bold font-bold text-semantic-foreground/50">
-                URL Shortener
-              </h2>
-            </div>
-          </div>
-        </header>
+    <PageLayout icon={FaLink} title="URL Shortener">
 
         {/* FORM CREATE LINK */}
-        <div className="bg-white rounded-xl shadow p-6 mb-8">
-          <h3 className="text-h5 font-bold mb-6">Create New Link</h3>
+        <Container>
+          <ContainerHeader>Create New Link</ContainerHeader>
 
           <div className="space-y-4">
             <div>
@@ -455,23 +364,6 @@ const UrlShortenerPage = () => {
               )}
             </div>
 
-            {/* <div className="w-full">
-                <Label className="mb-3">
-                  Link Expiry Date <span className="text-black/30">(leave blank if no expiry date)</span>
-                </Label>
-                <DateTimePicker
-                  value={expiryDate}
-                  onChange={(date) => {
-                    setExpiryDate(date);
-                    setCreateErrors((prev) => ({ ...prev, expiresAt: "" }));
-                  }}
-                  hasError={!!createErrors.expiresAt}
-                />
-                {createErrors.expiresAt && (
-                  <p className="text-semantic-danger text-body-2 mt-2">{createErrors.expiresAt}</p>
-                )}
-              </div> */}
-
             <div className="flex justify-end">
               <Button onClick={handleCreateLink} disabled={createUrl.isPending}>
                 {createUrl.isPending ? (
@@ -485,7 +377,7 @@ const UrlShortenerPage = () => {
               </Button>
             </div>
           </div>
-        </div>
+        </Container>
 
         {/* LINK CREATION CONFIRMATION DIALOG */}
         {createdLink && (
@@ -519,7 +411,7 @@ const UrlShortenerPage = () => {
                 </div>
 
                 <div className="flex items-center gap-2 text-body-1 min-w-0">
-                  <DownRightIcon className="shrink-0" />
+                  <FaArrowRight className="shrink-0" />
                   <span className="break-all min-w-0">
                     {createdLink.targetUrl}
                   </span>
@@ -527,14 +419,8 @@ const UrlShortenerPage = () => {
 
                 <div className="flex items-center gap-6 text-body-3 text-semantic-foreground/50 mt-2">
                   <div className="flex items-center gap-1">
-                    <CalendarIcon />
+                    <FaCalendarAlt/>
                     Created on {createdLink.createdAt}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <ExpiredIcon />
-                    {createdLink.expiresAt
-                      ? `Expires on ${createdLink.expiresAt}`
-                      : "Never expires"}
                   </div>
                 </div>
               </div>
@@ -547,10 +433,8 @@ const UrlShortenerPage = () => {
         )}
 
         {/* CARD URLs */}
-        <div className="bg-white rounded-xl shadow p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-h5 font-bold">Existing Links</h3>
-          </div>
+        <Container>
+          <ContainerHeader>Existing Links</ContainerHeader>
 
           {isLoadingUrls ? (
             <h1>loading...</h1>
@@ -573,20 +457,14 @@ const UrlShortenerPage = () => {
                       </p>
 
                       <div className="flex flex-row items-center gap-2 text-body-1 max-lg:text-body-2 min-w-0">
-                        <DownRightIcon className="shrink-0" />
+                        <FaArrowRight className="shrink-0" />
                         <span className="min-w-0 flex-1 break-all">{url.originalUrl}</span>
                       </div>
 
                       <div className="flex flex-row max-lg:flex-col gap-6 max-lg:gap-2 text-body-3 text-semantic-foreground/50 mt-2">
                         <div className="flex items-center gap-1">
-                          <CalendarIcon />
+                          <FaCalendarAlt />
                           Created on {url.createdAt}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <ExpiredIcon />
-                          {url.expiresAt
-                            ? `Expires on ${url.expiresAt}`
-                            : "Never expires"}
                         </div>
                       </div>
                     </div>
@@ -646,7 +524,7 @@ const UrlShortenerPage = () => {
               ))}
             </div>
           )}
-        </div>
+        </Container>
 
         {/* EDIT DIALOG */}
         <Dialog
@@ -695,14 +573,6 @@ const UrlShortenerPage = () => {
                   />
                 </div>
               </div>
-
-              {/* <div>
-                <Label className="mb-3">Link Expiry Date</Label>
-                <DateTimePicker
-                  value={editExpiryDate}
-                  onChange={setEditExpiryDate}
-                />
-              </div> */}
             </div>
 
             <DialogFooter className="gap-2">
@@ -761,8 +631,7 @@ const UrlShortenerPage = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </main>
-    </div>
+    </PageLayout>
   );
 };
 
