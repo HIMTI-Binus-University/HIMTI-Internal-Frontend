@@ -1,8 +1,10 @@
 import { useEffect } from "react";
+import { isAxiosError } from "axios";
 import { useParams } from "react-router-dom";
 import { useGetUrlByShortCode } from "@/api/url-shortener/queries";
 import HimtiLogo from "@/components/logos/HimtiLogo";
 import { runtimeConfig } from "@/config/runtime";
+import { Button } from "@/components/ui/button";
 
 type StatusCardProps = {
   title: string;
@@ -39,9 +41,45 @@ const StatusCard = ({ title, description, children }: StatusCardProps) => {
   );
 };
 
+type ErrorResponseBody = {
+  msg?: string;
+  message?: string;
+};
+
+const getBackendErrorInfo = (error: unknown) => {
+  if (!isAxiosError(error)) {
+    return {
+      code: "UNKNOWN_ERROR",
+      message: error instanceof Error ? error.message : "Something went wrong",
+    };
+  }
+
+  const response = error.response;
+  const responseData = response?.data as ErrorResponseBody | string | undefined;
+
+  if (!response) {
+    return {
+      code: "NETWORK_ERROR",
+      message: error.message || "The request could not reach the server.",
+    };
+  }
+
+  const backendMessage =
+    typeof responseData === "string"
+      ? responseData
+      : responseData?.msg || responseData?.message;
+
+  return {
+    code: response.status,
+    message: backendMessage || error.message || "Request failed",
+  };
+};
+
 const RedirectLoadingPage = () => {
   const { shortCode } = useParams<{ shortCode: string }>();
-  const { data, isError } = useGetUrlByShortCode(shortCode ?? "");
+  const { data, error, isError, isFetching, refetch } = useGetUrlByShortCode(
+    shortCode ?? "",
+  );
 
   useEffect(() => {
     if (!shortCode) {
@@ -85,22 +123,35 @@ const RedirectLoadingPage = () => {
   }
 
   if (isError) {
+    const errorInfo = getBackendErrorInfo(error);
+
     return (
       <div className="min-h-screen bg-semantic-background px-4 py-8">
         <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-6xl items-center justify-center">
           <StatusCard
-            title="Link not found"
-            description="The short link may be missing, expired, or mistyped."
+            title="Link Error"
+            description="The backend returned the following status for this short link."
           >
             <div className="space-y-5">
               <div className="rounded-2xl border border-dashed border-semantic-border bg-semantic-muted/30 px-6 py-5">
-                <h1 className="text-center font-mono text-6xl leading-5 text-semantic-foreground/30 max-md:text-xs p-10">
-                  {`@('_')@`}
+                <p className="mb-3 text-center text-body-3 font-semibold uppercase tracking-widest text-semantic-foreground/40">
+                  Error Code
+                </p>
+                <h1 className="break-all text-center font-mono text-5xl font-bold leading-tight text-semantic-foreground/70 max-md:text-3xl">
+                  {errorInfo.code}
                 </h1>
               </div>
-              <p className="text-body-2 text-semantic-foreground/45">
-                We could not figure out where this one was supposed to go.
+              <p className="break-words text-body-2 text-semantic-foreground/60">
+                {errorInfo.message}
               </p>
+              <Button
+                type="button"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className="w-full"
+              >
+                {isFetching ? "Retrying..." : "Retry"}
+              </Button>
             </div>
           </StatusCard>
         </div>
