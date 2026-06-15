@@ -21,6 +21,24 @@ export interface RbacUser {
   roles?: { id: string; roleName: string; status: string }[];
 }
 
+export interface RbacUserListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: "ACTIVE" | "INACTIVE";
+}
+
+export interface RbacUserListResponse {
+  msg: string;
+  data: RbacUser[];
+  meta: {
+    page: number;
+    limit: number;
+    totalRecords: number;
+    totalPages: number;
+  };
+}
+
 export interface UpdatePermissionPayload {
   id: string;
   name?: string;

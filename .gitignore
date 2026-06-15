@@ -34,6 +34,8 @@ dist-ssr
 CLAUDE.md
 .claude/
 
+AGENTS.md
+
 # Environment-specific configuration files
 src/constants/keys-dev.ts
 src/constants/keys-dev-local.ts

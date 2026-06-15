@@ -12,6 +12,7 @@ import type {
   CreateUrlPayload,
   UpdateUrlPayload,
   DeleteUrlPayload,
+  UrlListParams,
   UrlListResponse,
 } from "@/types/url-shortener";
 import { Status } from "@/types/url-shortener";
@@ -28,12 +29,24 @@ export const useGetUrlByShortCode = (shortCode: string) => {
   });
 };
 
-export const useGetUrlList = () => {
+export const useGetUrlList = (params: UrlListParams = {}) => {
+  const page = params.page ?? 1;
+  const limit = params.limit ?? 10;
+  const search = params.search?.trim() ?? "";
+  const status = params.status ?? Status.ACTIVE;
+
   return useQuery({
-    queryKey: ["urls"],
+    queryKey: ["urls", { page, limit, search, status }],
     queryFn: () =>
       apiClient
-        .get<UrlListResponse>(`${Api.urlList}?status=${Status.ACTIVE}`)
+        .get<UrlListResponse>(Api.urlList, {
+          params: {
+            page,
+            limit,
+            status,
+            ...(search ? { search } : {}),
+          },
+        })
         .then((res) => res.data),
     staleTime: 5 * 60 * 1000,
   });

@@ -49,6 +49,8 @@ import { shortLinkConfig } from "@/config/runtime";
 import qrcode from "qrcode";
 import qrLogoUrl from "@/components/assets/qrlogo.png";
 
+const URLS_PER_PAGE = 10;
+
 // QR Code Dialog
 function QRCodeDialog({
   url,
@@ -157,6 +159,9 @@ const UrlShortenerPage = () => {
   const [qrUrl, setQrUrl] = useState<string | null>(null);
 
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [targetUrl, setTargetUrl] = useState("");
   const [shortCode, setShortCode] = useState("");
@@ -167,12 +172,45 @@ const UrlShortenerPage = () => {
     expiresAt?: string | null;
   } | null>(null);
 
-  const { data: urlsData, isLoading: isLoadingUrls, refetch } = useGetUrlList();
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+    }, 400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  const { data: urlsData, isLoading: isLoadingUrls, refetch } = useGetUrlList({
+    page: currentPage,
+    limit: URLS_PER_PAGE,
+    search: debouncedSearchQuery,
+  });
   const createUrl = useCreateUrl();
   const updateUrl = useUpdateUrl();
   const deleteUrl = useDeleteUrl();
 
   const urls = urlsData?.data || [];
+  const paginationMeta = urlsData?.meta;
+  const totalPages = paginationMeta?.totalPages ?? 1;
+  const totalRecords = paginationMeta?.totalRecords ?? 0;
+  const pageStart =
+    totalRecords === 0
+      ? 0
+      : ((paginationMeta?.page ?? currentPage) - 1) * URLS_PER_PAGE + 1;
+  const pageEnd = Math.min(
+    (paginationMeta?.page ?? currentPage) * URLS_PER_PAGE,
+    totalRecords,
+  );
+
+  useEffect(() => {
+    if (
+      paginationMeta &&
+      paginationMeta.totalPages > 0 &&
+      currentPage > paginationMeta.totalPages
+    ) {
+      setCurrentPage(paginationMeta.totalPages);
+    }
+  }, [currentPage, paginationMeta]);
 
   const normalizeUrl = (input: string): string => {
     let url = input.trim();
@@ -219,6 +257,7 @@ const UrlShortenerPage = () => {
         setTargetUrl("");
         setShortCode("");
         setExpiryDate(undefined);
+        setCurrentPage(1);
         refetch();
       },
       onError: (error) => {
@@ -434,14 +473,35 @@ const UrlShortenerPage = () => {
 
         {/* CARD URLs */}
         <Container>
-          <ContainerHeader>Existing Links</ContainerHeader>
+          <ContainerHeader>
+            {debouncedSearchQuery
+              ? `Results for "${debouncedSearchQuery}" (${totalRecords})`
+              : `Existing Links (${totalRecords})`}
+          </ContainerHeader>
+
+          <div className="relative w-full mb-6">
+            <Input
+              id="urlSearch"
+              type="text"
+              placeholder="Search by short code or target URL..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
 
           {isLoadingUrls ? (
             <h1>loading...</h1>
           ) : urls.length === 0 ? (
             <div className="text-center text-semantic-foreground/25 text-body-1 py-8 space-y-4">
               <h1 className="text-h3">{`( •_•)>⌐■-■`}</h1>
-              <h2 className="text-h6">Nothing to show here...</h2>
+              <h2 className="text-h6">
+                {debouncedSearchQuery
+                  ? "No links match your search."
+                  : "Nothing to show here..."}
+              </h2>
             </div>
           ) : (
             <div className="space-y-4">
@@ -522,6 +582,42 @@ const UrlShortenerPage = () => {
                   </CardContent>
                 </Card>
               ))}
+
+              {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+                  <p className="text-body-2 text-semantic-foreground/60">
+                    Showing {pageStart}-{pageEnd} of {totalRecords} links
+                  </p>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage <= 1}
+                      onClick={() =>
+                        setCurrentPage((page) => Math.max(page - 1, 1))
+                      }
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-body-2 text-semantic-foreground/70 px-2">
+                      Page {paginationMeta?.page ?? currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage >= totalPages}
+                      onClick={() =>
+                        setCurrentPage((page) =>
+                          Math.min(page + 1, totalPages),
+                        )
+                      }
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </Container>
