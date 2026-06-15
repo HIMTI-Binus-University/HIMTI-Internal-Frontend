@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 
 import { PageLayout, Container, ContainerHeader } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
@@ -19,8 +19,12 @@ import { useAssignUserRole, useRemoveUserRole } from "@/hooks/rbac/users";
 import { authClient } from "@/utils/auth-client";
 import type { RbacUser } from "@/types/rbac";
 
+const USERS_PER_PAGE = 10;
+
 const RbacUsersPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Manage roles dialog state
   const [manageTarget, setManageTarget] = useState<RbacUser | null>(null);
@@ -29,20 +33,46 @@ const RbacUsersPage = () => {
   const { data: session } = authClient.useSession();
   const currentUserId = session?.user?.id;
 
-  const { data: users = [], isLoading } = useGetUsers();
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+    }, 400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  const { data: usersData, isLoading } = useGetUsers({
+    page: currentPage,
+    limit: USERS_PER_PAGE,
+    search: debouncedSearchQuery,
+  });
   const { data: allRoles = [] } = useGetRoles();
 
   const assignUserRole = useAssignUserRole();
   const removeUserRole = useRemoveUserRole();
 
-  const filteredUsers = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return users;
-    return users.filter(
-      (u) =>
-        u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
-    );
-  }, [users, searchQuery]);
+  const users = usersData?.data ?? [];
+  const paginationMeta = usersData?.meta;
+  const totalPages = paginationMeta?.totalPages ?? 1;
+  const totalRecords = paginationMeta?.totalRecords ?? 0;
+  const pageStart =
+    totalRecords === 0
+      ? 0
+      : ((paginationMeta?.page ?? currentPage) - 1) * USERS_PER_PAGE + 1;
+  const pageEnd = Math.min(
+    (paginationMeta?.page ?? currentPage) * USERS_PER_PAGE,
+    totalRecords,
+  );
+
+  useEffect(() => {
+    if (
+      paginationMeta &&
+      paginationMeta.totalPages > 0 &&
+      currentPage > paginationMeta.totalPages
+    ) {
+      setCurrentPage(paginationMeta.totalPages);
+    }
+  }, [currentPage, paginationMeta]);
 
   const openManageDialog = (user: RbacUser) => {
     setManageTarget(user);
@@ -87,18 +117,21 @@ const RbacUsersPage = () => {
         {/* Users grid */}
         <Container>
           <ContainerHeader>
-            {searchQuery
-              ? `Results for "${searchQuery}" (${filteredUsers.length})`
-              : `All Users (${users.length})`}
+            {debouncedSearchQuery
+              ? `Results for "${debouncedSearchQuery}" (${totalRecords})`
+              : `All Users (${totalRecords})`}
           </ContainerHeader>
 
           <div className="relative w-full mb-6">
             <Input
               id="userSearch"
               type="text"
-              placeholder="Search by name or email..."
+              placeholder="Search by name, email, or NIM..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
             />
           </div>
 
@@ -108,14 +141,16 @@ const RbacUsersPage = () => {
             </p>
           )}
 
-          {!isLoading && filteredUsers.length === 0 && (
+          {!isLoading && users.length === 0 && (
             <p className="text-semantic-foreground/50 text-body-1">
-              {searchQuery ? "No users match your search." : "No users found."}
+              {debouncedSearchQuery
+                ? "No users match your search."
+                : "No users found."}
             </p>
           )}
 
           <div className="flex flex-col justify-center items-center gap-4">
-            {filteredUsers.map((user) => (
+            {users.map((user) => (
               <UserCard
                 key={user.id}
                 user={user}
@@ -124,6 +159,40 @@ const RbacUsersPage = () => {
               />
             ))}
           </div>
+
+          {!isLoading && users.length > 0 && totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 mt-4">
+              <p className="text-body-2 text-semantic-foreground/60">
+                Showing {pageStart}-{pageEnd} of {totalRecords} users
+              </p>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= 1}
+                  onClick={() =>
+                    setCurrentPage((page) => Math.max(page - 1, 1))
+                  }
+                >
+                  Previous
+                </Button>
+                <span className="text-body-2 text-semantic-foreground/70 px-2">
+                  Page {paginationMeta?.page ?? currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= totalPages}
+                  onClick={() =>
+                    setCurrentPage((page) => Math.min(page + 1, totalPages))
+                  }
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </Container>
 
       {/* Manage roles dialog */}

@@ -32,6 +32,19 @@ export interface DeleteUrlPayload {
   shortCode: string;
 }
 
+export interface UrlListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: Status;
+}
+
 export interface UrlListResponse {
   data: UrlItem[];
+  meta: {
+    page: number;
+    limit: number;
+    totalRecords: number;
+    totalPages: number;
+  };
 }
