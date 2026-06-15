@@ -10,7 +10,8 @@ import { AxiosError } from "axios";
 import type {
   Permission,
   Role,
-  RbacUser,
+  RbacUserListParams,
+  RbacUserListResponse,
   UpdatePermissionPayload,
   UpdateRolePayload,
   AssignRolePermissionPayload,
@@ -150,13 +151,25 @@ export const useMutationRemoveRolePermission = (
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
-export const useGetUsers = () => {
+export const useGetUsers = (params: RbacUserListParams = {}) => {
+  const page = params.page ?? 1;
+  const limit = params.limit ?? 10;
+  const search = params.search?.trim() ?? "";
+  const status = params.status ?? "ACTIVE";
+
   return useQuery({
-    queryKey: ["rbac-users"],
+    queryKey: ["rbac-users", { page, limit, search, status }],
     queryFn: () =>
       apiClient
-        .get<{ msg: string; data: RbacUser[]; total: number }>(`${Api.userList}?status=ACTIVE`)
-        .then((res) => res.data.data),
+        .get<RbacUserListResponse>(Api.userList, {
+          params: {
+            page,
+            limit,
+            status,
+            ...(search ? { search } : {}),
+          },
+        })
+        .then((res) => res.data),
     staleTime: 5 * 60 * 1000,
   });
 };
