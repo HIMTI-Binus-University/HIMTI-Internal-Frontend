@@ -53,6 +53,11 @@ jobs:
             TARGET="development"
           fi
 
+          if [[ "$TARGET" == "production" && "${{ github.ref_name }}" != "main" ]]; then
+            echo "Production deployment is only allowed from main branch."
+            exit 1
+          fi
+
           if [[ "$TARGET" == "production" ]]; then
             echo "target=production" >> "$GITHUB_OUTPUT"
             echo "image_tag=prod" >> "$GITHUB_OUTPUT"
