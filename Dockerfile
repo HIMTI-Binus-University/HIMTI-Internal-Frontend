@@ -1,29 +1,29 @@
-# Build React App ---
-FROM node:20-alpine as builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copy package.json dulu biar caching layer docker optimal
-COPY package.json package-lock.json ./ 
-RUN npm install
+COPY package*.json ./
+RUN npm ci
 
-# Copy semua codingan
 COPY . .
 
-# Terima variable saat build (penting buat API URL)
-ARG VITE_API_URL
-ENV VITE_API_URL=$VITE_API_URL
+ARG VITE_API_BASE_URL
+ARG VITE_ADMIN_APP_URL
+ARG VITE_LINK_APP_URL
+ARG VITE_OFOG_URL
+ARG VITE_LOCAL_LINK_BASE_PATH
 
-# Build jadi folder /dist
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_ADMIN_APP_URL=$VITE_ADMIN_APP_URL
+ENV VITE_LINK_APP_URL=$VITE_LINK_APP_URL
+ENV VITE_OFOG_URL=$VITE_OFOG_URL
+ENV VITE_LOCAL_LINK_BASE_PATH=$VITE_LOCAL_LINK_BASE_PATH
+
 RUN npm run build
 
-# --- Stage 2: Serve pake Nginx ---
-FROM nginx:alpine
+FROM nginx:1.27-alpine
 
-# Copy hasil build dari Stage 1 ke folder Nginx
 COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy config nginx kita tadi
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80

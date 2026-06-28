@@ -1,8 +1,10 @@
 name: Frontend CI/CD to cPanel
 
+# on:
+#   push:
+#     branches: [ "dev", "main" ]
 on:
-  push:
-    branches: [ "dev", "main" ]
+  workflow_dispatch:
 
 jobs:
   # ============================================
