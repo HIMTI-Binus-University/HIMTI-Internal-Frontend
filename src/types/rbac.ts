@@ -51,6 +51,14 @@ export interface UpdateRolePayload {
   status?: "ACTIVE" | "INACTIVE";
 }
 
+export interface DeletePermissionPayload {
+  id: string;
+}
+
+export interface DeleteRolePayload {
+  id: string;
+}
+
 export interface AssignRolePermissionPayload {
   roleId: string;
   permissionId: string;

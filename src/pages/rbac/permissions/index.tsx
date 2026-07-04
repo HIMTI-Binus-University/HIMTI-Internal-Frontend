@@ -27,7 +27,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FaPencilAlt, FaTrash, FaKey } from "react-icons/fa";
 
 import { useGetPermissions } from "@/api/rbac/queries";
-import { useCreatePermission, useUpdatePermission } from "@/hooks/rbac/permissions";
+import {
+  useCreatePermission,
+  useDeletePermission,
+  useUpdatePermission,
+} from "@/hooks/rbac/permissions";
 import type { Permission } from "@/types/rbac";
 
 const RbacPermissionsPage = () => {
@@ -41,12 +45,13 @@ const RbacPermissionsPage = () => {
   const [editStatus, setEditStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const [editError, setEditError] = useState("");
 
-  // Deactivate dialog state
+  // Delete dialog state
   const [deactivateTarget, setDeactivateTarget] = useState<Permission | null>(null);
 
   const { data: permissions = [], isLoading } = useGetPermissions();
   const createPermission = useCreatePermission();
   const updatePermission = useUpdatePermission();
+  const deletePermission = useDeletePermission();
 
   const handleCreate = () => {
     if (!newName.trim()) {
@@ -101,8 +106,8 @@ const RbacPermissionsPage = () => {
 
   const handleDeactivate = () => {
     if (!deactivateTarget) return;
-    updatePermission.mutate(
-      { id: deactivateTarget.id, status: "INACTIVE" },
+    deletePermission.mutate(
+      { id: deactivateTarget.id },
       {
         onSuccess: () => {
           setDeactivateTarget(null);
@@ -245,16 +250,16 @@ const RbacPermissionsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Deactivate confirmation */}
+      {/* Delete confirmation */}
       <AlertDialog
         open={!!deactivateTarget}
         onOpenChange={(open) => !open && setDeactivateTarget(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Deactivate Permission</AlertDialogTitle>
+            <AlertDialogTitle>Delete Permission</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to deactivate{" "}
+              Are you sure you want to delete{" "}
               <span className="font-semibold">{deactivateTarget?.name}</span>?
               Roles that have this permission will lose access to the associated
               feature.
@@ -266,7 +271,7 @@ const RbacPermissionsPage = () => {
               onClick={handleDeactivate}
               className="bg-semantic-danger hover:bg-semantic-danger/90"
             >
-              Deactivate
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

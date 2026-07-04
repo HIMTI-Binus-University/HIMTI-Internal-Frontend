@@ -29,6 +29,7 @@ import { FaPencilAlt, FaTrash, FaIdBadge } from "react-icons/fa";
 import { useGetPermissions, useGetRoles } from "@/api/rbac/queries";
 import {
   useCreateRole,
+  useDeleteRole,
   useUpdateRole,
   useAssignRolePermission,
   useRemoveRolePermission,
@@ -46,7 +47,7 @@ const RbacRolesPage = () => {
   const [editStatus, setEditStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const [editError, setEditError] = useState("");
 
-  // Deactivate dialog state
+  // Delete dialog state
   const [deactivateTarget, setDeactivateTarget] = useState<Role | null>(null);
 
   // Track which permission toggles are pending to prevent double-clicks
@@ -57,6 +58,7 @@ const RbacRolesPage = () => {
 
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
+  const deleteRole = useDeleteRole();
   const assignPermission = useAssignRolePermission();
   const removePermission = useRemoveRolePermission();
 
@@ -141,8 +143,8 @@ const RbacRolesPage = () => {
 
   const handleDeactivate = () => {
     if (!deactivateTarget) return;
-    updateRole.mutate(
-      { id: deactivateTarget.id, status: "INACTIVE" },
+    deleteRole.mutate(
+      { id: deactivateTarget.id },
       {
         onSuccess: () => {
           setDeactivateTarget(null);
@@ -347,16 +349,16 @@ const RbacRolesPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Deactivate confirmation */}
+      {/* Delete confirmation */}
       <AlertDialog
         open={!!deactivateTarget}
         onOpenChange={(open) => !open && setDeactivateTarget(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Deactivate Role</AlertDialogTitle>
+            <AlertDialogTitle>Delete Role</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to deactivate{" "}
+              Are you sure you want to delete{" "}
               <span className="font-semibold">{deactivateTarget?.roleName}</span>?
               Users assigned to this role will lose their associated permissions.
             </AlertDialogDescription>
@@ -367,7 +369,7 @@ const RbacRolesPage = () => {
               onClick={handleDeactivate}
               className="bg-semantic-danger hover:bg-semantic-danger/90"
             >
-              Deactivate
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -29,7 +29,6 @@ export interface UpdateUrlPayload {
 
 export interface DeleteUrlPayload {
   id: string;
-  shortCode: string;
 }
 
 export interface UrlListParams {

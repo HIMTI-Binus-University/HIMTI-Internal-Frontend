@@ -1,5 +1,6 @@
 import {
   useMutationCreatePermission,
+  useMutationDeletePermission,
   useMutationUpdatePermission,
 } from "@/api/rbac/queries";
 
@@ -15,6 +16,14 @@ export const useUpdatePermission = () => {
   return useMutationUpdatePermission({
     onError: (error) => {
       console.error("Error (useUpdatePermission):", error);
+    },
+  });
+};
+
+export const useDeletePermission = () => {
+  return useMutationDeletePermission({
+    onError: (error) => {
+      console.error("Error (useDeletePermission):", error);
     },
   });
 };

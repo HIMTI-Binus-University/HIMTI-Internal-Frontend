@@ -1,5 +1,6 @@
 import {
   useMutationCreateRole,
+  useMutationDeleteRole,
   useMutationUpdateRole,
   useMutationAssignRolePermission,
   useMutationRemoveRolePermission,
@@ -17,6 +18,14 @@ export const useUpdateRole = () => {
   return useMutationUpdateRole({
     onError: (error) => {
       console.error("Error (useUpdateRole):", error);
+    },
+  });
+};
+
+export const useDeleteRole = () => {
+  return useMutationDeleteRole({
+    onError: (error) => {
+      console.error("Error (useDeleteRole):", error);
     },
   });
 };

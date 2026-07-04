@@ -17,11 +17,13 @@ export const Api = {
   permissionList: `${API_URL}/api/permission`,
   permissionCreate: `${API_URL}/api/permission`,
   permissionUpdate: `${API_URL}/api/permission/:id`,
+  permissionDelete: `${API_URL}/api/permission/delete/:id`,
 
   // Role endpoints
   roleList: `${API_URL}/api/roles`,
   roleCreate: `${API_URL}/api/role`,
   roleUpdate: `${API_URL}/api/role/:id`,
+  roleDelete: `${API_URL}/api/role/delete/:id`,
   roleAssignPermission: `${API_URL}/api/role/assign-permission`,
   roleRemovePermission: `${API_URL}/api/role/remove-permission`,
 
