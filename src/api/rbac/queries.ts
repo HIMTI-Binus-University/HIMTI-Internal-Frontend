@@ -14,6 +14,8 @@ import type {
   RbacUserListResponse,
   UpdatePermissionPayload,
   UpdateRolePayload,
+  DeletePermissionPayload,
+  DeleteRolePayload,
   AssignRolePermissionPayload,
   AssignUserRolePayload,
 } from "@/types/rbac";
@@ -68,6 +70,24 @@ export const useMutationUpdatePermission = (
   });
 };
 
+export const useMutationDeletePermission = (
+  options?: UseMutationOptions<Permission, AxiosError, DeletePermissionPayload>,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id }: DeletePermissionPayload) =>
+      apiClient
+        .patch<Permission>(Api.permissionDelete.replace(":id", id))
+        .then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["permissions"] });
+      queryClient.invalidateQueries({ queryKey: ["roles"] });
+    },
+    ...options,
+  });
+};
+
 // ─── Roles ────────────────────────────────────────────────────────────────────
 
 export const useGetRoles = () => {
@@ -110,6 +130,24 @@ export const useMutationUpdateRole = (
         .then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roles"] });
+    },
+    ...options,
+  });
+};
+
+export const useMutationDeleteRole = (
+  options?: UseMutationOptions<Role, AxiosError, DeleteRolePayload>,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id }: DeleteRolePayload) =>
+      apiClient
+        .patch<Role>(Api.roleDelete.replace(":id", id))
+        .then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["roles"] });
+      queryClient.invalidateQueries({ queryKey: ["rbac-users"] });
     },
     ...options,
   });

@@ -96,9 +96,9 @@ export const useMutationDeleteUrl = (
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, shortCode }: DeleteUrlPayload) =>
+    mutationFn: ({ id }: DeleteUrlPayload) =>
       apiClient
-        .patch<UrlItem>(Api.urlDelete.replace(":id", id), { shortCode, status: Status.INACTIVE })
+        .patch<UrlItem>(Api.urlDelete.replace(":id", id))
         .then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["urls"] });

@@ -317,7 +317,7 @@ const UrlShortenerPage = () => {
     if (!selectedLink) return;
 
     deleteUrl.mutate(
-      { id: selectedLink.id, shortCode: selectedLink.shortCode },
+      { id: selectedLink.id },
       {
         onSuccess: () => {
           setDeletePopup(false);
