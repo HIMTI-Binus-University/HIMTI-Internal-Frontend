@@ -5,6 +5,7 @@ export type HimtiPermission =
   | "manage_users"
   | "manage_roles"
   | "manage_permissions"
+  | "manage_events"
   | "create_events"
   | "view_dashboard";
 

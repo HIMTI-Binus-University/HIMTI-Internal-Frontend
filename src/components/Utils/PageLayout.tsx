@@ -11,7 +11,12 @@ interface PageLayoutProps {
   children: ReactNode;
 }
 
-const PageLayout = ({ icon: Icon, title, actions, children }: PageLayoutProps) => {
+const PageLayout = ({
+  icon: Icon,
+  title,
+  actions,
+  children,
+}: PageLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (

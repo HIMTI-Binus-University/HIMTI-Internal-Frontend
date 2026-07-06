@@ -19,6 +19,7 @@ import {
   FaIdBadge,
   FaUsers,
   FaLink,
+  FaCalendarAlt,
 } from "react-icons/fa";
 
 import { publicRoutes } from "@/config/routes";
@@ -35,6 +36,7 @@ type IconComponent = React.ComponentType<{ className?: string; width?: number; h
 
 const routeIconMap: Record<string, IconComponent> = {
   "router-url-shortener": FaLink,
+  "router-events": FaCalendarAlt,
   "router-rbac-permissions": FaKey,
   "router-rbac-roles": FaIdBadge,
   "router-rbac-users": FaUsers,
