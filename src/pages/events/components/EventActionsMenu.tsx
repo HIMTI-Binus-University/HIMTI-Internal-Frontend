@@ -1,6 +1,6 @@
-import { FaArchive, FaEllipsisV, FaPencilAlt, FaTrashAlt } from "react-icons/fa";
+import { Archive, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,26 +11,21 @@ import {
 export const EventActionsMenu = () => (
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        aria-label="Open event actions"
-      >
-        <FaEllipsisV />
-      </Button>
+      <IconButton label="Open event actions">
+        <MoreHorizontal />
+      </IconButton>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" className="w-44">
       <DropdownMenuItem>
-        <FaPencilAlt />
+        <Pencil />
         Edit event
       </DropdownMenuItem>
       <DropdownMenuItem>
-        <FaArchive />
+        <Archive />
         Archive event
       </DropdownMenuItem>
-      <DropdownMenuItem className="text-semantic-danger focus:text-semantic-danger">
-        <FaTrashAlt />
+      <DropdownMenuItem className="text-semantic-danger focus:bg-semantic-danger-background focus:text-semantic-danger">
+        <Trash2 />
         Delete event
       </DropdownMenuItem>
     </DropdownMenuContent>

@@ -1,4 +1,4 @@
-import { FaSearch } from "react-icons/fa";
+import { Search } from "lucide-react";
 
 import { Container } from "@/components/Utils";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ interface EventsToolbarProps {
 }
 
 const selectClassName =
-  "h-10 rounded-md border border-input bg-white px-3 text-ds-body text-semantic-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+  "h-10 rounded-lg border border-input bg-card px-3 text-sm text-foreground outline-none transition-colors focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/20";
 
 export const EventsToolbar = ({
   query,
@@ -33,15 +33,15 @@ export const EventsToolbar = ({
   onSortChange,
 }: EventsToolbarProps) => (
   <Container>
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-      <div className="relative w-full lg:max-w-md">
-        <FaSearch
+    <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+      <div className="relative w-full xl:max-w-md">
+        <Search
           aria-hidden="true"
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-semantic-foreground/55"
+          className="absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 stroke-[1.75] text-muted-foreground"
         />
         <Input
           aria-label="Search events and sub-events"
-          className="pl-10 placeholder:text-semantic-foreground/55"
+          className="pl-10"
           placeholder="Search event or sub-event..."
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}

@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { FaGoogle } from "react-icons/fa";
 import HimtiLogov2 from "@/components/logos/HimtiLogov2";
 import { authClient } from "@/utils/auth-client";
 
 const TypingHelloAnimation = () => {
-  const greetings = [
+  const greetings = useMemo(() => [
     "Hello",
     "你好",
     "Hola",
@@ -13,7 +13,7 @@ const TypingHelloAnimation = () => {
     "أهلاً",
     "Olá",
     "こんにちは",
-  ];
+  ], []);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [displayText, setDisplayText] = useState("");

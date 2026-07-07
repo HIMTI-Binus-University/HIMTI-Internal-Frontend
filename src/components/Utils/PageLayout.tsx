@@ -1,11 +1,12 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
-import type { IconType } from "react-icons";
-import { FaBars } from "react-icons/fa";
+import { Menu } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
 import Sidebar from "./Sidebar";
 
 interface PageLayoutProps {
-  icon: IconType;
+  icon: LucideIcon;
   title: string;
   actions?: ReactNode;
   children: ReactNode;
@@ -20,36 +21,38 @@ const PageLayout = ({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen w-full bg-semantic-background">
+    <div className="flex min-h-screen w-full bg-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <main className="flex-1 p-8 font-sans">
-        <header className="flex justify-between items-center relative mb-8">
-          <div className="flex flex-row gap-4">
+      <main className="min-w-0 flex-1 p-4 font-sans sm:p-6">
+        <header className="relative mb-6 flex min-h-10 items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
             <button
-              className="xl:hidden p-2 rounded-lg hover:bg-semantic-muted opacity-30"
+              type="button"
+              aria-label="Open navigation"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
               onClick={() => setSidebarOpen(true)}
             >
-              <FaBars size={24} />
+              <Menu aria-hidden="true" className="h-5 w-5 stroke-[1.75]" />
             </button>
 
-            <div className="flex items-center gap-5 p-2 min-w-0">
+            <div className="flex min-w-0 items-center gap-3">
               <Icon
-                size={48}
-                className="text-semantic-foreground/30 max-xl:w-[36px] max-xl:h-[36px]"
+                aria-hidden="true"
+                size={24}
+                strokeWidth={1.75}
+                className="shrink-0 text-primary"
               />
-              <h2 className="min-w-0 text-h3 max-xl:text-h4 max-xl:font-bold max-lg:text-h5 max-lg:font-bold font-bold text-semantic-foreground/50">
+              <h1 className="min-w-0 truncate text-2xl font-semibold leading-8 tracking-tight text-foreground">
                 {title}
-              </h2>
+              </h1>
             </div>
           </div>
 
           {actions && <div className="shrink-0">{actions}</div>}
         </header>
 
-        <div className="flex flex-col gap-8">
-          {children}
-        </div>
+        <div className="flex flex-col gap-6">{children}</div>
       </main>
     </div>
   );

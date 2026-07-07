@@ -1,45 +1,39 @@
-import { authClient } from "@/utils/auth-client";
-import { useNavigate, useLocation, Link } from "react-router-dom";
-
+import { useGetMe } from "@/api/auth/queries";
 import HimtiLogo from "@/components/logos/HimtiLogo";
-
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-import {
-  FaChevronDown,
-  FaChevronLeft,
-  FaSignOutAlt,
-  FaUserCircle,
-  FaKey,
-  FaIdBadge,
-  FaUsers,
-  FaLink,
-  FaCalendarAlt,
-} from "react-icons/fa";
-
 import { publicRoutes } from "@/config/routes";
-import { useGetMe } from "@/api/auth/queries";
 import type { Route } from "@/types/route";
-import React from "react";
+import { authClient } from "@/utils/auth-client";
+import {
+  BadgeCheck,
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  CircleUserRound,
+  KeyRound,
+  Link2,
+  LogOut,
+  Users,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 type SidebarProps = {
   isOpen: boolean;
   onClose: () => void;
 };
 
-type IconComponent = React.ComponentType<{ className?: string; width?: number; height?: number }>;
-
-const routeIconMap: Record<string, IconComponent> = {
-  "router-url-shortener": FaLink,
-  "router-events": FaCalendarAlt,
-  "router-rbac-permissions": FaKey,
-  "router-rbac-roles": FaIdBadge,
-  "router-rbac-users": FaUsers,
+const routeIconMap: Record<string, LucideIcon> = {
+  "router-url-shortener": Link2,
+  "router-events": CalendarDays,
+  "router-rbac-permissions": KeyRound,
+  "router-rbac-roles": BadgeCheck,
+  "router-rbac-users": Users,
 };
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
@@ -51,85 +45,81 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const handleSignOut = async () => {
     await authClient.signOut({
       fetchOptions: {
-        onSuccess: () => {
-          navigate("/login");
-        },
+        onSuccess: () => navigate("/login"),
       },
     });
   };
 
   const navRoutes = publicRoutes
-    .filter((r) => r.isEnabled && r.isProtected && r.requiredPermission)
+    .filter((route) => route.isEnabled && route.isProtected && route.requiredPermission)
     .filter(
-      (r) =>
-        !r.requiredPermission ||
-        meData?.permissions.includes(r.requiredPermission),
+      (route) =>
+        !route.requiredPermission ||
+        meData?.permissions.includes(route.requiredPermission),
     );
 
   const groupedRoutes = navRoutes.reduce<Record<string, Route[]>>(
-    (acc, route) => {
+    (groups, route) => {
       const group = route.group ?? "Other";
-      if (!acc[group]) acc[group] = [];
-      acc[group].push(route);
-      return acc;
+      if (!groups[group]) groups[group] = [];
+      groups[group].push(route);
+      return groups;
     },
     {},
   );
 
   return (
     <>
-      <div
+      <button
+        type="button"
+        aria-label="Close navigation"
         onClick={onClose}
-        className={`
-          fixed inset-0 bg-black/40 z-30 xl:hidden transition-opacity
-          ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}
-        `}
+        className={`fixed inset-0 z-30 bg-slate-950/45 transition-opacity lg:hidden ${
+          isOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
       />
 
       <aside
-        className={`
-          w-1/4 shrink-0 bg-brand-primary-1 text-white h-screen flex flex-col p-8 font-sans justify-between fixed left-0 top-0 z-40 overflow-y-auto xl:sticky xl:top-0
-          transition-transform duration-300 ease-in-out xl:translate-x-0
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          max-md:w-96
-        `}
+        className={`fixed left-0 top-0 z-40 flex h-screen w-[min(272px,calc(100vw-2rem))] shrink-0 flex-col justify-between overflow-y-auto bg-brand-primary-1 p-5 font-sans text-white transition-transform duration-200 ease-out lg:sticky lg:top-0 lg:w-[272px] lg:translate-x-0 ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
-        <div className="flex flex-col gap-10">
+        <div className="flex flex-col gap-8">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 px-2">
-              <HimtiLogo width={64} />
+            <div className="flex items-center gap-3 px-1">
+              <HimtiLogo width={44} />
               <div className="flex flex-col">
-                <span className="text-ds-h2 font-bold text-white">HIMTI</span>
-                <span className="text-ds-h3 font-light text-white/80">
+                <span className="text-lg font-bold leading-6">HIMTI</span>
+                <span className="text-sm font-medium leading-5 text-white/70">
                   Internal Tools
                 </span>
               </div>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="xl:hidden p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
               aria-label="Close sidebar"
             >
-              <FaChevronLeft size={20} />
+              <ChevronLeft aria-hidden="true" size={20} strokeWidth={1.75} />
             </button>
           </div>
 
-          <nav className="flex flex-col gap-6">
+          <nav className="flex flex-col gap-5" aria-label="Primary navigation">
             {Object.entries(groupedRoutes).map(([group, routes]) => (
               <div key={group} className="flex flex-col gap-1">
-                <p className="text-ds-detail font-semibold uppercase tracking-widest text-white/40 mb-1">
+                <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/55">
                   {group}
                 </p>
                 {routes.map((route) => {
                   const Icon = routeIconMap[route.key];
-                  const isActive = location.pathname === route.path;
                   return (
                     <MenuItem
                       key={route.key}
                       icon={Icon}
                       label={route.title}
                       path={route.path}
-                      active={isActive}
+                      active={location.pathname === route.path}
                       onClick={onClose}
                     />
                   );
@@ -139,60 +129,58 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           </nav>
         </div>
 
-        <div className="flex flex-col gap-6 outline-none">
+        <div className="flex flex-col gap-4 outline-none">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center gap-3 bg-white rounded-xl px-4 py-3 text-left hover:bg-white/90 transition-colors">
+              <button className="flex w-full items-center gap-3 rounded-xl bg-white px-3 py-2.5 text-left transition-colors hover:bg-white/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80">
                 {session?.user?.image ? (
                   <img
                     src={session.user.image}
                     alt="Profile"
-                    className="w-10 h-10 rounded-full object-cover shrink-0"
+                    className="h-9 w-9 shrink-0 rounded-full object-cover"
                   />
                 ) : (
-                  <FaUserCircle className="text-brand-primary-1 w-10 h-10 shrink-0" />
+                  <CircleUserRound className="h-9 w-9 shrink-0 text-brand-primary-1 stroke-[1.5]" />
                 )}
 
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   {isPending ? (
-                    <div className="animate-pulse flex flex-col gap-1">
-                      <div className="h-3 w-16 bg-brand-primary-1/20 rounded"></div>
-                      <div className="h-4 w-24 bg-brand-primary-1/20 rounded"></div>
+                    <div className="flex animate-pulse flex-col gap-1">
+                      <div className="h-3 w-16 rounded bg-brand-primary-1/20" />
+                      <div className="h-4 w-24 rounded bg-brand-primary-1/20" />
                     </div>
                   ) : (
                     <>
-                      <p className="text-ds-detail text-brand-primary-1/60 leading-tight">
+                      <p className="text-xs leading-4 text-brand-primary-1/70">
                         Logged in as
                       </p>
-                      <p className="text-ds-p font-bold text-brand-primary-1 truncate">
+                      <p className="truncate text-sm font-semibold leading-5 text-brand-primary-1">
                         {session?.user?.name || "User"}
                       </p>
                     </>
                   )}
                 </div>
 
-                <FaChevronDown
-                  size={12}
-                  className="text-brand-primary-1/60 shrink-0"
+                <ChevronDown
+                  aria-hidden="true"
+                  size={14}
+                  strokeWidth={1.75}
+                  className="shrink-0 text-brand-primary-1/60"
                 />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              side="top"
-              align="start"
-              className="w-full min-w-[220px]"
-            >
+            <DropdownMenuContent side="top" align="start" className="min-w-[220px]">
               <DropdownMenuItem
                 onClick={handleSignOut}
-                className="text-red-600 focus:text-red-600 gap-3 cursor-pointer"
+                className="cursor-pointer gap-3 text-semantic-danger focus:bg-semantic-danger-background focus:text-semantic-danger"
               >
-                <FaSignOutAlt />
+                <LogOut aria-hidden="true" />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <p className="text-ds-p text-white/40 font-normal">
+          <p className="px-1 text-xs font-normal leading-5 text-white/50">
             © KOMTIG HIMTI BINUS 2026/2027
           </p>
         </div>
@@ -202,7 +190,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 };
 
 interface MenuItemProps {
-  icon: IconComponent;
+  icon: LucideIcon;
   label: string;
   path: string;
   active?: boolean;
@@ -215,28 +203,26 @@ const MenuItem = ({
   path,
   active = false,
   onClick,
-}: MenuItemProps) => {
-  return (
-    <Link
-      to={path}
-      onClick={onClick}
-      className={`
-        flex items-center gap-3 px-4 py-3 rounded-xl text-body-1 transition-all duration-200 group
-        ${
-          active
-            ? "bg-white text-brand-primary-1 font-bold"
-            : "text-white/70 hover:bg-white/10 hover:text-white"
-        }
-      `}
-    >
-      <Icon
-        className={`transition-opacity duration-200
-            ${active ? "opacity-100" : "opacity-70 group-hover:opacity-100"}
-        `}
-      />
-      <span>{label}</span>
-    </Link>
-  );
-};
+}: MenuItemProps) => (
+  <Link
+    to={path}
+    onClick={onClick}
+    className={`group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
+      active
+        ? "bg-white font-semibold text-brand-primary-1"
+        : "text-white/75 hover:bg-white/10 hover:text-white"
+    }`}
+  >
+    <Icon
+      aria-hidden="true"
+      size={18}
+      strokeWidth={1.75}
+      className={`shrink-0 transition-opacity duration-150 ${
+        active ? "opacity-100" : "opacity-75 group-hover:opacity-100"
+      }`}
+    />
+    <span>{label}</span>
+  </Link>
+);
 
 export default Sidebar;

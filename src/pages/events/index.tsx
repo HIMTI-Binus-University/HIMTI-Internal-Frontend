@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FaCalendarAlt, FaPlus } from "react-icons/fa";
+import { CalendarDays, Plus } from "lucide-react";
 
 import { PageLayout } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
@@ -40,11 +40,11 @@ const EventsPage = () => {
 
   return (
     <PageLayout
-      icon={FaCalendarAlt}
+      icon={CalendarDays}
       title="Events"
       actions={
         <Button type="button" className="max-sm:px-3">
-          <FaPlus />
+          <Plus />
           <span className="max-sm:hidden">Create Event</span>
           <span className="sm:hidden">Create</span>
         </Button>
@@ -73,13 +73,13 @@ const EventsPage = () => {
           ))}
         </div>
       ) : (
-        <div className="rounded-xl bg-white px-6 py-14 text-center shadow-sm">
-          <FaCalendarAlt
+        <div className="rounded-xl border border-border bg-card px-5 py-12 text-center">
+          <CalendarDays
             aria-hidden="true"
-            className="mx-auto h-10 w-10 text-semantic-foreground/35"
+            className="mx-auto h-10 w-10 stroke-[1.5] text-muted-foreground"
           />
-          <h3 className="mt-4 text-ds-h4">No matching events</h3>
-          <p className="mx-auto mt-2 max-w-md text-ds-body text-semantic-foreground/70">
+          <h2 className="mt-4 text-lg font-semibold">No matching events</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
             Try a different search term or reset the status and visibility filters.
           </p>
         </div>

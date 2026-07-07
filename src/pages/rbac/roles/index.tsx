@@ -22,9 +22,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Card, CardContent } from "@/components/ui/card";
-
-import { FaPencilAlt, FaTrash, FaIdBadge } from "react-icons/fa";
+import { BadgeCheck, Pencil, Trash2 } from "lucide-react";
 
 import { useGetPermissions, useGetRoles } from "@/api/rbac/queries";
 import {
@@ -163,14 +161,14 @@ const RbacRolesPage = () => {
   );
 
   return (
-    <PageLayout icon={FaIdBadge} title="Roles">
+    <PageLayout icon={BadgeCheck} title="Roles">
 
         {/* Create form */}
         <Container>
           <ContainerHeader>Add Role</ContainerHeader>
           <div className="flex flex-col gap-4 w-full">
             <div>
-              <Label htmlFor="newRoleName" className="mb-3">
+              <Label htmlFor="newRoleName" className="mb-2">
                 Role Name
               </Label>
               <Input
@@ -186,7 +184,7 @@ const RbacRolesPage = () => {
                 onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               />
               {createError && (
-                <p className="text-semantic-danger text-body-2 mt-2">
+                <p className="mt-2 text-sm text-semantic-danger">
                   {createError}
                 </p>
               )}
@@ -194,7 +192,7 @@ const RbacRolesPage = () => {
             <Button
               onClick={handleCreate}
               disabled={createRole.isPending}
-              className="w-fit ml-auto"
+              className="ml-auto w-fit"
             >
               {createRole.isPending ? "Adding..." : "Add Role"}
             </Button>
@@ -206,24 +204,23 @@ const RbacRolesPage = () => {
           <ContainerHeader>Manage Roles</ContainerHeader>
 
           {isLoading && (
-            <p className="text-semantic-foreground/50 text-body-1">
+            <p className="text-sm text-muted-foreground">
               Loading roles...
             </p>
           )}
 
           {!isLoading && roles.length === 0 && (
-            <p className="text-semantic-foreground/50 text-body-1">
+            <p className="text-sm text-muted-foreground">
               No roles found.
             </p>
           )}
 
-          <div className="flex flex-col gap-4">
+          <div className="-mx-5 -mb-5 divide-y divide-border border-t border-border">
             {roles.map((role) => (
-            <Card key={role.id} className="shadow-sm">
-              <CardContent className="flex items-center justify-between gap-4 p-5">
+            <div key={role.id} className="flex min-h-14 items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-muted/35">
                 <div className="flex flex-col gap-2 min-w-0">
                   <div className="flex items-center gap-3">
-                    <span className="text-body-1 font-semibold text-semantic-foreground truncate">
+                    <span className="truncate text-sm font-semibold text-foreground">
                       {role.roleName}
                     </span>
                   </div>
@@ -233,7 +230,7 @@ const RbacRolesPage = () => {
                       {role.permissions?.map((permission) => (
                         <span
                           key={permission.id}
-                          className="text-xs bg-brand-primary-1/10 text-brand-primary-1 px-2 py-0.5 rounded-full font-medium"
+                          className="rounded-md border border-semantic-info-border bg-semantic-info-background px-2 py-0.5 text-xs font-medium text-semantic-info"
                         >
                           {permission.name}
                         </span>
@@ -248,22 +245,21 @@ const RbacRolesPage = () => {
                     size="sm"
                     onClick={() => openEditDialog(role)}
                   >
-                    <FaPencilAlt size={12}/>
+                    <Pencil />
                     Edit
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-semantic-danger border-semantic-danger hover:bg-semantic-danger hover:text-white"
+                    className="border-semantic-danger-border text-semantic-danger hover:bg-semantic-danger-background hover:text-semantic-danger"
                     onClick={() => setDeactivateTarget(role)}
                     disabled={role.status === "INACTIVE"}
                   >
-                    <FaTrash size={12}/>
+                    <Trash2 />
                     Delete
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+            </div>
           ))}
           </div>
         </Container>
@@ -293,7 +289,7 @@ const RbacRolesPage = () => {
                 className={editError ? "border-semantic-danger" : ""}
               />
               {editError && (
-                <p className="text-semantic-danger text-body-2 mt-2">
+                <p className="mt-2 text-sm text-semantic-danger">
                   {editError}
                 </p>
               )}
@@ -302,18 +298,18 @@ const RbacRolesPage = () => {
             <div>
               <Label className="mb-3 block">Permissions</Label>
               {allPermissions.length === 0 ? (
-                <p className="text-semantic-foreground/50 text-body-2">
+                <p className="text-sm text-muted-foreground">
                   No permissions available.
                 </p>
               ) : (
-                <div className="flex flex-col gap-2 max-h-52 overflow-y-auto border border-semantic-border rounded-lg p-3">
+                <div className="flex max-h-52 flex-col gap-1 overflow-y-auto rounded-lg border border-border p-2">
                   {allPermissions.map((permission) => {
                     const isAssigned = assignedPermissionIds.has(permission.id);
                     const isPending = pendingPermissions.has(permission.id);
                     return (
                       <label
                         key={permission.id}
-                        className={`flex items-center gap-3 cursor-pointer rounded-lg px-2 py-1.5 hover:bg-semantic-muted transition-colors ${isPending ? "opacity-50" : ""}`}
+                        className={`flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted ${isPending ? "opacity-50" : ""}`}
                       >
                         <input
                           type="checkbox"
@@ -324,7 +320,7 @@ const RbacRolesPage = () => {
                           }
                           className="w-4 h-4 accent-brand-primary-2 cursor-pointer"
                         />
-                        <span className="text-body-1 text-semantic-foreground">
+                        <span className="text-sm text-foreground">
                           {permission.name}
                         </span>
                       </label>
@@ -367,7 +363,7 @@ const RbacRolesPage = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeactivate}
-              className="bg-semantic-danger hover:bg-semantic-danger/90"
+              className="bg-semantic-danger text-white hover:bg-semantic-danger/90"
             >
               Delete
             </AlertDialogAction>
