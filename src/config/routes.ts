@@ -6,6 +6,7 @@ import RedirectLoadingPage from "@/pages/loading";
 import RbacPermissionsPage from "@/pages/rbac/permissions";
 import RbacRolesPage from "@/pages/rbac/roles";
 import RbacUsersPage from "@/pages/rbac/users";
+import EventsPage from "@/pages/events";
 
 export const publicRoutes: Route[] = [
   {
@@ -35,6 +36,17 @@ export const publicRoutes: Route[] = [
     isEnabled: true,
     isProtected: true,
     requiredPermission: "manage_urls",
+    group: "Tools",
+  },
+  {
+    key: "router-events",
+    title: "Events",
+    description: "Events Management Page",
+    component: EventsPage,
+    path: "/events",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
     group: "Tools",
   },
   {
@@ -112,3 +124,15 @@ export const linkRoutes: Route[] = [
     isProtected: false,
   },
 ];
+
+export const getAccessibleInternalRoutes = (permissions: string[]) =>
+  publicRoutes.filter(
+    (route) =>
+      route.isEnabled &&
+      route.isProtected &&
+      route.requiredPermission &&
+      permissions.includes(route.requiredPermission),
+  );
+
+export const getFirstAccessibleInternalRoute = (permissions: string[]) =>
+  getAccessibleInternalRoutes(permissions)[0];

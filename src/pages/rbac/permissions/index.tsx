@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AxiosError } from "axios";
 
-import { PageLayout, Container, ContainerHeader } from "@/components/Utils";
+import { PageLayout, Container, ContainerHeader, EmptyState } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,9 +22,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Card, CardContent } from "@/components/ui/card";
-
-import { FaPencilAlt, FaTrash, FaKey } from "react-icons/fa";
+import { KeyRound, Pencil, Trash2 } from "lucide-react";
 
 import { useGetPermissions } from "@/api/rbac/queries";
 import {
@@ -117,14 +115,14 @@ const RbacPermissionsPage = () => {
   };
 
   return (
-    <PageLayout icon={FaKey} title="Permissions">
+    <PageLayout icon={KeyRound} title="Permissions">
 
         {/* Create form */}
         <Container>
           <ContainerHeader>Add Permission</ContainerHeader>
           <div className="flex flex-col gap-4 w-full">
             <div>
-              <Label htmlFor="newPermissionName" className="mb-3">
+              <Label htmlFor="newPermissionName" className="mb-2">
                 Permission Name
               </Label>
               <Input
@@ -140,7 +138,7 @@ const RbacPermissionsPage = () => {
                 onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               />
               {createError && (
-                <p className="text-semantic-danger text-body-2 mt-2">
+                <p className="mt-2 text-sm text-semantic-danger">
                   {createError}
                 </p>
               )}
@@ -148,7 +146,7 @@ const RbacPermissionsPage = () => {
             <Button
               onClick={handleCreate}
               disabled={createPermission.isPending}
-              className="w-fit ml-auto"
+              className="ml-auto w-fit"
             >
               {createPermission.isPending ? "Adding..." : "Add Permission"}
             </Button>
@@ -160,23 +158,24 @@ const RbacPermissionsPage = () => {
           <ContainerHeader>Manage Permissions</ContainerHeader>
 
           {isLoading && (
-            <p className="text-semantic-foreground/50 text-body-1">
+            <p className="text-sm text-muted-foreground">
               Loading permissions...
             </p>
           )}
 
           {!isLoading && permissions.length === 0 && (
-            <p className="text-semantic-foreground/50 text-body-1">
-              No permissions found.
-            </p>
+            <EmptyState
+              icon={KeyRound}
+              title="No permissions found"
+              description="Create permissions to control access to internal tools."
+            />
           )}
 
-          <div className="flex flex-col gap-4">
+          <div className="-mx-5 -mb-5 divide-y divide-border border-t border-border">
             {permissions.map((permission) => (
-              <Card key={permission.id} className="shadow-sm">
-                <CardContent className="flex items-center justify-between gap-4 p-5">
+              <div key={permission.id} className="flex min-h-14 items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-muted/35">
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-body-1 font-semibold text-semantic-foreground truncate">
+                    <span className="truncate text-sm font-semibold text-foreground">
                       {permission.name}
                     </span>
                   </div>
@@ -187,22 +186,21 @@ const RbacPermissionsPage = () => {
                       size="sm"
                       onClick={() => openEditDialog(permission)}
                     >
-                      <FaPencilAlt size={12}/>
+                      <Pencil />
                       Edit
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-semantic-danger border-semantic-danger hover:bg-semantic-danger hover:text-white"
+                      className="border-semantic-danger-border text-semantic-danger hover:bg-semantic-danger-background hover:text-semantic-danger"
                       onClick={() => setDeactivateTarget(permission)}
                       disabled={permission.status === "INACTIVE"}
                     >
-                      <FaTrash size={12}/>
+                      <Trash2 />
                       Delete
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
+              </div>
             ))}
           </div>
         </Container>
@@ -229,7 +227,7 @@ const RbacPermissionsPage = () => {
                 className={editError ? "border-semantic-danger" : ""}
               />
               {editError && (
-                <p className="text-semantic-danger text-body-2 mt-2">
+                <p className="mt-2 text-sm text-semantic-danger">
                   {editError}
                 </p>
               )}
@@ -269,7 +267,7 @@ const RbacPermissionsPage = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeactivate}
-              className="bg-semantic-danger hover:bg-semantic-danger/90"
+              className="bg-semantic-danger text-white hover:bg-semantic-danger/90"
             >
               Delete
             </AlertDialogAction>

@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 
 const ContainerHeader = ({ children }: { children: ReactNode }) => (
-  <h3 className="text-h5 font-bold mb-6">{children}</h3>
+  <h2 className="mb-4 text-lg font-semibold leading-7 tracking-tight text-foreground">
+    {children}
+  </h2>
 );
 
 export default ContainerHeader;
