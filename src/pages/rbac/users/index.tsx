@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 
-import { PageLayout, Container, ContainerHeader } from "@/components/Utils";
+import {
+  PageLayout,
+  Container,
+  ContainerHeader,
+  EmptyState,
+  PaginationFooter,
+  SearchField,
+} from "@/components/Utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +16,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { CircleUserRound, Search, Users } from "lucide-react";
+import { CircleUserRound, Users } from "lucide-react";
 
 import { useGetUsers, useGetRoles } from "@/api/rbac/queries";
 import { useAssignUserRole, useRemoveUserRole } from "@/hooks/rbac/users";
@@ -120,23 +126,16 @@ const RbacUsersPage = () => {
               : `All Users (${totalRecords})`}
           </ContainerHeader>
 
-          <div className="relative mb-5 w-full">
-            <Search
-              aria-hidden="true"
-              className="absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 stroke-[1.75] text-muted-foreground"
-            />
-            <Input
-              id="userSearch"
-              type="text"
-              placeholder="Search by name, email, or NIM..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="pl-10"
-            />
-          </div>
+          <SearchField
+            id="userSearch"
+            label="Search users"
+            placeholder="Search by name, email, or NIM..."
+            value={searchQuery}
+            onChange={(value) => {
+              setSearchQuery(value);
+              setCurrentPage(1);
+            }}
+          />
 
           {isLoading && (
             <p className="text-sm text-muted-foreground">
@@ -145,11 +144,15 @@ const RbacUsersPage = () => {
           )}
 
           {!isLoading && users.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              {debouncedSearchQuery
-                ? "No users match your search."
-                : "No users found."}
-            </p>
+            <EmptyState
+              icon={Users}
+              title={debouncedSearchQuery ? "No users match your search" : "No users found"}
+              description={
+                debouncedSearchQuery
+                  ? "Try searching by a different name, email, or NIM."
+                  : "Users will appear here after they sign in."
+              }
+            />
           )}
 
           <div className="-mx-5 divide-y divide-border border-y border-border">
@@ -164,36 +167,18 @@ const RbacUsersPage = () => {
           </div>
 
           {!isLoading && users.length > 0 && totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 mt-4">
-              <p className="text-sm text-muted-foreground">
-                Showing {pageStart}-{pageEnd} of {totalRecords} users
-              </p>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage <= 1}
-                  onClick={() =>
-                    setCurrentPage((page) => Math.max(page - 1, 1))
-                  }
-                >
-                  Previous
-                </Button>
-                <span className="px-2 text-sm text-muted-foreground">
-                  Page {paginationMeta?.page ?? currentPage} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage >= totalPages}
-                  onClick={() =>
-                    setCurrentPage((page) => Math.min(page + 1, totalPages))
-                  }
-                >
-                  Next
-                </Button>
-              </div>
+            <div className="mt-4">
+              <PaginationFooter
+                label={`Showing ${pageStart}-${pageEnd} of ${totalRecords} users`}
+                page={paginationMeta?.page ?? currentPage}
+                totalPages={totalPages}
+                onPrevious={() =>
+                  setCurrentPage((page) => Math.max(page - 1, 1))
+                }
+                onNext={() =>
+                  setCurrentPage((page) => Math.min(page + 1, totalPages))
+                }
+              />
             </div>
           )}
         </Container>

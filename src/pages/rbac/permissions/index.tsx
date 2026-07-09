@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AxiosError } from "axios";
 
-import { PageLayout, Container, ContainerHeader } from "@/components/Utils";
+import { PageLayout, Container, ContainerHeader, EmptyState } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -164,9 +164,11 @@ const RbacPermissionsPage = () => {
           )}
 
           {!isLoading && permissions.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No permissions found.
-            </p>
+            <EmptyState
+              icon={KeyRound}
+              title="No permissions found"
+              description="Create permissions to control access to internal tools."
+            />
           )}
 
           <div className="-mx-5 -mb-5 divide-y divide-border border-t border-border">

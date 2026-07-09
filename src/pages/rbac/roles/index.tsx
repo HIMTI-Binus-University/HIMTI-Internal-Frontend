@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AxiosError } from "axios";
 
-import { PageLayout, Container, ContainerHeader } from "@/components/Utils";
+import { PageLayout, Container, ContainerHeader, EmptyState } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -210,9 +210,11 @@ const RbacRolesPage = () => {
           )}
 
           {!isLoading && roles.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No roles found.
-            </p>
+            <EmptyState
+              icon={BadgeCheck}
+              title="No roles found"
+              description="Create a role to group permissions for members."
+            />
           )}
 
           <div className="-mx-5 -mb-5 divide-y divide-border border-t border-border">

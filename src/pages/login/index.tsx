@@ -1,6 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { FaGoogle } from "react-icons/fa";
+import { AlertCircle, ArrowLeft } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { useGetMe } from "@/api/auth/queries";
 import HimtiLogov2 from "@/components/logos/HimtiLogov2";
+import { Button } from "@/components/ui/button";
+import { getFirstAccessibleInternalRoute } from "@/config/routes";
 import { authClient } from "@/utils/auth-client";
 
 const TypingHelloAnimation = () => {
@@ -48,7 +53,7 @@ const TypingHelloAnimation = () => {
   }, [displayText, isTyping, currentIndex, greetings]);
 
   return (
-    <h2 className="text-left text-3xl text-semantic-foreground/60 flex font-extralight items-center">
+    <h2 className="flex items-center text-left text-2xl font-light text-muted-foreground">
       {displayText}
       <span className="animate-pulse">|</span>,
     </h2>
@@ -56,22 +61,34 @@ const TypingHelloAnimation = () => {
 };
 
 export const LoginPage = () => {
+  const navigate = useNavigate();
+  const { data: session } = authClient.useSession();
+  const { data: meData, isLoading: isMeLoading } = useGetMe(!!session);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    if (!session || isMeLoading || !meData) return;
+
+    const firstRoute = getFirstAccessibleInternalRoute(meData.permissions);
+    navigate(firstRoute?.path ?? "/?warning=no-permissions", { replace: true });
+  }, [isMeLoading, meData, navigate, session]);
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
+    setErrorMessage("");
 
     await authClient.signIn.social(
       {
         provider: "google",
-        callbackURL: window.location.origin,
+        callbackURL: `${window.location.origin}/login`,
       },
       {
         onSuccess: () => {
           setIsLoading(false);
         },
         onError: (ctx) => {
-          alert(ctx.error.message);
+          setErrorMessage(ctx.error.message);
           setIsLoading(false);
         },
       },
@@ -79,71 +96,98 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden bg-gradient-to-r from-brand-primary-2 to-brand-primary-1 h-full">
-        <div className="z-10 flex h-full flex-col items-center justify-center space-y-4"></div>
-        <div className="absolute -top-0 right-0 h-[800px] w-[800px] blur-[100px] rounded-full bg-white/10 animate-smoothGradient1"></div>
+    <main className="relative flex min-h-screen flex-col overflow-hidden bg-brand-primary-1 text-foreground">
+      <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-brand-primary-2 via-brand-primary-1 to-[#001431]">
+        <div className="absolute -right-24 -top-24 h-[520px] w-[520px] rounded-full bg-white/10 blur-[100px] animate-smoothGradient1" />
+        <div className="absolute bottom-[-160px] left-[-120px] h-[460px] w-[460px] rounded-full bg-brand-secondary-1/30 blur-[90px] animate-smoothGradient2Reverse" />
       </div>
 
-      {/* CARD */}
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8  py-8">
-        <div className="bg-white max-w-xs w-full py-8 px-10 rounded-sm">
-          <div className="mb-6 flex items-center flex-col">
-            <div className="w-16 flex items-center mb-2">
-              <HimtiLogov2 width={64} height={75} className="bg-red" />
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid w-full items-center gap-10 lg:grid-cols-[1fr_420px]">
+          <section className="hidden max-w-xl text-white lg:block">
+            <Link
+              to="/"
+              className="mb-10 inline-flex items-center gap-2 text-sm font-semibold text-white/70 transition-colors hover:text-white"
+            >
+              <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+              Back to overview
+            </Link>
+            <h1 className="text-5xl font-extrabold leading-tight tracking-tight">
+              Welcome back to the internal workspace.
+            </h1>
+            <p className="mt-5 text-lg leading-8 text-white/70">
+              Sign in with your authorized Google account to access HIMTI tools
+              for links, events, roles, and permissions.
+            </p>
+          </section>
+
+          <div className="w-full rounded-[1.75rem] border border-white/20 bg-white p-6 shadow-2xl shadow-slate-950/25 sm:p-8">
+            <div className="mb-8 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
+                  <HimtiLogov2 width={42} height={50} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-foreground">HIMTI</p>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Internal Tools
+                  </p>
+                </div>
+              </div>
+              <Button asChild variant="ghost" size="sm" className="lg:hidden">
+                <Link to="/">Back</Link>
+              </Button>
+            </div>
+
+            <TypingHelloAnimation />
+
+            <h2 className="mt-1 text-left text-4xl font-extrabold tracking-tight text-foreground">
+              Welcome
+            </h2>
+
+            <p className="mt-3 text-left text-sm leading-6 text-muted-foreground">
+              Use your HIMTI Google account to continue to the dashboard.
+            </p>
+
+            {errorMessage && (
+              <div className="mt-6 flex gap-3 rounded-xl border border-semantic-danger-border bg-semantic-danger-background px-4 py-3 text-sm text-semantic-danger">
+                <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>{errorMessage}</p>
+              </div>
+            )}
+
+            <Button
+              type="button"
+              className="mt-8 w-full"
+              size="lg"
+              onClick={handleGoogleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                "Opening Google..."
+              ) : (
+                <>
+                  <FaGoogle aria-hidden="true" size={18} />
+                  Sign in with Google
+                </>
+              )}
+            </Button>
+
+            <div className="mt-6 flex items-center justify-center gap-1 text-center text-sm text-muted-foreground">
+              <span>Can't sign in?</span>
+              <a
+                href="https://wa.me/6285716303865"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-primary underline-offset-4 hover:underline"
+              >
+                Contact us
+              </a>
             </div>
           </div>
-
-          <TypingHelloAnimation />
-
-          <h3 className="text-left text-4xl font-extrabold text-semantic-foreground mb-3">
-            Welcome
-          </h3>
-
-          <p className="text-left text-md text-semantic-foreground/70 mb-10">
-            We're glad you're here! Sign in to get started and discover more.
-          </p>
-
-          <button
-            className="w-full flex items-center justify-center bg-semantic-input text-semantic-muted-foreground hover:text-white px-4 py-2 rounded-sm hover:bg-semantic-primary-1 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleGoogleLogin}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <span className="text-base font-bold">Loading...</span>
-            ) : (
-              <>
-                <FaGoogle size={18} />
-                <div className="w-3"></div>
-                <span className="text-base font-bold hidden sm:inline">
-                  Sign in with Google
-                </span>
-                <span className="text-base font-bold sm:hidden">Sign in</span>
-              </>
-            )}
-          </button>
-
-          <div className="flex items-center text-semantic-foreground/60 justify-center gap-1 text-center text-sm font-normal mt-6">
-            <span className="">Can't sign in?</span>
-            <a
-              href="https://wa.me/6285716303865"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline font-bold"
-            >
-              Contact us
-            </a>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="relative z-10 text-center text-white text-sm pt-12">
-          <h1 className="text-xs -bottom-0 sm:text-md sm:-bottom-5 -right-48 absolute w-96">
-            © 2025 HIMTI. All Rights Reserved.
-          </h1>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

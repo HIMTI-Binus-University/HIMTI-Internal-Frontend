@@ -2,7 +2,14 @@ import { useState, useEffect } from "react";
 import { AxiosError } from "axios";
 // import { format } from "date-fns";
 
-import { PageLayout, Container, ContainerHeader } from "@/components/Utils";
+import {
+  PageLayout,
+  Container,
+  ContainerHeader,
+  EmptyState,
+  PaginationFooter,
+  SearchField,
+} from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +34,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import {
+  AlertCircle,
   ArrowRight,
   CalendarDays,
   Check,
@@ -35,7 +43,6 @@ import {
   Pencil,
   Plus,
   QrCode,
-  Search,
   Trash2,
 } from "lucide-react";
 
@@ -160,6 +167,7 @@ const UrlShortenerPage = () => {
   const [qrUrl, setQrUrl] = useState<string | null>(null);
 
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
+  const [pageError, setPageError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -230,6 +238,7 @@ const UrlShortenerPage = () => {
   };
 
   const handleCreateLink = () => {
+    setPageError("");
     const frontendErrors: Record<string, string> = {};
     if (!targetUrl) frontendErrors.originalUrl = "Target URL is required";
     if (!shortCode) frontendErrors.shortCode = "Short code is required";
@@ -254,6 +263,7 @@ const UrlShortenerPage = () => {
         });
 
         setCreateErrors({});
+        setPageError("");
         setConfirmPopup(true);
         setTargetUrl("");
         setShortCode("");
@@ -277,7 +287,7 @@ const UrlShortenerPage = () => {
           }
           setCreateErrors(mapped);
         } else {
-          alert("Failed to create short link");
+          setPageError("Failed to create short link. Please check the URL and try again.");
         }
       },
     });
@@ -287,7 +297,7 @@ const UrlShortenerPage = () => {
     if (!selectedLink) return;
 
     if (!editTargetUrl || !editShortCode) {
-      alert("Target URL and Short Code are required");
+      setPageError("Target URL and Short Code are required.");
       return;
     }
 
@@ -305,11 +315,12 @@ const UrlShortenerPage = () => {
         setEditTargetUrl("");
         setEditShortCode("");
         setEditExpiryDate(undefined);
+        setPageError("");
         refetch();
       },
       onError: (error) => {
         console.error(error);
-        alert("Failed to update link");
+        setPageError("Failed to update link. Please review the link details and try again.");
       },
     });
   };
@@ -323,11 +334,12 @@ const UrlShortenerPage = () => {
         onSuccess: () => {
           setDeletePopup(false);
           setSelectedLink(null);
+          setPageError("");
           refetch();
         },
         onError: (error) => {
           console.error(error);
-          alert("Failed to delete link");
+          setPageError("Failed to delete link. Please try again.");
         },
       },
     );
@@ -343,6 +355,12 @@ const UrlShortenerPage = () => {
 
   return (
     <PageLayout icon={Link2} title="URL Shortener">
+        {pageError && (
+          <div className="flex gap-3 rounded-xl border border-semantic-danger-border bg-semantic-danger-background px-4 py-3 text-sm text-semantic-danger">
+            <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>{pageError}</p>
+          </div>
+        )}
 
         {/* FORM CREATE LINK */}
         <Container>
@@ -477,35 +495,33 @@ const UrlShortenerPage = () => {
               : `Existing Links (${totalRecords})`}
           </ContainerHeader>
 
-          <div className="relative mb-5 w-full">
-            <Search
-              aria-hidden="true"
-              className="absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 stroke-[1.75] text-muted-foreground"
-            />
-            <Input
-              id="urlSearch"
-              type="text"
-              placeholder="Search by short code or target URL..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="pl-10"
-            />
-          </div>
+          <SearchField
+            id="urlSearch"
+            label="Search links"
+            placeholder="Search by short code or target URL..."
+            value={searchQuery}
+            onChange={(value) => {
+              setSearchQuery(value);
+              setCurrentPage(1);
+            }}
+          />
 
           {isLoadingUrls ? (
             <p className="text-sm text-muted-foreground">Loading links...</p>
           ) : urls.length === 0 ? (
-            <div className="space-y-2 py-10 text-center text-muted-foreground">
-              <Link2 aria-hidden="true" className="mx-auto h-9 w-9 stroke-[1.5]" />
-              <h2 className="text-base font-semibold text-foreground">
-                {debouncedSearchQuery
-                  ? "No links match your search."
-                  : "Nothing to show here..."}
-              </h2>
-            </div>
+            <EmptyState
+              icon={Link2}
+              title={
+                debouncedSearchQuery
+                  ? "No links match your search"
+                  : "No links yet"
+              }
+              description={
+                debouncedSearchQuery
+                  ? "Try a different short code or target URL."
+                  : "Create your first short link to make sharing easier."
+              }
+            />
           ) : (
             <div>
               {urls.map((url) => (
@@ -584,39 +600,17 @@ const UrlShortenerPage = () => {
               ))}
 
               {totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {pageStart}-{pageEnd} of {totalRecords} links
-                  </p>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage <= 1}
-                      onClick={() =>
-                        setCurrentPage((page) => Math.max(page - 1, 1))
-                      }
-                    >
-                      Previous
-                    </Button>
-                    <span className="px-2 text-sm text-muted-foreground">
-                      Page {paginationMeta?.page ?? currentPage} of {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage >= totalPages}
-                      onClick={() =>
-                        setCurrentPage((page) =>
-                          Math.min(page + 1, totalPages),
-                        )
-                      }
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
+                <PaginationFooter
+                  label={`Showing ${pageStart}-${pageEnd} of ${totalRecords} links`}
+                  page={paginationMeta?.page ?? currentPage}
+                  totalPages={totalPages}
+                  onPrevious={() =>
+                    setCurrentPage((page) => Math.max(page - 1, 1))
+                  }
+                  onNext={() =>
+                    setCurrentPage((page) => Math.min(page + 1, totalPages))
+                  }
+                />
               )}
             </div>
           )}
