@@ -22,7 +22,7 @@ const Container = ({
 }: ContainerProps) => (
   <div
     className={cn(
-      "rounded-xl border border-border bg-card text-card-foreground",
+      "motion-enter rounded-xl border border-border bg-card text-card-foreground",
       paddingClasses[padding],
       className,
     )}

@@ -39,6 +39,7 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+    --motion-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   }
 
   .dark {
@@ -99,6 +100,28 @@
 
 }
 
+@layer utilities {
+  .motion-enter {
+    animation: slideInUp 500ms var(--motion-ease-out) both;
+  }
+
+  .motion-enter-soft {
+    animation: slideInUp 500ms var(--motion-ease-out) both;
+  }
+
+  .motion-delay-1 {
+    animation-delay: 40ms;
+  }
+
+  .motion-delay-2 {
+    animation-delay: 80ms;
+  }
+
+  .motion-delay-3 {
+    animation-delay: 120ms;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -107,6 +130,11 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .motion-enter,
+  .motion-enter-soft {
+    animation: fadeIn 160ms ease-out both !important;
   }
 }
 
@@ -118,6 +146,15 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 

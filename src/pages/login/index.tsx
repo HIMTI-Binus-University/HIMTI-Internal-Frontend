@@ -104,7 +104,7 @@ export const LoginPage = () => {
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid w-full items-center gap-10 lg:grid-cols-[1fr_420px]">
-          <section className="hidden max-w-xl text-white lg:block">
+          <section className="motion-enter hidden max-w-xl text-white lg:block">
             <Link
               to="/"
               className="mb-10 inline-flex items-center gap-2 text-sm font-semibold text-white/70 transition-colors hover:text-white"
@@ -121,7 +121,7 @@ export const LoginPage = () => {
             </p>
           </section>
 
-          <div className="w-full rounded-[1.75rem] border border-white/20 bg-white p-6 shadow-2xl shadow-slate-950/25 sm:p-8">
+          <div className="motion-enter motion-delay-1 w-full rounded-[1.75rem] border border-white/20 bg-white p-6 shadow-2xl shadow-slate-950/25 sm:p-8">
             <div className="mb-8 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">

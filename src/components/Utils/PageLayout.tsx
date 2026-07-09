@@ -25,7 +25,7 @@ const PageLayout = ({
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="min-w-0 flex-1 p-4 font-sans sm:p-6">
-        <header className="relative mb-6 flex min-h-10 items-center justify-between gap-4">
+        <header className="motion-enter relative mb-6 flex min-h-10 items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
@@ -52,7 +52,7 @@ const PageLayout = ({
           {actions && <div className="shrink-0">{actions}</div>}
         </header>
 
-        <div className="flex flex-col gap-6">{children}</div>
+        <div className="motion-enter motion-delay-1 flex flex-col gap-6">{children}</div>
       </main>
     </div>
   );

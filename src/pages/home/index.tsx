@@ -12,7 +12,7 @@ function HomePage() {
     <main className="min-h-screen overflow-hidden bg-background text-foreground">
       <div className="absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-primary/15 to-transparent" />
       <section className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8">
-        <header className="flex items-center justify-between">
+        <header className="motion-enter flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-primary-1 text-white shadow-lg shadow-brand-primary-1/15">
               <HimtiLogo width={30} height={36} />
@@ -31,7 +31,7 @@ function HomePage() {
         </header>
 
         {showNoPermissionsWarning && (
-          <div className="mt-8 flex gap-3 rounded-xl border border-semantic-warning-border bg-semantic-warning-background px-4 py-3 text-sm text-semantic-warning">
+          <div className="motion-enter mt-8 flex gap-3 rounded-xl border border-semantic-warning-border bg-semantic-warning-background px-4 py-3 text-sm text-semantic-warning">
             <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
               Your account is signed in, but it does not have permission to
@@ -42,7 +42,7 @@ function HomePage() {
         )}
 
         <div className="grid flex-1 items-center gap-10 py-16 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="max-w-2xl">
+          <div className="motion-enter motion-delay-1 max-w-2xl">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-sm font-semibold text-primary">
               <Sparkles aria-hidden="true" className="h-4 w-4 stroke-[1.75]" />
               Built for HIMTI operations
@@ -64,7 +64,7 @@ function HomePage() {
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-border bg-card p-5 shadow-xl shadow-brand-primary-1/5">
+          <div className="motion-enter motion-delay-2 rounded-[2rem] border border-border bg-card p-5 shadow-xl shadow-brand-primary-1/5">
             <div className="rounded-[1.5rem] bg-gradient-to-br from-brand-primary-1 to-brand-primary-2 p-6 text-white">
               <ShieldCheck aria-hidden="true" className="h-10 w-10 stroke-[1.5]" />
               <h2 className="mt-8 text-2xl font-bold tracking-tight">
