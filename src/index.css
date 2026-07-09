@@ -40,6 +40,9 @@
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
     --motion-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --scrollbar-track: 214 32% 92%;
+    --scrollbar-thumb: 214 30% 70%;
+    --scrollbar-thumb-hover: 214 100% 36%;
   }
 
   .dark {
@@ -74,6 +77,9 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+    --scrollbar-track: 0 0% 100% / 0.08;
+    --scrollbar-thumb: 0 0% 100% / 0.28;
+    --scrollbar-thumb-hover: 0 0% 100% / 0.44;
   }
 
   * {
@@ -86,6 +92,28 @@
 
   html {
     @apply font-sans;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--scrollbar-thumb)) hsl(var(--scrollbar-track));
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: hsl(var(--scrollbar-track));
+  }
+
+  *::-webkit-scrollbar-thumb {
+    min-height: 48px;
+    border: 2px solid hsl(var(--scrollbar-track));
+    border-radius: 999px;
+    background: hsl(var(--scrollbar-thumb));
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--scrollbar-thumb-hover));
   }
 
   h1,
@@ -101,6 +129,13 @@
 }
 
 @layer utilities {
+  .scrollbar-on-dark {
+    --scrollbar-track: 0 0% 100% / 0.08;
+    --scrollbar-thumb: 0 0% 100% / 0.28;
+    --scrollbar-thumb-hover: 0 0% 100% / 0.44;
+    scrollbar-color: hsl(var(--scrollbar-thumb)) hsl(var(--scrollbar-track));
+  }
+
   .motion-enter {
     animation: slideInUp 500ms var(--motion-ease-out) both;
   }

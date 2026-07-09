@@ -80,7 +80,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       />
 
       <aside
-        className={`fixed left-0 top-0 z-40 flex h-screen w-[min(272px,calc(100vw-2rem))] shrink-0 flex-col justify-between overflow-y-auto bg-brand-primary-1 p-5 font-sans text-white transition-transform duration-200 ease-out lg:sticky lg:top-0 lg:w-[272px] lg:translate-x-0 ${
+        className={`scrollbar-on-dark fixed left-0 top-0 z-40 flex h-screen w-[min(272px,calc(100vw-2rem))] shrink-0 flex-col justify-between overflow-y-auto bg-brand-primary-1 p-5 font-sans text-white transition-transform duration-200 ease-out lg:sticky lg:top-0 lg:w-[272px] lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
