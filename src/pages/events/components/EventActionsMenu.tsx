@@ -1,4 +1,4 @@
-import { Archive, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
 import { IconButton } from "@/components/ui/icon-button";
 import {
@@ -15,18 +15,14 @@ export const EventActionsMenu = () => (
         <MoreHorizontal />
       </IconButton>
     </DropdownMenuTrigger>
-    <DropdownMenuContent align="end" className="w-44">
+    <DropdownMenuContent align="end" className="w-36">
       <DropdownMenuItem>
         <Pencil />
-        Edit event
-      </DropdownMenuItem>
-      <DropdownMenuItem>
-        <Archive />
-        Archive event
+        Edit
       </DropdownMenuItem>
       <DropdownMenuItem className="text-semantic-danger focus:bg-semantic-danger-background focus:text-semantic-danger">
         <Trash2 />
-        Delete event
+        Delete
       </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>

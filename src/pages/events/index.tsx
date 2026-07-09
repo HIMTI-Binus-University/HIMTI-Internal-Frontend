@@ -20,7 +20,7 @@ const EventsPage = () => {
   const [visibility, setVisibility] = useState<VisibilityFilter>("ALL");
   const [sort, setSort] = useState<EventSort>("NEWEST");
   const [expandedEventIds, setExpandedEventIds] = useState<Set<string>>(
-    () => new Set([mockEvents[0].id]),
+    () => new Set(),
   );
 
   const filteredEvents = useMemo(

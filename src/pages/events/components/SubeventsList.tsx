@@ -1,10 +1,4 @@
-import {
-  FileText,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  UsersRound,
-} from "lucide-react";
+import { FileText, MoreHorizontal, Pencil, Trash2, UsersRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -40,14 +34,14 @@ const SubeventActions = ({ name }: { name: string }) => (
           <MoreHorizontal />
         </IconButton>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
+      <DropdownMenuContent align="end" className="w-36">
         <DropdownMenuItem>
           <Pencil />
-          Edit sub-event
+          Edit
         </DropdownMenuItem>
         <DropdownMenuItem className="text-semantic-danger focus:bg-semantic-danger-background focus:text-semantic-danger">
           <Trash2 />
-          Delete sub-event
+          Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -68,7 +62,7 @@ export const SubeventsList = ({ subevents }: SubeventsListProps) => (
             <th className="px-4 py-3 text-ds-subtle-semibold">Date</th>
             <th className="px-4 py-3 text-ds-subtle-semibold">Type</th>
             <th className="px-4 py-3 text-ds-subtle-semibold">Status</th>
-            <th className="px-5 py-3 text-right text-ds-subtle-semibold">Actions</th>
+            <th className="px-5 py-3 text-ds-subtle-semibold">Actions</th>
           </tr>
         </thead>
         <tbody>
