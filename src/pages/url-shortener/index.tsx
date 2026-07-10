@@ -54,10 +54,26 @@ import {
 } from "@/hooks/url-shortener";
 import type { UrlItem } from "@/types/url-shortener";
 import { shortLinkConfig } from "@/config/runtime";
+import { formatUrlCreatedAt } from "@/utils/url-shortener";
 import qrcode from "qrcode";
 import qrLogoUrl from "@/components/assets/qrlogo.png";
 
 const URLS_PER_PAGE = 10;
+
+function CreatedAt({ value }: { value?: string | null }) {
+  const formattedValue = formatUrlCreatedAt(value);
+
+  return (
+    <>
+      Created on{" "}
+      {value && formattedValue !== "Date unavailable" ? (
+        <time dateTime={value}>{formattedValue}</time>
+      ) : (
+        formattedValue
+      )}
+    </>
+  );
+}
 
 // QR Code Dialog
 function QRCodeDialog({
@@ -475,7 +491,7 @@ const UrlShortenerPage = () => {
                 <div className="mt-2 flex items-center gap-6 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <CalendarDays className="h-4 w-4 stroke-[1.75]" />
-                    Created on {createdLink.createdAt}
+                    <CreatedAt value={createdLink.createdAt} />
                   </div>
                 </div>
               </div>
@@ -542,7 +558,7 @@ const UrlShortenerPage = () => {
                       <div className="mt-1 flex flex-row gap-6 text-xs text-muted-foreground max-lg:flex-col max-lg:gap-2">
                         <div className="flex items-center gap-1">
                           <CalendarDays className="h-4 w-4 stroke-[1.75]" />
-                          Created on {url.createdAt}
+                          <CreatedAt value={url.createdAt} />
                         </div>
                       </div>
                     </div>
