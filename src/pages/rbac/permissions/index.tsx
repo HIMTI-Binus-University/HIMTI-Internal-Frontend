@@ -182,7 +182,7 @@ const RbacPermissionsPage = () => {
 
                   <div className="flex items-center gap-2 shrink-0">
                     <Button
-                      variant="outline"
+                      variant="edit"
                       size="sm"
                       onClick={() => openEditDialog(permission)}
                     >
@@ -190,9 +190,8 @@ const RbacPermissionsPage = () => {
                       Edit
                     </Button>
                     <Button
-                      variant="outline"
+                      variant="delete"
                       size="sm"
-                      className="border-semantic-danger-border text-semantic-danger hover:bg-semantic-danger-background hover:text-semantic-danger"
                       onClick={() => setDeactivateTarget(permission)}
                       disabled={permission.status === "INACTIVE"}
                     >
@@ -267,7 +266,7 @@ const RbacPermissionsPage = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeactivate}
-              className="bg-semantic-danger text-white hover:bg-semantic-danger/90"
+              variant="delete"
             >
               Delete
             </AlertDialogAction>

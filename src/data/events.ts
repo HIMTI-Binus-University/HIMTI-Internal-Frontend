@@ -1,4 +1,34 @@
-import type { Event } from "@/types/events";
+import type { Event, Subevent } from "@/types/events";
+
+const createSubevent = (
+  subevent: Pick<Subevent, "id" | "eventId" | "name" | "date" | "type" | "visibility" | "status"> &
+    Partial<Subevent>,
+): Subevent => ({
+  publicDescription: null,
+  privateDescription: null,
+  locationName: null,
+  locationUrl: null,
+  price: 0,
+  paid: false,
+  paymentAccountBank: "",
+  paymentAccountNumber: null,
+  paymentAccountName: null,
+  priceModifier: null,
+  paymentDesc: "",
+  maxParticipants: null,
+  maxTicketsPerUser: null,
+  isRegistrationOpen: false,
+  autoAcceptRegistration: false,
+  checkOutToken: null,
+  createdAt: "2026-04-12T08:00:00.000Z",
+  createdBy: "usr-admin-001",
+  updatedAt: null,
+  updatedBy: null,
+  registrationForms: [],
+  participantCount: 0,
+  submittedResponseCount: 0,
+  ...subevent,
+});
 
 export const mockEvents: Event[] = [
   {
@@ -11,7 +41,7 @@ export const mockEvents: Event[] = [
     createdAt: "2026-04-12T08:00:00.000Z",
     updatedAt: "2026-05-01T10:30:00.000Z",
     subevents: [
-      {
+      createSubevent({
         id: "sub-techno-jakarta",
         eventId: "evt-techno-2026",
         name: "TECHNO 2026 — Greater Jakarta",
@@ -19,8 +49,30 @@ export const mockEvents: Event[] = [
         type: "WELCOMING_PARTY",
         visibility: "PUBLIC",
         status: "OPEN",
-      },
-      {
+        publicDescription: "Meet fellow students in Greater Jakarta and start your TECHNO journey together.",
+        privateDescription: "Check in at the main lobby 30 minutes before the program begins.",
+        locationName: "BINUS @Kemanggisan, Anggrek Campus",
+        locationUrl: "https://maps.google.com/?q=BINUS+Anggrek",
+        price: 25000,
+        paid: true,
+        paymentAccountBank: "BCA",
+        paymentAccountNumber: 1234567890,
+        paymentAccountName: "KOMTIG HIMTI",
+        priceModifier: null,
+        paymentDesc: "Include your full name and sub-event in the transfer note.",
+        maxParticipants: 150,
+        maxTicketsPerUser: 1,
+        isRegistrationOpen: true,
+        autoAcceptRegistration: false,
+        checkOutToken: "checkout-techno-jakarta-2026",
+        createdAt: "2026-04-14T09:00:00.000Z",
+        updatedAt: "2026-05-02T08:30:00.000Z",
+        updatedBy: "usr-admin-002",
+        registrationForms: [{ id: "form-techno-jakarta", status: "PUBLISHED", questionCount: 5 }],
+        participantCount: 86,
+        submittedResponseCount: 79,
+      }),
+      createSubevent({
         id: "sub-techno-semarang",
         eventId: "evt-techno-2026",
         name: "TECHNO 2026 — Semarang",
@@ -28,8 +80,18 @@ export const mockEvents: Event[] = [
         type: "WELCOMING_PARTY",
         visibility: "PUBLIC",
         status: "OPEN",
-      },
-      {
+        publicDescription: "A local TECHNO welcome session for students in Semarang.",
+        locationName: "BINUS Semarang",
+        locationUrl: "https://maps.google.com/?q=BINUS+Semarang",
+        maxParticipants: 80,
+        maxTicketsPerUser: 1,
+        isRegistrationOpen: true,
+        autoAcceptRegistration: true,
+        registrationForms: [{ id: "form-techno-semarang", status: "PUBLISHED", questionCount: 4 }],
+        participantCount: 42,
+        submittedResponseCount: 39,
+      }),
+      createSubevent({
         id: "sub-techno-bandung",
         eventId: "evt-techno-2026",
         name: "TECHNO 2026 — Bandung",
@@ -37,7 +99,12 @@ export const mockEvents: Event[] = [
         type: "WELCOMING_PARTY",
         visibility: "INTERNAL",
         status: "DRAFT",
-      },
+        publicDescription: "A draft TECHNO session for Bandung participants.",
+        locationName: "BINUS Bandung",
+        maxParticipants: 100,
+        maxTicketsPerUser: 1,
+        registrationForms: [{ id: "form-techno-bandung", status: "DRAFT", questionCount: 3 }],
+      }),
     ],
   },
   {
@@ -50,7 +117,7 @@ export const mockEvents: Event[] = [
     createdAt: "2026-03-08T09:15:00.000Z",
     updatedAt: null,
     subevents: [
-      {
+      createSubevent({
         id: "sub-hackathon-briefing",
         eventId: "evt-hackathon-2026",
         name: "Participant Technical Briefing",
@@ -58,8 +125,14 @@ export const mockEvents: Event[] = [
         type: "SEMINAR",
         visibility: "INTERNAL",
         status: "DRAFT",
-      },
-      {
+        publicDescription: "Everything participants need before the innovation challenge begins.",
+        privateDescription: "Bring your laptop and confirm your team before the briefing.",
+        locationName: "BINUS @Kemanggisan, Syahdan Campus",
+        maxParticipants: 200,
+        maxTicketsPerUser: 4,
+        registrationForms: [{ id: "form-hackathon-briefing", status: "DRAFT", questionCount: 6 }],
+      }),
+      createSubevent({
         id: "sub-hackathon-final",
         eventId: "evt-hackathon-2026",
         name: "Innovation Challenge Final",
@@ -67,7 +140,12 @@ export const mockEvents: Event[] = [
         type: "COMPETITION",
         visibility: "INVITE_ONLY",
         status: "DRAFT",
-      },
+        publicDescription: "The final showcase for selected innovation challenge teams.",
+        locationName: "Auditorium, BINUS Anggrek",
+        price: 0,
+        maxParticipants: 120,
+        maxTicketsPerUser: 4,
+      }),
     ],
   },
   {
@@ -80,7 +158,7 @@ export const mockEvents: Event[] = [
     createdAt: "2025-11-20T04:30:00.000Z",
     updatedAt: "2026-01-18T07:00:00.000Z",
     subevents: [
-      {
+      createSubevent({
         id: "sub-company-visit",
         eventId: "evt-company-visit",
         name: "Technology Office Visit",
@@ -88,7 +166,27 @@ export const mockEvents: Event[] = [
         type: "COMPANY_VISIT",
         visibility: "INTERNAL",
         status: "CLOSED",
-      },
+        publicDescription: "A guided visit to a technology office and its product teams.",
+        privateDescription: "Meet at the BINUS Anggrek parking area at 07:30 WIB.",
+        locationName: "Traveloka Campus, Jakarta",
+        locationUrl: "https://maps.google.com/?q=Traveloka+Campus",
+        price: 50000,
+        paid: true,
+        paymentAccountBank: "BCA",
+        paymentAccountNumber: 1234567890,
+        paymentAccountName: "KOMTIG HIMTI",
+        paymentDesc: "Transfers are non-refundable after approval.",
+        maxParticipants: 40,
+        maxTicketsPerUser: 1,
+        isRegistrationOpen: false,
+        autoAcceptRegistration: false,
+        registrationForms: [{ id: "form-company-visit", status: "CLOSED", questionCount: 7 }],
+        participantCount: 40,
+        submittedResponseCount: 40,
+        createdAt: "2025-11-22T09:00:00.000Z",
+        updatedAt: "2026-01-18T08:00:00.000Z",
+        updatedBy: "usr-admin-001",
+      }),
     ],
   },
 ];

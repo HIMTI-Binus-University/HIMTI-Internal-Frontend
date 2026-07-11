@@ -7,12 +7,18 @@ const buttonVariants = cva(
       variant: {
         default:
           "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80",
+        primary:
+          "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80",
+        secondary:
+          "border border-primary bg-card text-primary hover:bg-primary/10 active:bg-primary/15",
+        edit:
+          "border border-semantic-warning bg-card text-semantic-warning hover:bg-semantic-warning-background active:bg-semantic-warning-background/80",
+        delete:
+          "border border-semantic-danger bg-card text-semantic-danger hover:bg-semantic-danger-background active:bg-semantic-danger-background/80",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:
           "border border-input bg-card hover:border-primary/30 hover:bg-accent hover:text-accent-foreground",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost:
           "hover:bg-accent hover:text-accent-foreground active:bg-accent/80",
         link: "text-primary underline-offset-4 hover:underline",

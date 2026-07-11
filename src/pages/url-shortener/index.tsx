@@ -730,7 +730,7 @@ const UrlShortenerPage = () => {
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDeleteUrl}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                variant="delete"
               >
                 Delete
               </AlertDialogAction>

@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import CreateEventPage from ".";
@@ -18,6 +18,15 @@ const renderCreateEventPage = () =>
     <MemoryRouter initialEntries={["/events/create"]}>
       <CreateEventPage />
       <LocationDisplay />
+    </MemoryRouter>,
+  );
+
+const renderEditEventPage = () =>
+  render(
+    <MemoryRouter initialEntries={["/events/evt-techno-2026/edit"]}>
+      <Routes>
+        <Route path="/events/:eventId/edit" element={<CreateEventPage />} />
+      </Routes>
     </MemoryRouter>,
   );
 
@@ -55,5 +64,17 @@ describe("CreateEventPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create event" }));
 
     expect(screen.getByText("Event creation will be available when the events API is connected.")).toBeVisible();
+  });
+
+  it("prefills the edit form from the selected event", () => {
+    renderEditEventPage();
+
+    expect(screen.getByRole("heading", { name: "Edit event" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Event name")).toHaveValue("TECHNO 2026: Wondrous Wonderland");
+    expect(screen.getByLabelText("Public description")).toHaveValue(
+      "A welcoming party for new School of Computer Science students to connect, explore, and begin their BINUS journey together.",
+    );
+    expect(screen.getByLabelText("Cover image URL")).toHaveValue("/himti-icon.svg");
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
   });
 });

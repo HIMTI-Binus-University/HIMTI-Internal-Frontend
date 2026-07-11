@@ -12,8 +12,10 @@ const fieldHelpClassName = "text-sm text-muted-foreground";
 
 const CreateSubeventPage = () => {
   const navigate = useNavigate();
-  const { eventId } = useParams();
+  const { eventId, subeventId } = useParams();
   const parentEvent = mockEvents.find((event) => event.id === eventId);
+  const subeventToEdit = parentEvent?.subevents.find((subevent) => subevent.id === subeventId);
+  const isEditing = Boolean(subeventToEdit);
   const parentEventName = parentEvent?.name ?? "Selected event";
   const [isPendingIntegration, setIsPendingIntegration] = useState(false);
 
@@ -25,15 +27,15 @@ const CreateSubeventPage = () => {
   return (
     <PageLayout
       icon={CalendarClock}
-      title="Create sub-event"
-      breadcrumbs={["Tools", "Events", parentEventName, "Create sub-event"]}
+      title={isEditing ? "Edit sub-event" : "Create sub-event"}
+      breadcrumbs={["Tools", "Events", parentEventName, isEditing ? "Edit sub-event" : "Create sub-event"]}
     >
       <div className="mx-auto w-full max-w-4xl">
         <Container className="overflow-hidden p-0">
           <div className="border-b border-border bg-muted/35 px-5 py-5 sm:px-6">
             <p className="text-sm font-semibold text-foreground">Sub-event details</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Creating a sub-event for <span className="font-semibold text-foreground">{parentEventName}</span>.
+              {isEditing ? "Editing" : "Creating a sub-event for"} <span className="font-semibold text-foreground">{subeventToEdit?.name ?? parentEventName}</span>{isEditing ? ` in ${parentEventName}.` : "."}
             </p>
           </div>
 
@@ -47,6 +49,7 @@ const CreateSubeventPage = () => {
                   id="subevent-name"
                   name="name"
                   placeholder="e.g. TECHNO 2027 - Greater Jakarta"
+                  defaultValue={subeventToEdit?.name}
                   required
                 />
                 <p className={fieldHelpClassName}>
@@ -88,7 +91,13 @@ const CreateSubeventPage = () => {
                 <label className={fieldLabelClassName} htmlFor="subevent-date">
                   Date and time
                 </label>
-                <Input id="subevent-date" name="date" type="datetime-local" required />
+                <Input
+                  id="subevent-date"
+                  name="date"
+                  type="datetime-local"
+                  defaultValue={subeventToEdit?.date.slice(0, 16)}
+                  required
+                />
                 <p className={fieldHelpClassName}>Set when this sub-event begins.</p>
               </div>
 
@@ -100,7 +109,7 @@ const CreateSubeventPage = () => {
                   id="subevent-type"
                   name="type"
                   required
-                  defaultValue=""
+                  defaultValue={subeventToEdit?.type ?? ""}
                   className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm text-foreground outline-none transition-colors focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/20"
                 >
                   <option value="" disabled>Select a type</option>
@@ -191,7 +200,7 @@ const CreateSubeventPage = () => {
                 className="mt-6 flex items-start gap-2 rounded-lg border border-semantic-info-border bg-semantic-info-background px-3 py-2.5 text-sm leading-5 text-semantic-info"
               >
                 <Info aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 stroke-[1.75]" />
-                Sub-event creation will be available when the events API is connected.
+                {isEditing ? "Sub-event updates" : "Sub-event creation"} will be available when the events API is connected.
               </p>
             )}
 
@@ -199,7 +208,7 @@ const CreateSubeventPage = () => {
               <Button type="button" variant="outline" onClick={() => navigate("/events")}>
                 Cancel
               </Button>
-              <Button type="submit">Create sub-event</Button>
+              <Button type="submit">{isEditing ? "Save changes" : "Create sub-event"}</Button>
             </div>
           </form>
         </Container>

@@ -79,14 +79,14 @@ const PaginationFooter = ({
   <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
     <p className="text-sm text-muted-foreground">{label}</p>
     <div className="flex items-center gap-2">
-      <Button variant="outline" size="sm" disabled={page <= 1} onClick={onPrevious}>
+      <Button variant="secondary" size="sm" disabled={page <= 1} onClick={onPrevious}>
         Previous
       </Button>
       <span className="px-2 text-sm text-muted-foreground">
         Page {page} of {totalPages}
       </span>
       <Button
-        variant="outline"
+        variant="secondary"
         size="sm"
         disabled={page >= totalPages}
         onClick={onNext}

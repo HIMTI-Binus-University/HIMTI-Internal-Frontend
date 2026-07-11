@@ -13,11 +13,17 @@ const LocationDisplay = () => {
   return <output data-testid="location">{location.pathname}</output>;
 };
 
-const renderCreateSubeventPage = () =>
+const renderCreateSubeventPage = (
+  initialEntry = "/events/evt-techno-2026/subevents/create",
+) =>
   render(
-    <MemoryRouter initialEntries={["/events/evt-techno-2026/subevents/create"]}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
         <Route path="/events/:eventId/subevents/create" element={<CreateSubeventPage />} />
+        <Route
+          path="/events/:eventId/subevents/:subeventId/edit"
+          element={<CreateSubeventPage />}
+        />
         <Route path="/events" element={<div />} />
       </Routes>
       <LocationDisplay />
@@ -75,5 +81,15 @@ describe("CreateSubeventPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(screen.getByTestId("location")).toHaveTextContent("/events");
+  });
+
+  it("prefills the edit form from the selected sub-event", () => {
+    renderCreateSubeventPage("/events/evt-techno-2026/subevents/sub-techno-jakarta/edit");
+
+    expect(screen.getByRole("heading", { name: "Edit sub-event" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Sub-event name")).toHaveValue("TECHNO 2026 — Greater Jakarta");
+    expect(screen.getByLabelText("Date and time")).toHaveValue("2026-05-17T10:00");
+    expect(screen.getByLabelText("Sub-event type")).toHaveValue("WELCOMING_PARTY");
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
   });
 });
