@@ -1,4 +1,5 @@
 import { CalendarDays, FileText, UsersRound } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ const getCalendarParts = (date: string) => {
 };
 
 const SubeventCard = ({ event, subevent }: { event: Event; subevent: Subevent }) => {
+  const navigate = useNavigate();
   const calendar = getCalendarParts(subevent.date);
   const capacity = subevent.maxParticipants
     ? `${subevent.participantCount} / ${subevent.maxParticipants} participants`
@@ -80,6 +82,8 @@ const SubeventCard = ({ event, subevent }: { event: Event; subevent: Subevent })
             variant="secondary"
             size="sm"
             aria-label={`Registration for ${subevent.name}`}
+            title="Manage registration form"
+            onClick={() => navigate(`/events/${event.id}/subevents/${subevent.id}/registration-form`)}
           >
             <FileText />
             Registration

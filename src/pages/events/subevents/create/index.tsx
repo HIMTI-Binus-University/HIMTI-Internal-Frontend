@@ -205,7 +205,7 @@ const CreateSubeventPage = () => {
             )}
 
             <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-5 sm:flex-row sm:justify-end">
-              <Button type="button" variant="outline" onClick={() => navigate("/events")}>
+              <Button type="button" variant="secondary" onClick={() => navigate("/events")}>
                 Cancel
               </Button>
               <Button type="submit">{isEditing ? "Save changes" : "Create sub-event"}</Button>

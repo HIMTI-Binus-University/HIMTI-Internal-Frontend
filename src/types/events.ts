@@ -17,10 +17,44 @@ export type SubeventType =
 
 export type RegistrationFormStatus = "DRAFT" | "PUBLISHED" | "CLOSED";
 
+export type FormFieldType =
+  | "TEXT"
+  | "TEXTAREA"
+  | "NUMBER"
+  | "DATE"
+  | "SELECT"
+  | "RADIO"
+  | "CHECKBOX"
+  | "FILE";
+
+export type FormQuestionStatus = "ACTIVE" | "INACTIVE";
+
+export interface FormQuestionOption {
+  id: string;
+  formQuestionId: string;
+  label: string;
+  value: string;
+  isActive: boolean;
+}
+
+export interface FormQuestion {
+  id: string;
+  registrationFormId: string;
+  label: string;
+  fieldKey: string;
+  fieldType: FormFieldType;
+  isRequired: boolean;
+  helpText: string | null;
+  orderIndex: number;
+  status: FormQuestionStatus;
+  options: FormQuestionOption[];
+}
+
 export interface RegistrationForm {
   id: string;
   status: RegistrationFormStatus;
   questionCount: number;
+  questions: FormQuestion[];
 }
 
 export interface Subevent {

@@ -130,6 +130,25 @@ describe("EventsPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("opens a draft sub-event registration form from its registration action", () => {
+    renderEventsPage();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Expand TECHNO 2026: Wondrous Wonderland",
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Registration for TECHNO 2026 — Bandung",
+      }),
+    );
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/events/evt-techno-2026/subevents/sub-techno-bandung/registration-form",
+    );
+  });
+
   it("shows sub-event details and its parent event in the dialog", () => {
     renderEventsPage();
 

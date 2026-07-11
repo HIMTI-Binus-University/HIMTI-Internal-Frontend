@@ -9,6 +9,7 @@ import RbacUsersPage from "@/pages/rbac/users";
 import EventsPage from "@/pages/events";
 import CreateEventPage from "@/pages/events/create";
 import CreateSubeventPage from "@/pages/events/subevents/create";
+import RegistrationFormPage from "@/pages/events/subevents/registration-form";
 
 export const publicRoutes: Route[] = [
   {
@@ -87,6 +88,16 @@ export const publicRoutes: Route[] = [
     description: "Edit Sub-Event Page",
     component: CreateSubeventPage,
     path: "/events/:eventId/subevents/:subeventId/edit",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
+  },
+  {
+    key: "router-events-subevents-registration-form",
+    title: "Registration form",
+    description: "Sub-Event Registration Form Editor",
+    component: RegistrationFormPage,
+    path: "/events/:eventId/subevents/:subeventId/registration-form",
     isEnabled: true,
     isProtected: true,
     requiredPermission: "manage_events",
