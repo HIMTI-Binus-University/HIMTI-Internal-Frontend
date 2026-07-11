@@ -1,4 +1,4 @@
-import { CalendarDays, FileText, UsersRound } from "lucide-react";
+import { CalendarDays, CreditCard, FileText, UsersRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { Card } from "@/components/ui/card";
@@ -87,6 +87,16 @@ const SubeventCard = ({ event, subevent }: { event: Event; subevent: Subevent })
           >
             <FileText />
             Registration
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            aria-label={`Payment settings for ${subevent.name}`}
+            onClick={() => navigate(`/events/${event.id}/subevents/${subevent.id}/payment`)}
+          >
+            <CreditCard />
+            Payment
           </Button>
           <Button
             type="button"

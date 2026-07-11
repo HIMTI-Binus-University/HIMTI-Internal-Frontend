@@ -149,6 +149,25 @@ describe("EventsPage", () => {
     );
   });
 
+  it("opens payment settings from a sub-event card", () => {
+    renderEventsPage();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Expand TECHNO 2026: Wondrous Wonderland",
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Payment settings for TECHNO 2026 — Greater Jakarta",
+      }),
+    );
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/events/evt-techno-2026/subevents/sub-techno-jakarta/payment",
+    );
+  });
+
   it("shows sub-event details and its parent event in the dialog", () => {
     renderEventsPage();
 
@@ -174,6 +193,26 @@ describe("EventsPage", () => {
     expect(within(dialog).getByRole("button", { name: "Edit" })).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Delete" })).toBeInTheDocument();
     expect(dialog).not.toHaveTextContent("checkout-techno-jakarta-2026");
+  });
+
+  it("opens payment settings from sub-event details", () => {
+    renderEventsPage();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Expand TECHNO 2026: Wondrous Wonderland",
+      }),
+    );
+    fireEvent.click(
+      screen.getAllByRole("button", {
+        name: "View details for TECHNO 2026 — Greater Jakarta",
+      })[0],
+    );
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Manage payment" }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/events/evt-techno-2026/subevents/sub-techno-jakarta/payment",
+    );
   });
 
   it("opens the sub-event edit form from the details dialog", () => {

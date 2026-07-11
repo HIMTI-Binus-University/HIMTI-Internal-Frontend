@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ChevronRight, FileText, MapPin, Pencil, Trash2, UsersRound } from "lucide-react";
+import { ChevronRight, CreditCard, FileText, MapPin, Pencil, Trash2, UsersRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -172,9 +172,7 @@ export const SubeventDetailsDialog = ({ event, subevent }: SubeventDetailsDialog
           </section>
 
           <section aria-labelledby="subevent-payment-heading" className="border-t border-border pt-5">
-            <h3 id="subevent-payment-heading" className="text-sm font-semibold text-foreground">
-              Payment
-            </h3>
+            <div className="flex flex-wrap items-center justify-between gap-3"><h3 id="subevent-payment-heading" className="text-sm font-semibold text-foreground">Payment</h3><Button type="button" variant="secondary" size="sm" onClick={() => navigate(`/events/${event.id}/subevents/${subevent.id}/payment`)}><CreditCard /> Manage payment</Button></div>
             <dl className="mt-3 grid gap-5 sm:grid-cols-3">
               <Detail label="Price" value={formatCurrency(subevent.price)} />
               <Detail label="Payment required" value={subevent.paid ? "Yes" : "No"} />

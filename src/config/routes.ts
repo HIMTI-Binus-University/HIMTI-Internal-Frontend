@@ -10,6 +10,7 @@ import EventsPage from "@/pages/events";
 import CreateEventPage from "@/pages/events/create";
 import CreateSubeventPage from "@/pages/events/subevents/create";
 import RegistrationFormPage from "@/pages/events/subevents/registration-form";
+import PaymentPage from "@/pages/events/subevents/payment";
 
 export const publicRoutes: Route[] = [
   {
@@ -98,6 +99,16 @@ export const publicRoutes: Route[] = [
     description: "Sub-Event Registration Form Editor",
     component: RegistrationFormPage,
     path: "/events/:eventId/subevents/:subeventId/registration-form",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
+  },
+  {
+    key: "router-events-subevents-payment",
+    title: "Payment settings",
+    description: "Sub-Event Payment Settings",
+    component: PaymentPage,
+    path: "/events/:eventId/subevents/:subeventId/payment",
     isEnabled: true,
     isProtected: true,
     requiredPermission: "manage_events",
