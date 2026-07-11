@@ -122,7 +122,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                       icon={Icon}
                       label={route.title}
                       path={route.path}
-                      active={location.pathname === route.path}
+                      active={location.pathname === route.path || location.pathname.startsWith(`${route.path}/`)}
                       onClick={onClose}
                     />
                   );

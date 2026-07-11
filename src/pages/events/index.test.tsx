@@ -1,237 +1,53 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import EventsPage from ".";
+import EventEditorPage from "./editor";
+import EventWorkspacePage from "./workspace";
+import FormEditorPage from "./subevents/form-editor";
+import RegistrationReviewPage from "./subevents/registration-review";
+import SubeventSetupPage from "./subevents/setup";
+import SubeventWorkspacePage from "./subevents/workspace";
+import { EventsProvider } from "./store";
 
-vi.mock("@/components/Utils/Sidebar", () => ({
-  default: () => <div data-testid="sidebar" />,
-}));
+vi.mock("@/components/Utils", () => ({ PageLayout: ({ title, children, actions }: { title: string; children: React.ReactNode; actions?: React.ReactNode }) => <main><h1>{title}</h1>{actions}{children}</main> }));
+const Location = () => { const location = useLocation(); return <output data-testid="location">{location.pathname}</output>; };
+const renderAt = (path: string, element: React.ReactNode, route: string) => render(<EventsProvider><MemoryRouter initialEntries={[path]}><Routes><Route path={route} element={element} /></Routes><Location /></MemoryRouter></EventsProvider>);
+afterEach(cleanup);
 
-const LocationDisplay = () => {
-  const location = useLocation();
-  return <output data-testid="location">{location.pathname}</output>;
-};
-
-const renderEventsPage = () =>
-  render(
-    <MemoryRouter initialEntries={["/events"]}>
-      <EventsPage />
-      <LocationDisplay />
-    </MemoryRouter>,
-  );
-
-describe("EventsPage", () => {
-  afterEach(() => {
-    cleanup();
+describe("updated Events hierarchy", () => {
+  it("renders ERD-shaped event summaries and filters to an empty state", () => {
+    renderAt("/events", <EventsPage />, "/events");
+    expect(screen.getByText("TECHNO 2026: Wondrous Wonderland")).toBeInTheDocument();
+    expect(screen.getByText("2 subevents")).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText("Search event name or description"), { target: { value: "nothing matches this" } });
+    expect(screen.getByText("No events match these filters")).toBeInTheDocument();
   });
 
-  it("starts event cards collapsed and expands them on request", () => {
-    renderEventsPage();
-
-    const expandTechno = screen.getByRole("button", {
-      name: "Expand TECHNO 2026: Wondrous Wonderland",
-    });
-
-    expect(expandTechno).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("TECHNO 2026 — Greater Jakarta")).not.toBeInTheDocument();
-
-    fireEvent.click(expandTechno);
-
-    expect(
-      screen.getByRole("button", {
-        name: "Collapse TECHNO 2026: Wondrous Wonderland",
-      }),
-    ).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getAllByText("TECHNO 2026 — Greater Jakarta").length).toBeGreaterThan(0);
+  it("keeps create-event navigation inside Events", () => {
+    renderAt("/events", <EventsPage />, "/events");
+    fireEvent.click(screen.getByRole("link", { name: "Create event" }));
+    expect(screen.getByTestId("location")).toHaveTextContent("/events/new");
   });
 
-  it("opens the create event page from the primary action", () => {
-    renderEventsPage();
-
-    fireEvent.click(screen.getByRole("button", { name: "Create event" }));
-
-    expect(screen.getByTestId("location")).toHaveTextContent("/events/create");
+  it("moves through the contained subevent setup flow without losing draft fields", () => {
+    renderAt("/events/evt-techno-2026/subevents/new/details", <SubeventSetupPage />, "/events/:eventId/subevents/new/:step");
+    fireEvent.change(screen.getByPlaceholderText("e.g. TECHNO Greater Jakarta"), { target: { value: "TECHNO Bandung" } });
+    fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
+    expect(screen.getByTestId("location")).toHaveTextContent("/events/evt-techno-2026/subevents/new/registration");
+    expect(screen.getByText("TECHNO Bandung")).toBeInTheDocument();
+    expect(screen.getByText("Registration rules")).toBeInTheDocument();
   });
 
-  it("opens a parent event's sub-event page from its action", () => {
-    renderEventsPage();
-
-    fireEvent.click(screen.getAllByRole("button", { name: "Add Sub-Event" })[0]);
-
-    expect(screen.getByTestId("location")).toHaveTextContent(
-      "/events/evt-techno-2026/subevents/create",
-    );
-  });
-
-  it("uses a sub-event card grid instead of table headers", () => {
-    renderEventsPage();
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Expand TECHNO 2026: Wondrous Wonderland",
-      }),
-    );
-
-    const subeventsSection = screen.getByRole("region", { name: "Sub-events" });
-    expect(within(subeventsSection).getByText("3 sub-events")).toBeInTheDocument();
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    expect(screen.queryByRole("columnheader", { name: "Actions" })).not.toBeInTheDocument();
-  });
-
-  it("uses concise event action labels", () => {
-    renderEventsPage();
-
-    fireEvent.pointerDown(screen.getAllByRole("button", { name: "Open event actions" })[0]);
-
-    expect(screen.getByRole("menuitem", { name: "Edit" })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "Delete" })).toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: "Archive event" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: "Edit event" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: "Delete event" })).not.toBeInTheDocument();
-  });
-
-  it("opens the event edit form from the actions menu", () => {
-    renderEventsPage();
-
-    fireEvent.pointerDown(screen.getAllByRole("button", { name: "Open event actions" })[0]);
-    fireEvent.click(screen.getByRole("menuitem", { name: "Edit" }));
-
-    expect(screen.getByTestId("location")).toHaveTextContent("/events/evt-techno-2026/edit");
-  });
-
-  it("keeps registration and participants visible in each sub-event card", () => {
-    renderEventsPage();
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Expand TECHNO 2026: Wondrous Wonderland",
-      }),
-    );
-
-    const subeventCard = screen.getByRole("article", {
-      name: /TECHNO 2026 — Greater Jakarta/,
-    });
-
-    expect(
-      within(subeventCard).getByRole("button", {
-        name: "Registration for TECHNO 2026 — Greater Jakarta",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      within(subeventCard).getByRole("button", {
-        name: "Participants for TECHNO 2026 — Greater Jakarta",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      within(subeventCard).getByRole("button", {
-        name: "View details for TECHNO 2026 — Greater Jakarta",
-      }),
-    ).toBeInTheDocument();
-  });
-
-  it("opens a draft sub-event registration form from its registration action", () => {
-    renderEventsPage();
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Expand TECHNO 2026: Wondrous Wonderland",
-      }),
-    );
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Registration for TECHNO 2026 — Bandung",
-      }),
-    );
-
-    expect(screen.getByTestId("location")).toHaveTextContent(
-      "/events/evt-techno-2026/subevents/sub-techno-bandung/registration-form",
-    );
-  });
-
-  it("opens payment settings from a sub-event card", () => {
-    renderEventsPage();
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Expand TECHNO 2026: Wondrous Wonderland",
-      }),
-    );
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Payment settings for TECHNO 2026 — Greater Jakarta",
-      }),
-    );
-
-    expect(screen.getByTestId("location")).toHaveTextContent(
-      "/events/evt-techno-2026/subevents/sub-techno-jakarta/payment",
-    );
-  });
-
-  it("shows sub-event details and its parent event in the dialog", () => {
-    renderEventsPage();
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Expand TECHNO 2026: Wondrous Wonderland",
-      }),
-    );
-    fireEvent.click(
-      screen.getAllByRole("button", {
-        name: "View details for TECHNO 2026 — Greater Jakarta",
-      })[0],
-    );
-    const dialog = screen.getByRole("dialog");
-
-    expect(within(dialog).getByText("TECHNO 2026: Wondrous Wonderland")).toBeInTheDocument();
-    expect(within(dialog).getByText("BINUS @Kemanggisan, Anggrek Campus")).toBeInTheDocument();
-    expect(within(dialog).getByText(/25\.000/)).toBeInTheDocument();
-    expect(within(dialog).getByText("Registration form")).toBeInTheDocument();
-    expect(within(dialog).getByText("published")).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Registration" })).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Participants" })).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Edit" })).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Delete" })).toBeInTheDocument();
-    expect(dialog).not.toHaveTextContent("checkout-techno-jakarta-2026");
-  });
-
-  it("opens payment settings from sub-event details", () => {
-    renderEventsPage();
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Expand TECHNO 2026: Wondrous Wonderland",
-      }),
-    );
-    fireEvent.click(
-      screen.getAllByRole("button", {
-        name: "View details for TECHNO 2026 — Greater Jakarta",
-      })[0],
-    );
-    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Manage payment" }));
-
-    expect(screen.getByTestId("location")).toHaveTextContent(
-      "/events/evt-techno-2026/subevents/sub-techno-jakarta/payment",
-    );
-  });
-
-  it("opens the sub-event edit form from the details dialog", () => {
-    renderEventsPage();
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Expand TECHNO 2026: Wondrous Wonderland",
-      }),
-    );
-    fireEvent.click(
-      screen.getAllByRole("button", {
-        name: "View details for TECHNO 2026 — Greater Jakarta",
-      })[0],
-    );
-    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Edit" }));
-
-    expect(screen.getByTestId("location")).toHaveTextContent(
-      "/events/evt-techno-2026/subevents/sub-techno-jakarta/edit",
-    );
+  it.each([
+    ["event editor", "/events/evt-techno-2026/edit", "/events/:eventId/edit", <EventEditorPage />, "Edit event"],
+    ["event workspace", "/events/evt-techno-2026", "/events/:eventId", <EventWorkspacePage />, "Event workspace"],
+    ["subevent overview", "/events/evt-techno-2026/subevents/sub-jkt/overview", "/events/:eventId/subevents/:subeventId/:section", <SubeventWorkspacePage />, "Subevent workspace"],
+    ["form editor", "/events/evt-techno-2026/subevents/sub-jkt/forms/form-profile", "/events/:eventId/subevents/:subeventId/forms/:formId", <FormEditorPage />, "Edit form"],
+    ["registration review", "/events/evt-techno-2026/subevents/sub-jkt/registrations/reg-alya", "/events/:eventId/subevents/:subeventId/registrations/:registrationId", <RegistrationReviewPage />, "Registration review"],
+  ])("renders the %s route in its event context", (_name, path, route, element, heading) => {
+    renderAt(path as string, element as React.ReactNode, route as string);
+    expect(screen.getByRole("heading", { name: heading as string, level: 1 })).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent(path as string);
   });
 });
