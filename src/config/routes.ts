@@ -7,6 +7,10 @@ import RbacPermissionsPage from "@/pages/rbac/permissions";
 import RbacRolesPage from "@/pages/rbac/roles";
 import RbacUsersPage from "@/pages/rbac/users";
 import EventsPage from "@/pages/events";
+import CreateEventPage from "@/pages/events/create";
+import CreateSubeventPage from "@/pages/events/subevents/create";
+import RegistrationFormPage from "@/pages/events/subevents/registration-form";
+import PaymentPage from "@/pages/events/subevents/payment";
 
 export const publicRoutes: Route[] = [
   {
@@ -48,6 +52,66 @@ export const publicRoutes: Route[] = [
     isProtected: true,
     requiredPermission: "manage_events",
     group: "Tools",
+  },
+  {
+    key: "router-events-create",
+    title: "Create event",
+    description: "Create Event Page",
+    component: CreateEventPage,
+    path: "/events/create",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
+  },
+  {
+    key: "router-events-edit",
+    title: "Edit event",
+    description: "Edit Event Page",
+    component: CreateEventPage,
+    path: "/events/:eventId/edit",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
+  },
+  {
+    key: "router-events-subevents-create",
+    title: "Create sub-event",
+    description: "Create Sub-Event Page",
+    component: CreateSubeventPage,
+    path: "/events/:eventId/subevents/create",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
+  },
+  {
+    key: "router-events-subevents-edit",
+    title: "Edit sub-event",
+    description: "Edit Sub-Event Page",
+    component: CreateSubeventPage,
+    path: "/events/:eventId/subevents/:subeventId/edit",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
+  },
+  {
+    key: "router-events-subevents-registration-form",
+    title: "Registration form",
+    description: "Sub-Event Registration Form Editor",
+    component: RegistrationFormPage,
+    path: "/events/:eventId/subevents/:subeventId/registration-form",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
+  },
+  {
+    key: "router-events-subevents-payment",
+    title: "Payment settings",
+    description: "Sub-Event Payment Settings",
+    component: PaymentPage,
+    path: "/events/:eventId/subevents/:subeventId/payment",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
   },
   {
     key: "router-rbac-permissions",
@@ -130,6 +194,7 @@ export const getAccessibleInternalRoutes = (permissions: string[]) =>
     (route) =>
       route.isEnabled &&
       route.isProtected &&
+      route.group &&
       route.requiredPermission &&
       permissions.includes(route.requiredPermission),
   );

@@ -25,7 +25,7 @@ function HomePage() {
             </div>
           </div>
 
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="secondary" size="sm">
             <Link to="/login">Sign in</Link>
           </Button>
         </header>

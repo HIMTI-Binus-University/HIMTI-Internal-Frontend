@@ -292,7 +292,7 @@ const UserCard = ({ user, isSelf, onManageRoles }: UserCardProps) => {
         </div>
 
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           onClick={onManageRoles}
           disabled={isSelf}

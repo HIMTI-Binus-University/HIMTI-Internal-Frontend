@@ -11,6 +11,7 @@ import Sidebar from "./Sidebar";
 interface PageLayoutProps {
   icon: LucideIcon;
   title: string;
+  breadcrumbs?: string[];
   actions?: ReactNode;
   children: ReactNode;
 }
@@ -18,13 +19,14 @@ interface PageLayoutProps {
 const PageLayout = ({
   icon: _Icon,
   title,
+  breadcrumbs: customBreadcrumbs,
   actions,
   children,
 }: PageLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const breadcrumbs = getBreadcrumbs(location.pathname, title);
+  const breadcrumbs = customBreadcrumbs ?? getBreadcrumbs(location.pathname, title);
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -69,7 +71,7 @@ const PageLayout = ({
                           {crumb}
                         </h1>
                       ) : (
-                        <span className="shrink-0 text-muted-foreground">{crumb}</span>
+                        <span className="min-w-0 truncate text-muted-foreground">{crumb}</span>
                       )}
                     </li>
                   );

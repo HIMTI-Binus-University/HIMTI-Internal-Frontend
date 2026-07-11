@@ -4,13 +4,13 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
-  UsersRound,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { IconButton } from "@/components/ui/icon-button";
 import type { Event } from "@/types/events";
+import { useNavigate } from "react-router-dom";
 
 import { EventActionsMenu } from "./EventActionsMenu";
 import { StatusBadge } from "./StatusBadge";
@@ -23,6 +23,7 @@ interface EventCardProps {
 }
 
 export const EventCard = ({ event, isExpanded, onToggle }: EventCardProps) => {
+  const navigate = useNavigate();
   const subeventsPanelRef = useRef<HTMLDivElement>(null);
   const [shouldRenderSubevents, setShouldRenderSubevents] = useState(isExpanded);
   const [isSubeventsVisible, setIsSubeventsVisible] = useState(isExpanded);
@@ -84,20 +85,21 @@ export const EventCard = ({ event, isExpanded, onToggle }: EventCardProps) => {
               )}
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <StatusBadge status={event.status} />
-                <span className="inline-flex min-h-6 items-center gap-1.5 rounded-md border border-semantic-info-border bg-semantic-info-background px-2 py-0.5 text-xs font-semibold text-semantic-info">
-                  <UsersRound aria-hidden="true" className="h-3.5 w-3.5 stroke-[1.75]" />
-                  {event.subevents.length} sub-events
-                </span>
               </div>
             </div>
           </div>
 
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-            <Button type="button" variant="outline" size="sm">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate(`/events/${event.id}/subevents/create`)}
+            >
               <Plus />
               Add Sub-Event
             </Button>
-            <EventActionsMenu />
+            <EventActionsMenu eventId={event.id} />
             <span aria-hidden="true" className="h-6 w-px bg-border" />
             <IconButton
               label={`${isExpanded ? "Collapse" : "Expand"} ${event.name}`}
@@ -128,7 +130,7 @@ export const EventCard = ({ event, isExpanded, onToggle }: EventCardProps) => {
           }}
         >
           <div className="event-subevents-panel-content">
-            <SubeventsList subevents={event.subevents} />
+            <SubeventsList event={event} subevents={event.subevents} />
           </div>
         </div>
       )}

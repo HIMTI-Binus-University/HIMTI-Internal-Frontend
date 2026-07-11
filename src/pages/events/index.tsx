@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { CalendarDays, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import { PageLayout } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { EventCard } from "./components/EventCard";
 import { EventsToolbar } from "./components/EventsToolbar";
 
 const EventsPage = () => {
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<EventStatusFilter>("ALL");
   const [visibility, setVisibility] = useState<VisibilityFilter>("ALL");
@@ -43,7 +45,12 @@ const EventsPage = () => {
       icon={CalendarDays}
       title="Events"
       actions={
-        <Button type="button" className="max-sm:px-3">
+        <Button
+          type="button"
+          aria-label="Create event"
+          className="max-sm:px-3"
+          onClick={() => navigate("/events/create")}
+        >
           <Plus />
           <span className="max-sm:hidden">Create Event</span>
           <span className="sm:hidden">Create</span>
