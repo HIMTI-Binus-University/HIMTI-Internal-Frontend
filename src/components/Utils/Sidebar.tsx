@@ -51,7 +51,10 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   };
 
   const navRoutes = publicRoutes
-    .filter((route) => route.isEnabled && route.isProtected && route.requiredPermission)
+    .filter(
+      (route) =>
+        route.isEnabled && route.isProtected && route.group && route.requiredPermission,
+    )
     .filter(
       (route) =>
         !route.requiredPermission ||

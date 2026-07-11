@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import EventsPage from ".";
@@ -8,10 +8,16 @@ vi.mock("@/components/Utils/Sidebar", () => ({
   default: () => <div data-testid="sidebar" />,
 }));
 
+const LocationDisplay = () => {
+  const location = useLocation();
+  return <output data-testid="location">{location.pathname}</output>;
+};
+
 const renderEventsPage = () =>
   render(
     <MemoryRouter initialEntries={["/events"]}>
       <EventsPage />
+      <LocationDisplay />
     </MemoryRouter>,
   );
 
@@ -38,6 +44,14 @@ describe("EventsPage", () => {
       }),
     ).toHaveAttribute("aria-expanded", "true");
     expect(screen.getAllByText("TECHNO 2026 — Greater Jakarta").length).toBeGreaterThan(0);
+  });
+
+  it("opens the create event page from the primary action", () => {
+    renderEventsPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Create event" }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent("/events/create");
   });
 
   it("left-aligns the sub-event actions column header", () => {

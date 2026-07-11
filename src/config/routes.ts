@@ -7,6 +7,7 @@ import RbacPermissionsPage from "@/pages/rbac/permissions";
 import RbacRolesPage from "@/pages/rbac/roles";
 import RbacUsersPage from "@/pages/rbac/users";
 import EventsPage from "@/pages/events";
+import CreateEventPage from "@/pages/events/create";
 
 export const publicRoutes: Route[] = [
   {
@@ -48,6 +49,16 @@ export const publicRoutes: Route[] = [
     isProtected: true,
     requiredPermission: "manage_events",
     group: "Tools",
+  },
+  {
+    key: "router-events-create",
+    title: "Create event",
+    description: "Create Event Page",
+    component: CreateEventPage,
+    path: "/events/create",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
   },
   {
     key: "router-rbac-permissions",
@@ -130,6 +141,7 @@ export const getAccessibleInternalRoutes = (permissions: string[]) =>
     (route) =>
       route.isEnabled &&
       route.isProtected &&
+      route.group &&
       route.requiredPermission &&
       permissions.includes(route.requiredPermission),
   );
