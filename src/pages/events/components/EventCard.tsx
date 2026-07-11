@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { IconButton } from "@/components/ui/icon-button";
 import type { Event } from "@/types/events";
+import { useNavigate } from "react-router-dom";
 
 import { EventActionsMenu } from "./EventActionsMenu";
 import { StatusBadge } from "./StatusBadge";
@@ -23,6 +24,7 @@ interface EventCardProps {
 }
 
 export const EventCard = ({ event, isExpanded, onToggle }: EventCardProps) => {
+  const navigate = useNavigate();
   const subeventsPanelRef = useRef<HTMLDivElement>(null);
   const [shouldRenderSubevents, setShouldRenderSubevents] = useState(isExpanded);
   const [isSubeventsVisible, setIsSubeventsVisible] = useState(isExpanded);
@@ -93,7 +95,12 @@ export const EventCard = ({ event, isExpanded, onToggle }: EventCardProps) => {
           </div>
 
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-            <Button type="button" variant="outline" size="sm">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/events/${event.id}/subevents/create`)}
+            >
               <Plus />
               Add Sub-Event
             </Button>

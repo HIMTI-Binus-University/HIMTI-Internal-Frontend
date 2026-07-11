@@ -8,6 +8,7 @@ import RbacRolesPage from "@/pages/rbac/roles";
 import RbacUsersPage from "@/pages/rbac/users";
 import EventsPage from "@/pages/events";
 import CreateEventPage from "@/pages/events/create";
+import CreateSubeventPage from "@/pages/events/subevents/create";
 
 export const publicRoutes: Route[] = [
   {
@@ -56,6 +57,16 @@ export const publicRoutes: Route[] = [
     description: "Create Event Page",
     component: CreateEventPage,
     path: "/events/create",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
+  },
+  {
+    key: "router-events-subevents-create",
+    title: "Create sub-event",
+    description: "Create Sub-Event Page",
+    component: CreateSubeventPage,
+    path: "/events/:eventId/subevents/create",
     isEnabled: true,
     isProtected: true,
     requiredPermission: "manage_events",

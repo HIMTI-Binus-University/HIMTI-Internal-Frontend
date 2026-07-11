@@ -54,6 +54,16 @@ describe("EventsPage", () => {
     expect(screen.getByTestId("location")).toHaveTextContent("/events/create");
   });
 
+  it("opens a parent event's sub-event page from its action", () => {
+    renderEventsPage();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Add Sub-Event" })[0]);
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/events/evt-techno-2026/subevents/create",
+    );
+  });
+
   it("left-aligns the sub-event actions column header", () => {
     renderEventsPage();
 
