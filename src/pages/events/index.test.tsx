@@ -15,7 +15,6 @@ vi.mock("@/components/Utils", () => ({
   Container: ({ children }: { children: React.ReactNode }) => <section>{children}</section>,
 }));
 const Location = () => { const location = useLocation(); return <output data-testid="location">{location.pathname}{location.search}</output>; };
-const StoreProbe = () => { const { data } = useEventsStore(); return <output data-testid="store-counts">{JSON.stringify({ events: data.events.length, subevents: data.subevents.length, forms: data.forms.length, assignments: data.subeventForms.length, registrations: data.registrations.length, payments: data.payments.length })}</output>; };
 const renderAt = (path: string, element: React.ReactNode, route: string) => render(<EventsProvider><MemoryRouter initialEntries={[path]}><Routes><Route path={route} element={element} /></Routes><Location /></MemoryRouter></EventsProvider>);
 afterEach(cleanup);
 
@@ -51,35 +50,59 @@ describe("updated Events hierarchy", () => {
     expect(screen.getByTestId("location")).toHaveTextContent("/events/new");
   });
 
-  it("archives and unarchives an event in place without removing its data", () => {
-    render(<EventsProvider><MemoryRouter initialEntries={["/events/evt-techno-2026"]}><Routes><Route path="/events" element={<EventsPage />} /><Route path="/events/:eventId" element={<EventWorkspacePage />} /></Routes><Location /><StoreProbe /></MemoryRouter></EventsProvider>);
-    const counts = screen.getByTestId("store-counts").textContent;
-    fireEvent.click(screen.getByRole("button", { name: "Archive event" }));
-    expect(screen.getByTestId("location")).toHaveTextContent("/events/evt-techno-2026");
-    expect(screen.getAllByText("ARCHIVED")).not.toHaveLength(0);
-    expect(screen.getByRole("button", { name: "Unarchive event" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Status" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Unarchive event" }));
-    expect(screen.getAllByText("DRAFT")).not.toHaveLength(0);
-    expect(screen.getByTestId("store-counts")).toHaveTextContent(counts!);
+  it("orders event actions as Edit, Archive, then next status action", () => {
+    renderAt("/events/evt-techno-2026", <EventWorkspacePage />, "/events/:eventId");
+    expect(screen.getByRole("link", { name: "Edit" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Archive" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Status" })).not.toBeInTheDocument();
+  });
+
+  it("closes an event and hard-cascades published subevents and forms", () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const CascadeProbe = () => {
+      const { data } = useEventsStore();
+      const event = data.events.find((item) => item.id === "evt-techno-2026");
+      const kids = data.subevents.filter((item) => item.eventId === "evt-techno-2026");
+      const forms = data.forms.filter((item) => ["form-profile", "form-diet"].includes(item.id));
+      return <output data-testid="cascade">{JSON.stringify({ event: event?.status, kids: kids.map((item) => item.status), forms: forms.map((item) => item.status) })}</output>;
+    };
+    render(<EventsProvider><MemoryRouter initialEntries={["/events/evt-techno-2026"]}><Routes><Route path="/events/:eventId" element={<EventWorkspacePage />} /></Routes><CascadeProbe /></MemoryRouter></EventsProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    const cascade = JSON.parse(screen.getByTestId("cascade").textContent!);
+    expect(cascade.event).toBe("CLOSED");
+    expect(cascade.kids.every((status: string) => status === "CLOSED")).toBe(true);
+    expect(cascade.forms.every((status: string) => status === "CLOSED")).toBe(true);
+  });
+
+  it("lets a closed event reopen and a draft event publish", () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const Probe = () => {
+      const { data } = useEventsStore();
+      return <output data-testid="event-status">{data.events.find((item) => item.id === "evt-techno-2026")?.status}</output>;
+    };
+    render(<EventsProvider><MemoryRouter initialEntries={["/events/evt-techno-2026"]}><Routes><Route path="/events/:eventId" element={<EventWorkspacePage />} /></Routes><Probe /></MemoryRouter></EventsProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.getByTestId("event-status")).toHaveTextContent("CLOSED");
+    expect(screen.getByRole("button", { name: "Reopen" })).toBeInTheDocument();
+
+    // draft event shows Publish
+    cleanup();
+    renderAt("/events/evt-hackathon-2026", <EventWorkspacePage />, "/events/:eventId");
+    expect(screen.getByRole("button", { name: "Publish" })).toBeInTheDocument();
   });
 
   it("uses neutral event and subevent headers with explicit status controls", () => {
     const { unmount } = renderAt("/events/evt-techno-2026", <EventWorkspacePage />, "/events/:eventId");
     expect(screen.getByText("Event", { selector: "p" })).toBeInTheDocument();
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Status" }), { button: 0, ctrlKey: false });
-    fireEvent.click(screen.getByRole("menuitem", { name: "Publish" }));
-    expect(screen.getAllByText("PUBLISHED")).not.toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Close" })).toBeEnabled();
     unmount();
 
     renderAt("/events/evt-techno-2026/subevents/sub-jkt/overview", <SubeventWorkspacePage />, "/events/:eventId/subevents/:subeventId/:section");
     expect(screen.getByText("Subevent", { selector: "p" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Preview" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Back" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Status" }), { button: 0, ctrlKey: false });
-    fireEvent.click(screen.getByRole("menuitem", { name: "Publish" }));
-    expect(screen.getAllByText("PUBLISHED")).not.toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Edit" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Archive" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Close" })).toBeEnabled();
   });
 
   it("limits subevent card actions to edit and archive", () => {
@@ -87,7 +110,7 @@ describe("updated Events hierarchy", () => {
     fireEvent.pointerDown(screen.getByRole("button", { name: "Actions for TECHNO Greater Jakarta" }), { button: 0, ctrlKey: false });
     expect(screen.getByRole("menuitem", { name: "Edit" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Archive" })).toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: /Duplicate|Publish|Close|Cancel/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: /Duplicate|Publish|Close|Cancel|Delete/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("menuitem", { name: "Edit" }));
     expect(screen.getByTestId("location")).toHaveTextContent("/events/evt-techno-2026/subevents/sub-jkt/overview?edit=true");
   });
@@ -103,9 +126,8 @@ describe("updated Events hierarchy", () => {
   ])("simplifies the event editor at %s", (path, route, cardHeading) => {
     renderAt(path, <EventEditorPage />, route);
     expect(screen.getAllByText(cardHeading)).not.toHaveLength(0);
-    expect(screen.getByText("Cover and status")).toBeInTheDocument();
+    expect(screen.getByText("Cover image")).toBeInTheDocument();
     expect(screen.queryByText("General participant requirements")).not.toBeInTheDocument();
-    expect(screen.queryByText("Stored-image integration can replace this URL field later.")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save as draft" })).not.toBeInTheDocument();
   });
 
@@ -157,24 +179,16 @@ describe("updated Events hierarchy", () => {
     expect(screen.queryByText("Participant preview")).not.toBeInTheDocument();
   });
 
-  it("keeps workspace forms inside the subevent and focuses a moved form", () => {
+  it("locks published subevent forms and exposes archive instead of delete", () => {
     renderAt("/events/evt-techno-2026/subevents/sub-jkt/forms", <SubeventWorkspacePage />, "/events/:eventId/subevents/:subeventId/:section");
-
     expect(screen.getByText("Forms created here belong only to this subevent.")).toBeInTheDocument();
-    expect(screen.queryByText("Attach unassigned")).not.toBeInTheDocument();
-    expect(screen.queryByText("Remove assignment")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Move Dietary & Accessibility up" }));
-    expect(document.activeElement).toHaveTextContent("Dietary & Accessibility");
-    expect(screen.getAllByRole("link", { name: "Edit" })).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ href: expect.stringContaining("/forms/form-profile") }),
-      ]),
-    );
+    expect(screen.getByRole("button", { name: "Create form" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Archive" }).length).toBeGreaterThan(0);
   });
 
   it("uses a switch and omits payment preview and upload constraints", () => {
     renderAt("/events/evt-techno-2026/subevents/sub-jkt/payment", <SubeventWorkspacePage />, "/events/:eventId/subevents/:subeventId/:section");
-
     expect(screen.getByRole("switch", { name: "Payment required" })).toHaveAttribute("aria-checked", "true");
     expect(screen.queryByText("Participant preview")).not.toBeInTheDocument();
     expect(screen.queryByText("Accepted MIME types")).not.toBeInTheDocument();

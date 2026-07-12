@@ -2,7 +2,6 @@ import {
   Archive,
   CalendarClock,
   CalendarDays,
-  ChevronDown,
   ClipboardList,
   Clock3,
   Edit3,
@@ -10,6 +9,7 @@ import {
   MoreHorizontal,
   Plus,
 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { PageLayout } from "@/components/Utils";
@@ -17,6 +17,13 @@ import { StatusBadge } from "@/components/events/StatusBadge";
 import { dateTime, percent, shortDate } from "@/components/events/helpers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,12 +33,23 @@ import {
 import type { EventStatus, SubeventStatus } from "@/types/events";
 
 import { EmptyState, ProgressBar } from "./components";
+import {
+  canCreateSubevent,
+  canEditEventContent,
+  canPublishSubevent,
+  canTransition,
+  statusActionLabel,
+  statusActions,
+  subeventPublishBlockers,
+} from "./lifecycle";
 import { useEventsStore } from "./store";
 
 export default function EventWorkspacePage() {
   const { eventId } = useParams();
   const navigate = useNavigate();
-  const { data, saveEvent, saveSubevent } = useEventsStore();
+  const { data, transitionEvent, transitionSubevent } = useEventsStore();
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
   const event = data.events.find((item) => item.id === eventId);
 
   if (!event) {
@@ -56,28 +74,50 @@ export default function EventWorkspacePage() {
     subeventIds.has(item.subeventId),
   ).length;
 
+  const formCtx = useMemo(
+    () => ({ assignments: data.subeventForms, versions: data.formVersions, forms: data.forms }),
+    [data.subeventForms, data.formVersions, data.forms],
+  );
+
   const changeSubeventStatus = (id: string, status: SubeventStatus) => {
-    const item = data.subevents.find((subevent) => subevent.id === id);
-    if (item) {
-      saveSubevent({
-        ...item,
-        status,
-        updatedAt: new Date().toISOString(),
-        updatedBy: "admin-1",
-      });
-    }
+    transitionSubevent(id, status);
   };
 
   const changeEventStatus = (status: EventStatus) => {
-    saveEvent({
-      ...event,
-      status,
-      updatedAt: new Date().toISOString(),
-      updatedBy: "admin-1",
-    });
+    if (!canTransition(event.status, status)) return;
+    if (status === "PUBLISHED") {
+      const candidates = subevents.filter((item) => item.status === "DRAFT" || item.status === "CLOSED");
+      setSelected(
+        candidates
+          .filter((item) =>
+            canPublishSubevent(event, item, formCtx, {
+              coPublishingEvent: true,
+              ticketCount: data.ticketOptions.filter((ticket) => ticket.subeventId === item.id).length,
+            }),
+          )
+          .map((item) => item.id),
+      );
+      setPublishOpen(true);
+      return;
+    }
+    if (status === "CLOSED") {
+      const live = subevents.filter((item) => item.status === "PUBLISHED").length;
+      if (live && !window.confirm(`Close this event? ${live} published subevent${live === 1 ? "" : "s"} and their published forms will be closed.`)) return;
+    }
+    if (status === "ARCHIVED" && !window.confirm("Archive this event? All subevents and forms will be archived.")) return;
+    transitionEvent(event.id, status);
+  };
+
+  const confirmPublish = () => {
+    transitionEvent(event.id, "PUBLISHED", selected);
+    setPublishOpen(false);
   };
 
   const hasCover = event.coverImageUrl && event.coverImageUrl !== "/himti-icon.svg";
+  const allowEdit = canEditEventContent(event) && event.status !== "ARCHIVED";
+  const allowCreate = canCreateSubevent(event);
+  const nextActions = statusActions(event.status);
+  const canArchive = canTransition(event.status, "ARCHIVED") || event.status === "ARCHIVED";
 
   return (
     <PageLayout
@@ -124,33 +164,28 @@ export default function EventWorkspacePage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="edit" asChild>
-                    <Link to={`/events/${event.id}/edit`}>
-                      <Edit3 />
-                      Edit event
-                    </Link>
+                  <Button size="sm" variant="edit" disabled={!allowEdit} asChild={allowEdit}>
+                    {allowEdit ? <Link to={`/events/${event.id}/edit`}><Edit3 />Edit</Link> : <><Edit3 />Edit</>}
                   </Button>
                   <Button
                     size="sm"
-                    variant="secondary"
+                    variant="delete"
+                    disabled={!canArchive}
                     onClick={() => changeEventStatus(event.status === "ARCHIVED" ? "DRAFT" : "ARCHIVED")}
                   >
                     <Archive />
-                    {event.status === "ARCHIVED" ? "Unarchive event" : "Archive event"}
+                    {event.status === "ARCHIVED" ? "Unarchive" : "Archive"}
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button size="sm" variant="secondary" disabled={event.status === "ARCHIVED"}>
-                        Status
-                        <ChevronDown />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={() => changeEventStatus("DRAFT")}>Set to draft</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => changeEventStatus("PUBLISHED")}>Publish</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => changeEventStatus("CLOSED")}>Close</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {nextActions.map((status) => (
+                    <Button
+                      key={status}
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => changeEventStatus(status)}
+                    >
+                      {statusActionLabel(event.status, status)}
+                    </Button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -167,11 +202,8 @@ export default function EventWorkspacePage() {
                 Open a subevent to manage its setup, forms, payment, and registrations.
               </p>
             </div>
-            <Button asChild>
-              <Link to={`/events/${event.id}/subevents/new/details`}>
-                <Plus />
-                Create subevent
-              </Link>
+            <Button disabled={!allowCreate} asChild={allowCreate}>
+              {allowCreate ? <Link to={`/events/${event.id}/subevents/new/details`}><Plus />Create subevent</Link> : <><Plus />Create subevent</>}
             </Button>
           </div>
         </CardHeader>
@@ -229,13 +261,19 @@ export default function EventWorkspacePage() {
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                disabled={subevent.status === "ARCHIVED"}
+                                disabled={
+                                  subevent.status === "PUBLISHED"
+                                  || (subevent.status !== "DRAFT" && subevent.status !== "CLOSED" && subevent.status !== "ARCHIVED")
+                                }
                                 onSelect={() =>
-                                  changeSubeventStatus(subevent.id, "ARCHIVED")
+                                  changeSubeventStatus(
+                                    subevent.id,
+                                    subevent.status === "ARCHIVED" ? "DRAFT" : "ARCHIVED",
+                                  )
                                 }
                               >
                                 <Archive />
-                                {subevent.status === "ARCHIVED" ? "Archived" : "Archive"}
+                                {subevent.status === "ARCHIVED" ? "Unarchive" : "Archive"}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -325,6 +363,65 @@ export default function EventWorkspacePage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={publishOpen} onOpenChange={setPublishOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Publish event</DialogTitle>
+            <DialogDescription>
+              Select at least one valid subevent to publish with this event.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {subevents
+              .filter((item) => item.status === "DRAFT" || item.status === "CLOSED")
+              .map((subevent) => {
+                const tickets = data.ticketOptions.filter((ticket) => ticket.subeventId === subevent.id).length;
+                const ok = canPublishSubevent(event, subevent, formCtx, {
+                  coPublishingEvent: true,
+                  ticketCount: tickets,
+                });
+                const blockers = subeventPublishBlockers(event, subevent, formCtx, {
+                  coPublishingEvent: true,
+                  ticketCount: tickets,
+                });
+                return (
+                  <label
+                    key={subevent.id}
+                    className="flex items-start gap-3 rounded-lg border border-border p-3"
+                  >
+                    <input
+                      type="checkbox"
+                      className="mt-1"
+                      disabled={!ok}
+                      checked={selected.includes(subevent.id)}
+                      onChange={(change) => {
+                        setSelected((current) =>
+                          change.target.checked
+                            ? [...current, subevent.id]
+                            : current.filter((id) => id !== subevent.id),
+                        );
+                      }}
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold">{subevent.name}</span>
+                      <span className="block text-xs text-muted-foreground">
+                        {ok ? "Ready to publish" : blockers.join(". ")}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            {!subevents.some((item) => item.status === "DRAFT" || item.status === "CLOSED") && (
+              <p className="text-sm text-muted-foreground">No draft or closed subevents available.</p>
+            )}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setPublishOpen(false)}>Cancel</Button>
+            <Button disabled={!selected.length} onClick={confirmPublish}>Publish</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 }

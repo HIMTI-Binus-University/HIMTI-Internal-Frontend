@@ -29,9 +29,9 @@ export const eventSeed: EventData = {
     { id: "ticket-hack", subeventId: "sub-hack", name: "Team of 4", type: "BUNDLE", price: 150000, currency: "IDR", bundleSize: 4, capacity: 120, status: "DRAFT" },
   ],
   forms: [
-    { id: "form-profile", name: "Participant Profile", description: "Contact and academic details used by the committee.", purpose: "MAIN_REGISTRATION", status: "ACTIVE", createdAt: "2026-04-10T08:00:00+07:00", updatedAt: "2026-07-02T08:00:00+07:00", createdBy: "admin-1" },
-    { id: "form-diet", name: "Dietary & Accessibility", description: "Meal and accessibility requirements.", purpose: "ADDITIONAL_INFORMATION", status: "ACTIVE", createdAt: "2026-04-11T08:00:00+07:00", updatedAt: "2026-07-02T08:00:00+07:00", createdBy: "admin-1" },
-    { id: "form-transport", name: "Transportation Details", description: "Departure and return preferences.", purpose: "TRANSPORTATION", status: "ACTIVE", createdAt: "2026-04-12T08:00:00+07:00", createdBy: "admin-1" },
+    { id: "form-profile", name: "Participant Profile", description: "Contact and academic details used by the committee.", purpose: "MAIN_REGISTRATION", status: "PUBLISHED", createdAt: "2026-04-10T08:00:00+07:00", updatedAt: "2026-07-02T08:00:00+07:00", createdBy: "admin-1" },
+    { id: "form-diet", name: "Dietary & Accessibility", description: "Meal and accessibility requirements.", purpose: "ADDITIONAL_INFORMATION", status: "PUBLISHED", createdAt: "2026-04-11T08:00:00+07:00", updatedAt: "2026-07-02T08:00:00+07:00", createdBy: "admin-1" },
+    { id: "form-transport", name: "Transportation Details", description: "Departure and return preferences.", purpose: "TRANSPORTATION", status: "DRAFT", createdAt: "2026-04-12T08:00:00+07:00", createdBy: "admin-1" },
   ],
   formVersions: [
     { id: "fv-profile-1", formId: "form-profile", versionNumber: 1, status: "PUBLISHED", publishedAt: "2026-04-10T09:00:00+07:00" },

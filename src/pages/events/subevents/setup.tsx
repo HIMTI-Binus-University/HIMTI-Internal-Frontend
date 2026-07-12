@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, ArrowRight, CalendarClock, Check, Plus, Send, Ticket, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarClock, Check, Plus, Send, Ticket } from "lucide-react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { PageLayout } from "@/components/Utils";
 import { dateTime, titleCase } from "@/components/events/helpers";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { SetupStepper, Warning } from "../components";
+import { canPublishSubevent, subeventPublishBlockers } from "../lifecycle";
 import { useEventsStore } from "../store";
 import type { PaymentSetting, Subevent, SubeventType, TicketOption, TicketType } from "@/types/events";
 
@@ -48,12 +49,16 @@ export default function SubeventSetupPage() {
   const updateTicket = (ticketIndex: number, patch: Partial<TicketOption>) => setTickets((items) => items.map((item, itemIndex) => itemIndex === ticketIndex ? { ...item, ...patch } : item));
   const warnings = [!ready.includes(0) && "Complete the subevent details.", !ready.includes(1) && "Add registration dates and at least one ticket.", !ready.includes(2) && "Complete or disable payment setup."].filter(Boolean) as string[];
   const addTicket = () => setTickets((items) => [...items, { id: `ticket-${Date.now()}`, subeventId: draft.id, name: `Ticket ${items.length + 1}`, description: "", type: "INDIVIDUAL", price: 0, currency: "IDR", capacity: draft.capacity, status: "DRAFT" }]);
+  const formCtx = { assignments: data.subeventForms.filter((item) => item.subeventId === draft.id), versions: data.formVersions, forms: data.forms };
   const save = (status: "DRAFT" | "PUBLISHED") => {
-    saveSubevent({ ...draft, status, updatedAt: new Date().toISOString(), updatedBy: "admin-1" });
-    tickets.forEach((ticket) => saveTicket({ ...ticket, status: status === "PUBLISHED" ? "ACTIVE" : ticket.status }));
+    const next = status === "PUBLISHED" && !canPublishSubevent(event, draft, formCtx) ? "DRAFT" : status;
+    saveSubevent({ ...draft, status: next, updatedAt: new Date().toISOString(), updatedBy: "admin-1" });
+    tickets.forEach((ticket) => saveTicket({ ...ticket, status: next === "PUBLISHED" ? "ACTIVE" : ticket.status }));
     savePayment(payment);
     navigate(`/events/${event.id}/subevents/${draft.id}/overview`);
   };
+  const publishBlockers = subeventPublishBlockers(event, draft, formCtx);
+  const canPublishNow = canPublishSubevent(event, draft, formCtx);
   const continueSetup = () => {
     setCompleted((items) => items.includes(index) ? items : [...items, index]);
     navigate(path(steps[index + 1]));
@@ -116,7 +121,7 @@ export default function SubeventSetupPage() {
               <CardContent className="space-y-4">
                 {tickets.length ? tickets.map((ticket, ticketIndex) => (
                   <section key={ticket.id} className="rounded-xl border border-border bg-muted/15 p-4 sm:p-5" aria-label={`Ticket ${ticketIndex + 1}`}>
-                    <div className="mb-5 flex items-center justify-between gap-4 border-b border-border pb-4"><div><p className="text-sm font-semibold">{ticket.name || `Ticket ${ticketIndex + 1}`}</p><p className="mt-1 text-xs font-medium text-primary">{formatCurrency(ticket.price)}</p></div><Button variant="delete" size="sm" onClick={() => setTickets((items) => items.filter((item) => item.id !== ticket.id))}><Trash2 />Remove</Button></div>
+                    <div className="mb-5 flex items-center justify-between gap-4 border-b border-border pb-4"><div><p className="text-sm font-semibold">{ticket.name || `Ticket ${ticketIndex + 1}`}</p><p className="mt-1 text-xs font-medium text-primary">{formatCurrency(ticket.price)}</p></div><Button variant="secondary" size="sm" onClick={() => setTickets((items) => items.filter((item) => item.id !== ticket.id))}>Remove</Button></div>
                     <div className="grid gap-4 md:grid-cols-2">
                       <Field label="Ticket name"><Input value={ticket.name} onChange={(event) => updateTicket(ticketIndex, { name: event.target.value })} /></Field>
                       <Field label="Type"><Select items={{ INDIVIDUAL: "Individual", BUNDLE: "Bundle" }} value={ticket.type} onValueChange={(value) => updateTicket(ticketIndex, { type: value as TicketType, bundleSize: value === "BUNDLE" ? 3 : undefined })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="INDIVIDUAL">Individual</SelectItem><SelectItem value="BUNDLE">Bundle</SelectItem></SelectContent></Select></Field>
@@ -211,7 +216,7 @@ export default function SubeventSetupPage() {
               <Button variant="secondary" asChild><Link to={index === 0 ? `/events/${event.id}` : path(steps[index - 1])}><ArrowLeft />{index === 0 ? "Cancel" : "Previous"}</Link></Button>
               <div className="flex flex-col-reverse gap-2 sm:flex-row">
                 <Button variant="secondary" onClick={() => save("DRAFT")}>Save as draft</Button>
-                {index < steps.length - 1 ? <Button onClick={continueSetup}>Continue<ArrowRight /></Button> : <Button disabled={warnings.length > 0} onClick={() => save("PUBLISHED")}><Send />Publish subevent</Button>}
+                {index < steps.length - 1 ? <Button onClick={continueSetup}>Continue<ArrowRight /></Button> : <Button disabled={warnings.length > 0 || !canPublishNow} title={publishBlockers.join(". ") || undefined} onClick={() => save("PUBLISHED")}><Send />Publish subevent</Button>}
               </div>
             </div>
           </div>
