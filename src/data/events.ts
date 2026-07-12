@@ -9,8 +9,8 @@ export const eventSeed: EventData = {
     { id: "admin-1", name: "Nadia Rahma", email: "nadia@himti.org" },
   ],
   events: [
-    { id: "evt-techno-2026", name: "TECHNO 2026: Wondrous Wonderland", publicDescription: "A welcoming journey for new School of Computer Science students to meet their community.", requirements: "Bring your student ID, wear the assigned group color, and arrive 30 minutes before check-in.", coverImageUrl: "/himti-icon.svg", status: "PUBLISHED", createdAt: "2026-04-12T08:00:00+07:00", createdBy: "admin-1", updatedAt: "2026-07-08T10:30:00+07:00" },
-    { id: "evt-hackathon-2026", name: "HIMTI Hackathon 2026", publicDescription: "Build, learn, and compete in a focused 24-hour campus hackathon.", requirements: "Teams must contain four active BINUS students.", status: "DRAFT", createdAt: "2026-06-04T08:00:00+07:00", createdBy: "admin-1", updatedAt: "2026-07-05T09:00:00+07:00" },
+    { id: "evt-techno-2026", name: "TECHNO 2026: Wondrous Wonderland", publicDescription: "A welcoming journey for new School of Computer Science students to meet their community.", coverImageUrl: "/himti-icon.svg", status: "PUBLISHED", createdAt: "2026-04-12T08:00:00+07:00", createdBy: "admin-1", updatedAt: "2026-07-08T10:30:00+07:00" },
+    { id: "evt-hackathon-2026", name: "HIMTI Hackathon 2026", publicDescription: "Build, learn, and compete in a focused 24-hour campus hackathon.", status: "DRAFT", createdAt: "2026-06-04T08:00:00+07:00", createdBy: "admin-1", updatedAt: "2026-07-05T09:00:00+07:00" },
     { id: "evt-archive", name: "TECHNO 2025", publicDescription: "Previous year welcoming event.", status: "ARCHIVED", createdAt: "2025-04-12T08:00:00+07:00", createdBy: "admin-1", updatedAt: "2025-09-01T08:00:00+07:00" },
   ],
   subevents: [
@@ -56,7 +56,6 @@ export const eventSeed: EventData = {
   subeventForms: [
     { id: "sf-jkt-profile", subeventId: "sub-jkt", formVersionId: "fv-profile-1", purpose: "MAIN_REGISTRATION", completionStage: "DURING_REGISTRATION", isRequired: true, blocksConfirmation: true, orderIndex: 0, dueAt: "2026-08-10T23:59:00+07:00" },
     { id: "sf-jkt-diet", subeventId: "sub-jkt", formVersionId: "fv-diet-1", purpose: "ADDITIONAL_INFORMATION", completionStage: "POST_REGISTRATION", isRequired: false, blocksConfirmation: false, orderIndex: 1, dueAt: "2026-08-14T23:59:00+07:00" },
-    { id: "sf-smg-profile", subeventId: "sub-smg", formVersionId: "fv-profile-1", purpose: "MAIN_REGISTRATION", completionStage: "DURING_REGISTRATION", isRequired: true, blocksConfirmation: true, orderIndex: 0 },
   ],
   registrations: [
     { id: "reg-alya", userId: "usr-1", subeventId: "sub-jkt", ticketOptionId: "ticket-jkt-bundle", ticketNameSnapshot: "Squad of 3", priceSnapshot: 60000, finalAmountSnapshot: 60000, status: "PENDING_REVIEW", submittedAt: "2026-07-01T10:00:00+07:00", lastEditedAt: "2026-07-02T09:20:00+07:00", createdAt: "2026-07-01T10:00:00+07:00", updatedAt: "2026-07-02T10:00:00+07:00" },

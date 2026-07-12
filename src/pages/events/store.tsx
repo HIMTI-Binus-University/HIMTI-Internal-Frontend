@@ -34,7 +34,11 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       const version = current.formVersions.find((candidate) => candidate.formId === form.id) ?? { id: `version-${form.id}`, formId: form.id, versionNumber: 1, status: "DRAFT" as const };
       return { ...current, forms: upsert(current.forms, form), formVersions: upsert(current.formVersions, version), formSections: [...current.formSections.filter((section) => section.formVersionId !== version.id), ...sections], formQuestions: [...current.formQuestions.filter((question) => question.formVersionId !== version.id), ...questions] };
     }),
-    saveAssignments: (subeventId, assignments) => setData((current) => ({ ...current, subeventForms: [...current.subeventForms.filter((assignment) => assignment.subeventId !== subeventId), ...assignments] })),
+    saveAssignments: (subeventId, assignments) => setData((current) => {
+      const versionToForm = new Map(current.formVersions.map((version) => [version.id, version.formId]));
+      const ownedElsewhere = new Set(current.subeventForms.filter((assignment) => assignment.subeventId !== subeventId).map((assignment) => versionToForm.get(assignment.formVersionId)));
+      return { ...current, subeventForms: [...current.subeventForms.filter((assignment) => assignment.subeventId !== subeventId), ...assignments.filter((assignment) => !ownedElsewhere.has(versionToForm.get(assignment.formVersionId)))] };
+    }),
     updateRegistration: (id, patch) => setData((current) => ({ ...current, registrations: current.registrations.map((registration) => registration.id === id ? { ...registration, ...patch, updatedAt: new Date().toISOString() } : registration) })),
     updatePayment: (id, patch) => setData((current) => ({ ...current, payments: current.payments.map((payment) => payment.id === id ? { ...payment, ...patch } : payment) })),
     updateBundle: (id, patch) => setData((current) => ({ ...current, bundleGroups: current.bundleGroups.map((bundle) => bundle.id === id ? { ...bundle, ...patch } : bundle) })),

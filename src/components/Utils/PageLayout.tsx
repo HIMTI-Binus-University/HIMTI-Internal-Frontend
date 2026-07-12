@@ -12,6 +12,7 @@ interface PageLayoutProps {
   icon: LucideIcon;
   title: string;
   breadcrumbs?: string[];
+  backTo?: string;
   actions?: ReactNode;
   children: ReactNode;
 }
@@ -20,6 +21,7 @@ const PageLayout = ({
   icon: _Icon,
   title,
   breadcrumbs: customBreadcrumbs,
+  backTo,
   actions,
   children,
 }: PageLayoutProps) => {
@@ -27,6 +29,7 @@ const PageLayout = ({
   const location = useLocation();
   const navigate = useNavigate();
   const breadcrumbs = customBreadcrumbs ?? getBreadcrumbs(location.pathname, title);
+  const parentPath = getBreadcrumbParentPath(location.pathname) ?? backTo;
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -38,8 +41,9 @@ const PageLayout = ({
             <button
               type="button"
               aria-label="Go back"
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              onClick={() => navigate(-1)}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+              disabled={!parentPath}
+              onClick={() => parentPath && navigate(parentPath)}
             >
               <ArrowLeft aria-hidden="true" className="h-5 w-5 stroke-[1.75]" />
             </button>
@@ -105,6 +109,21 @@ const getBreadcrumbs = (pathname: string, title: string) => {
   }
 
   return breadcrumbs;
+};
+
+const getBreadcrumbParentPath = (pathname: string) => {
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts[0] !== "events" || parts.length < 2) return;
+
+  if (parts[1] === "new" || parts.length === 2) return "/events";
+  if (parts[2] === "edit") return `/events/${parts[1]}`;
+  if (parts[2] !== "subevents") return "/events";
+  if (parts[3] === "new") return `/events/${parts[1]}`;
+  if (["forms", "registrations"].includes(parts[4]) && parts.length > 5) {
+    return `/${parts.slice(0, 5).join("/")}`;
+  }
+
+  return `/events/${parts[1]}`;
 };
 
 export default PageLayout;
