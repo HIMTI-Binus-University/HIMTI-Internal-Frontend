@@ -2,8 +2,16 @@ import { useState, useEffect } from "react";
 import { AxiosError } from "axios";
 // import { format } from "date-fns";
 
-import { PageLayout, Container, ContainerHeader } from "@/components/Utils";
+import {
+  PageLayout,
+  Container,
+  ContainerHeader,
+  EmptyState,
+  PaginationFooter,
+  SearchField,
+} from "@/components/Utils";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 // import { Calendar } from "@/components/ui/calendar";
@@ -25,18 +33,18 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Card, CardContent } from "@/components/ui/card";
-
 import {
-  FaPlus,
-  FaRegCopy,
-  FaPencilAlt,
-  FaTrashAlt,
-  FaQrcode,
-  FaLink,
-  FaCalendarAlt,
-  FaArrowRight,
-} from "react-icons/fa";
+  AlertCircle,
+  ArrowRight,
+  CalendarDays,
+  Check,
+  Copy,
+  Link2,
+  Pencil,
+  Plus,
+  QrCode,
+  Trash2,
+} from "lucide-react";
 
 import {
   useGetUrlList,
@@ -46,10 +54,26 @@ import {
 } from "@/hooks/url-shortener";
 import type { UrlItem } from "@/types/url-shortener";
 import { shortLinkConfig } from "@/config/runtime";
+import { formatUrlCreatedAt } from "@/utils/url-shortener";
 import qrcode from "qrcode";
 import qrLogoUrl from "@/components/assets/qrlogo.png";
 
 const URLS_PER_PAGE = 10;
+
+function CreatedAt({ value }: { value?: string | null }) {
+  const formattedValue = formatUrlCreatedAt(value);
+
+  return (
+    <>
+      Created on{" "}
+      {value && formattedValue !== "Date unavailable" ? (
+        <time dateTime={value}>{formattedValue}</time>
+      ) : (
+        formattedValue
+      )}
+    </>
+  );
+}
 
 // QR Code Dialog
 function QRCodeDialog({
@@ -159,6 +183,7 @@ const UrlShortenerPage = () => {
   const [qrUrl, setQrUrl] = useState<string | null>(null);
 
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
+  const [pageError, setPageError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -229,6 +254,7 @@ const UrlShortenerPage = () => {
   };
 
   const handleCreateLink = () => {
+    setPageError("");
     const frontendErrors: Record<string, string> = {};
     if (!targetUrl) frontendErrors.originalUrl = "Target URL is required";
     if (!shortCode) frontendErrors.shortCode = "Short code is required";
@@ -253,6 +279,7 @@ const UrlShortenerPage = () => {
         });
 
         setCreateErrors({});
+        setPageError("");
         setConfirmPopup(true);
         setTargetUrl("");
         setShortCode("");
@@ -276,7 +303,7 @@ const UrlShortenerPage = () => {
           }
           setCreateErrors(mapped);
         } else {
-          alert("Failed to create short link");
+          setPageError("Failed to create short link. Please check the URL and try again.");
         }
       },
     });
@@ -286,7 +313,7 @@ const UrlShortenerPage = () => {
     if (!selectedLink) return;
 
     if (!editTargetUrl || !editShortCode) {
-      alert("Target URL and Short Code are required");
+      setPageError("Target URL and Short Code are required.");
       return;
     }
 
@@ -304,11 +331,12 @@ const UrlShortenerPage = () => {
         setEditTargetUrl("");
         setEditShortCode("");
         setEditExpiryDate(undefined);
+        setPageError("");
         refetch();
       },
       onError: (error) => {
         console.error(error);
-        alert("Failed to update link");
+        setPageError("Failed to update link. Please review the link details and try again.");
       },
     });
   };
@@ -322,11 +350,12 @@ const UrlShortenerPage = () => {
         onSuccess: () => {
           setDeletePopup(false);
           setSelectedLink(null);
+          setPageError("");
           refetch();
         },
         onError: (error) => {
           console.error(error);
-          alert("Failed to delete link");
+          setPageError("Failed to delete link. Please try again.");
         },
       },
     );
@@ -341,7 +370,13 @@ const UrlShortenerPage = () => {
   };
 
   return (
-    <PageLayout icon={FaLink} title="URL Shortener">
+    <PageLayout icon={Link2} title="URL Shortener">
+        {pageError && (
+          <div className="flex gap-3 rounded-xl border border-semantic-danger-border bg-semantic-danger-background px-4 py-3 text-sm text-semantic-danger">
+            <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>{pageError}</p>
+          </div>
+        )}
 
         {/* FORM CREATE LINK */}
         <Container>
@@ -349,7 +384,7 @@ const UrlShortenerPage = () => {
 
           <div className="space-y-4">
             <div>
-              <Label htmlFor="targetUrl" className="mb-3">
+              <Label htmlFor="targetUrl" className="mb-2">
                 Target Link
               </Label>
               <Input
@@ -364,24 +399,24 @@ const UrlShortenerPage = () => {
                 className={`${createErrors.originalUrl ? "border-semantic-danger" : ""}`}
               />
               {createErrors.originalUrl && (
-                <p className="text-semantic-danger text-body-2 mt-2">
+                <p className="mt-2 text-sm text-semantic-danger">
                   {createErrors.originalUrl}
                 </p>
               )}
             </div>
 
             <div className="flex-1">
-              <Label htmlFor="shortCode" className="mb-3">
+              <Label htmlFor="shortCode" className="mb-2">
                 Short Link
               </Label>
               <div
-                className={`flex rounded-xl overflow-hidden border mt-1 ${
+                className={`mt-1 flex overflow-hidden rounded-lg border ${
                   createErrors.shortCode
                     ? "border-semantic-danger"
                     : "border-semantic-border"
                 }`}
               >
-                <span className="min-w-0 max-w-full shrink truncate bg-semantic-muted text-semantic-foreground/70 text-body1 px-3 flex items-center whitespace-nowrap font-bold max-md:hidden">
+                <span className="flex min-w-0 max-w-full shrink items-center truncate whitespace-nowrap bg-muted px-3 text-sm font-semibold text-muted-foreground max-md:hidden">
                   {shortLinkPrefix}
                 </span>
                 <Input
@@ -392,12 +427,12 @@ const UrlShortenerPage = () => {
                     setShortCode(e.target.value);
                     setCreateErrors((prev) => ({ ...prev, shortCode: "" }));
                   }}
-                  className="flex-1 border-0 rounded-none text-md"
+                  className="flex-1 rounded-none border-0 text-sm focus-visible:ring-0"
                   placeholder="ReallyCoolVideos"
                 />
               </div>
               {createErrors.shortCode && (
-                <p className="text-semantic-danger text-body-2 mt-2">
+                <p className="mt-2 text-sm text-semantic-danger">
                   {createErrors.shortCode}
                 </p>
               )}
@@ -409,7 +444,7 @@ const UrlShortenerPage = () => {
                   "Loading..."
                 ) : (
                   <>
-                    <FaPlus />
+                    <Plus />
                     Create Link
                   </>
                 )}
@@ -423,16 +458,17 @@ const UrlShortenerPage = () => {
           <Dialog open={showConfirmPopup} onOpenChange={setConfirmPopup}>
             <DialogContent className="sm:max-w-[480px]">
               <DialogHeader>
-                <DialogTitle className="text-h5">Link Created</DialogTitle>
+                <DialogTitle>Link Created</DialogTitle>
               </DialogHeader>
 
-              <div className="flex flex-col gap-2 border border-semantic-border rounded-xl p-6">
+              <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/35 p-4">
                 <div className="flex flex-row items-center justify-start gap-4 min-w-0">
-                  <p className="font-bold text-h6 break-all min-w-0 flex-1">
+                  <p className="min-w-0 flex-1 break-all text-base font-semibold">
                     {shortLinkConfig.buildShortUrl(createdLink.shortUrl)}
                   </p>
-                  <button
-                    className="shrink-0 hover:text-semantic-primary-1 transition-colors"
+                  <IconButton
+                    label={popupCopied ? "Link copied" : "Copy short link"}
+                    tone="primary"
                     onClick={() => {
                       navigator.clipboard.writeText(
                         shortLinkConfig.buildShortUrl(createdLink.shortUrl),
@@ -441,25 +477,21 @@ const UrlShortenerPage = () => {
                       setTimeout(() => setPopupCopied(false), 1500);
                     }}
                   >
-                    {popupCopied ? (
-                      <span className="text-body-3">Copied!</span>
-                    ) : (
-                      <FaRegCopy />
-                    )}
-                  </button>
+                    {popupCopied ? <Check /> : <Copy />}
+                  </IconButton>
                 </div>
 
-                <div className="flex items-center gap-2 text-body-1 min-w-0">
-                  <FaArrowRight className="shrink-0" />
+                <div className="flex min-w-0 items-center gap-2 text-sm">
+                  <ArrowRight className="h-[18px] w-[18px] shrink-0 stroke-[1.75]" />
                   <span className="break-all min-w-0">
                     {createdLink.targetUrl}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-6 text-body-3 text-semantic-foreground/50 mt-2">
+                <div className="mt-2 flex items-center gap-6 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
-                    <FaCalendarAlt/>
-                    Created on {createdLink.createdAt}
+                    <CalendarDays className="h-4 w-4 stroke-[1.75]" />
+                    <CreatedAt value={createdLink.createdAt} />
                   </div>
                 </div>
               </div>
@@ -479,59 +511,62 @@ const UrlShortenerPage = () => {
               : `Existing Links (${totalRecords})`}
           </ContainerHeader>
 
-          <div className="relative w-full mb-6">
-            <Input
-              id="urlSearch"
-              type="text"
-              placeholder="Search by short code or target URL..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
+          <SearchField
+            id="urlSearch"
+            label="Search links"
+            placeholder="Search by short code or target URL..."
+            value={searchQuery}
+            onChange={(value) => {
+              setSearchQuery(value);
+              setCurrentPage(1);
+            }}
+          />
 
           {isLoadingUrls ? (
-            <h1>loading...</h1>
+            <p className="text-sm text-muted-foreground">Loading links...</p>
           ) : urls.length === 0 ? (
-            <div className="text-center text-semantic-foreground/25 text-body-1 py-8 space-y-4">
-              <h1 className="text-h3">{`( •_•)>⌐■-■`}</h1>
-              <h2 className="text-h6">
-                {debouncedSearchQuery
-                  ? "No links match your search."
-                  : "Nothing to show here..."}
-              </h2>
-            </div>
+            <EmptyState
+              icon={Link2}
+              title={
+                debouncedSearchQuery
+                  ? "No links match your search"
+                  : "No links yet"
+              }
+              description={
+                debouncedSearchQuery
+                  ? "Try a different short code or target URL."
+                  : "Create your first short link to make sharing easier."
+              }
+            />
           ) : (
-            <div className="space-y-4">
+            <div>
               {urls.map((url) => (
-                <Card
+                <article
                   key={url.id}
-                  className="border-semantic-border cursor-pointer hover:scale-[101%] transition-transform"
+                  className="-mx-5 flex items-start justify-between gap-3 border-t border-border px-5 py-4 transition-colors first:border-t-0 hover:bg-muted/35 max-sm:flex-col max-sm:gap-4"
                 >
-                  <CardContent className="p-5 flex flex-row max-sm:flex-col max-sm:gap-4 justify-between items-start gap-3">
                     <div className="flex flex-col gap-2 min-w-0 flex-1">
-                      <p className="font-bold text-h6 max-lg:text-body-1 max-lg:font-bold break-all whitespace-normal">
+                      <p className="break-all whitespace-normal text-base font-semibold leading-6">
                         {shortLinkConfig.buildShortUrl(url.shortCode)}
                       </p>
 
-                      <div className="flex flex-row items-center gap-2 text-body-1 max-lg:text-body-2 min-w-0">
-                        <FaArrowRight className="shrink-0" />
+                      <div className="flex min-w-0 flex-row items-center gap-2 text-sm text-muted-foreground">
+                        <ArrowRight className="h-4 w-4 shrink-0 stroke-[1.75]" />
                         <span className="min-w-0 flex-1 break-all">{url.originalUrl}</span>
                       </div>
 
-                      <div className="flex flex-row max-lg:flex-col gap-6 max-lg:gap-2 text-body-3 text-semantic-foreground/50 mt-2">
+                      <div className="mt-1 flex flex-row gap-6 text-xs text-muted-foreground max-lg:flex-col max-lg:gap-2">
                         <div className="flex items-center gap-1">
-                          <FaCalendarAlt />
-                          Created on {url.createdAt}
+                          <CalendarDays className="h-4 w-4 stroke-[1.75]" />
+                          <CreatedAt value={url.createdAt} />
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 text-gray-400 shrink-0">
-                      <button
-                        className="hover:text-semantic-primary-1 transition-colors"
+                    <div className="flex shrink-0 items-center gap-1">
+                      <IconButton
+                        label={copiedId === url.id ? "Link copied" : "Copy short link"}
+                        tone="primary"
                         onClick={() => {
                           navigator.clipboard.writeText(
                             shortLinkConfig.buildShortUrl(url.shortCode),
@@ -540,23 +575,20 @@ const UrlShortenerPage = () => {
                           setTimeout(() => setCopiedId(null), 1500);
                         }}
                       >
-                        {copiedId === url.id ? (
-                          <span className="text-body-3">Copied!</span>
-                        ) : (
-                          <FaRegCopy />
-                        )}
-                      </button>
-                      <button
-                        className="hover:text-semantic-primary-1 transition-colors"
-                        title="Generate QR Code"
+                        {copiedId === url.id ? <Check /> : <Copy />}
+                      </IconButton>
+                      <IconButton
+                        label="Generate QR code"
+                        tone="primary"
                         onClick={() =>
                           setQrUrl(shortLinkConfig.buildShortUrl(url.shortCode))
                         }
                       >
-                        <FaQrcode />
-                      </button>
-                      <button
-                        className="hover:text-semantic-warning transition-colors"
+                        <QrCode />
+                      </IconButton>
+                      <IconButton
+                        label="Edit link"
+                        tone="primary"
                         onClick={() => {
                           setSelectedLink(url);
                           setEditTargetUrl(url.originalUrl);
@@ -567,56 +599,34 @@ const UrlShortenerPage = () => {
                           setEditPopup(true);
                         }}
                       >
-                        <FaPencilAlt />
-                      </button>
-                      <button
-                        className="hover:text-semantic-danger transition-colors"
+                        <Pencil />
+                      </IconButton>
+                      <IconButton
+                        label="Delete link"
+                        tone="danger"
                         onClick={() => {
                           setSelectedLink(url);
                           setDeletePopup(true);
                         }}
                       >
-                        <FaTrashAlt />
-                      </button>
+                        <Trash2 />
+                      </IconButton>
                     </div>
-                  </CardContent>
-                </Card>
+                </article>
               ))}
 
               {totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-                  <p className="text-body-2 text-semantic-foreground/60">
-                    Showing {pageStart}-{pageEnd} of {totalRecords} links
-                  </p>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage <= 1}
-                      onClick={() =>
-                        setCurrentPage((page) => Math.max(page - 1, 1))
-                      }
-                    >
-                      Previous
-                    </Button>
-                    <span className="text-body-2 text-semantic-foreground/70 px-2">
-                      Page {paginationMeta?.page ?? currentPage} of {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage >= totalPages}
-                      onClick={() =>
-                        setCurrentPage((page) =>
-                          Math.min(page + 1, totalPages),
-                        )
-                      }
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
+                <PaginationFooter
+                  label={`Showing ${pageStart}-${pageEnd} of ${totalRecords} links`}
+                  page={paginationMeta?.page ?? currentPage}
+                  totalPages={totalPages}
+                  onPrevious={() =>
+                    setCurrentPage((page) => Math.max(page - 1, 1))
+                  }
+                  onNext={() =>
+                    setCurrentPage((page) => Math.min(page + 1, totalPages))
+                  }
+                />
               )}
             </div>
           )}
@@ -636,7 +646,7 @@ const UrlShortenerPage = () => {
 
             <div className="flex flex-col gap-4">
               <div>
-                <Label htmlFor="editTargetUrl" className="mb-3">
+                <Label htmlFor="editTargetUrl" className="mb-2">
                   Target Link
                 </Label>
                 <Input
@@ -644,16 +654,16 @@ const UrlShortenerPage = () => {
                   type="text"
                   value={editTargetUrl}
                   onChange={(e) => setEditTargetUrl(e.target.value)}
-                  className="mt-1 text-body-1"
+                  className="mt-1"
                 />
               </div>
 
               <div>
-                <Label htmlFor="editShortCode" className="mb-3">
+                <Label htmlFor="editShortCode" className="mb-2">
                   Short Link
                 </Label>
-                <div className="flex rounded-xl overflow-hidden border border-semantic-border mt-1">
-                  <span className="min-w-0 max-w-full shrink truncate bg-semantic-muted px-3 flex items-center font-bold max-md:hidden">
+                <div className="mt-1 flex overflow-hidden rounded-lg border border-input">
+                  <span className="flex min-w-0 max-w-full shrink items-center truncate bg-muted px-3 text-sm font-semibold text-muted-foreground max-md:hidden">
                     {shortLinkPrefix}
                   </span>
                   <Input
@@ -665,7 +675,7 @@ const UrlShortenerPage = () => {
                         shortLinkConfig.toEditableShortCode(e.target.value),
                       )
                     }
-                    className="flex-1 border-0 rounded-none text-body-1"
+                    className="flex-1 rounded-none border-0 focus-visible:ring-0"
                   />
                 </div>
               </div>
@@ -676,7 +686,7 @@ const UrlShortenerPage = () => {
                 Cancel
               </Button>
               <Button onClick={handleSaveEditUrl}>
-                <FaPlus />
+                <Plus />
                 Save Changes
               </Button>
             </DialogFooter>
@@ -699,18 +709,18 @@ const UrlShortenerPage = () => {
           <AlertDialogContent className="sm:max-w-[420px]">
             <AlertDialogHeader>
               <AlertDialogTitle className="">Delete Link</AlertDialogTitle>
-              <AlertDialogDescription className="text-semantic-foreground/70">
+              <AlertDialogDescription>
                 Are you sure you want to delete this link? This action cannot be
                 undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
 
             {selectedLink && (
-              <div className="border border-semantic-border rounded-xl p-4 min-w-0">
-                <p className="font-bold text-body-1 truncate">
+              <div className="min-w-0 rounded-lg border border-border bg-muted/35 p-4">
+                <p className="truncate text-sm font-semibold">
                   {shortLinkConfig.buildShortUrl(selectedLink.shortCode)}
                 </p>
-                <p className="text-body-2 text-semantic-foreground/50 truncate">
+                <p className="truncate text-sm text-muted-foreground">
                   {selectedLink.originalUrl}
                 </p>
               </div>
@@ -720,7 +730,7 @@ const UrlShortenerPage = () => {
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDeleteUrl}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                variant="delete"
               >
                 Delete
               </AlertDialogAction>

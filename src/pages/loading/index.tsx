@@ -27,10 +27,10 @@ const StatusCard = ({ title, description, children }: StatusCardProps) => {
         </div>
 
         <div className="space-y-3">
-          <h1 className="text-h4 font-bold text-semantic-foreground max-md:text-h5">
+          <h1 className="text-ds-h3 font-bold text-semantic-foreground max-md:text-ds-h4">
             {title}
           </h1>
-          <p className="mx-auto max-w-md text-body-1 text-semantic-foreground/60">
+          <p className="mx-auto max-w-md text-ds-p-ui text-semantic-foreground/60">
             {description}
           </p>
         </div>
@@ -111,7 +111,7 @@ const RedirectLoadingPage = () => {
                 </div>
               </div>
 
-              <p className="text-body-2 text-semantic-foreground/45">
+              <p className="text-ds-subtle text-semantic-foreground/45">
                 No short code was provided, so we are taking you to the default
                 destination.
               </p>
@@ -134,14 +134,14 @@ const RedirectLoadingPage = () => {
           >
             <div className="space-y-5">
               <div className="rounded-2xl border border-dashed border-semantic-border bg-semantic-muted/30 px-6 py-5">
-                <p className="mb-3 text-center text-body-3 font-semibold uppercase tracking-widest text-semantic-foreground/40">
+                <p className="mb-3 text-center text-ds-very-small font-semibold uppercase tracking-widest text-semantic-foreground/40">
                   Error Code
                 </p>
                 <h1 className="break-all text-center font-mono text-5xl font-bold leading-tight text-semantic-foreground/70 max-md:text-3xl">
                   {errorInfo.code}
                 </h1>
               </div>
-              <p className="break-words text-body-2 text-semantic-foreground/60">
+              <p className="break-words text-ds-subtle text-semantic-foreground/60">
                 {errorInfo.message}
               </p>
               <Button
@@ -174,9 +174,9 @@ const RedirectLoadingPage = () => {
             </div>
 
             <div className="space-y-2">
-              <p className="text-body-2 text-semantic-foreground/45">
-                Preparing the redirect and checking the target link.
-              </p>
+                <p className="text-ds-subtle text-semantic-foreground/45">
+                  Preparing the redirect and checking the target link.
+                </p>
             </div>
           </div>
         </StatusCard>

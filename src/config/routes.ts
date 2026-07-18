@@ -6,6 +6,13 @@ import RedirectLoadingPage from "@/pages/loading";
 import RbacPermissionsPage from "@/pages/rbac/permissions";
 import RbacRolesPage from "@/pages/rbac/roles";
 import RbacUsersPage from "@/pages/rbac/users";
+import EventsPage from "@/pages/events";
+import EventEditorPage from "@/pages/events/editor";
+import EventWorkspacePage from "@/pages/events/workspace";
+import SubeventSetupPage from "@/pages/events/subevents/setup";
+import SubeventWorkspacePage from "@/pages/events/subevents/workspace";
+import FormEditorPage from "@/pages/events/subevents/form-editor";
+import RegistrationReviewPage from "@/pages/events/subevents/registration-review";
 
 export const publicRoutes: Route[] = [
   {
@@ -36,6 +43,87 @@ export const publicRoutes: Route[] = [
     isProtected: true,
     requiredPermission: "manage_urls",
     group: "Tools",
+  },
+  {
+    key: "router-events",
+    title: "Events",
+    description: "Events Management Page",
+    component: EventsPage,
+    path: "/events",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
+    group: "Tools",
+  },
+  {
+    key: "router-event-create",
+    title: "Create event",
+    description: "Create Event",
+    component: EventEditorPage,
+    path: "/events/new",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
+  },
+  {
+    key: "router-event-edit",
+    title: "Edit event",
+    description: "Edit Event",
+    component: EventEditorPage,
+    path: "/events/:eventId/edit",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
+  },
+  {
+    key: "router-event-workspace",
+    title: "Event workspace",
+    description: "Event Workspace",
+    component: EventWorkspacePage,
+    path: "/events/:eventId",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
+  },
+  {
+    key: "router-subevent-setup",
+    title: "Create subevent",
+    description: "Subevent Setup Flow",
+    component: SubeventSetupPage,
+    path: "/events/:eventId/subevents/new/:step",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
+  },
+  {
+    key: "router-subevent-form-editor",
+    title: "Form builder",
+    description: "Subevent Form Builder",
+    component: FormEditorPage,
+    path: "/events/:eventId/subevents/:subeventId/forms/:formId",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
+  },
+  {
+    key: "router-subevent-registration-review",
+    title: "Registration review",
+    description: "Subevent Registration Review",
+    component: RegistrationReviewPage,
+    path: "/events/:eventId/subevents/:subeventId/registrations/:registrationId",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
+  },
+  {
+    key: "router-subevent-workspace",
+    title: "Subevent workspace",
+    description: "Subevent Workspace",
+    component: SubeventWorkspacePage,
+    path: "/events/:eventId/subevents/:subeventId/:section",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_events",
   },
   {
     key: "router-rbac-permissions",
@@ -112,3 +200,16 @@ export const linkRoutes: Route[] = [
     isProtected: false,
   },
 ];
+
+export const getAccessibleInternalRoutes = (permissions: string[]) =>
+  publicRoutes.filter(
+    (route) =>
+      route.isEnabled &&
+      route.isProtected &&
+      route.group &&
+      route.requiredPermission &&
+      permissions.includes(route.requiredPermission),
+  );
+
+export const getFirstAccessibleInternalRoute = (permissions: string[]) =>
+  getAccessibleInternalRoutes(permissions)[0];

@@ -23,15 +23,13 @@ export const ProtectedRoute = ({
   useEffect(() => {
     if (!isPending) {
       if (!session) {
-        // Belum login sama sekali -> lempar ke login
-        navigate("/login");
+        navigate("/login", { replace: true });
       } else if (
         requiredPermission &&
         meData &&
         !meData.permissions.includes(requiredPermission)
       ) {
-        // Sudah login, tapi TIDAK punya permission yang diminta -> lempar ke home
-        navigate("/");
+        navigate("/?warning=no-permissions", { replace: true });
       }
     }
   }, [session, isPending, navigate, requiredPermission, meData]);

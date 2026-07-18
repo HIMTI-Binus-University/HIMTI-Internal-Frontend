@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 
-import { PageLayout, Container, ContainerHeader } from "@/components/Utils";
+import {
+  PageLayout,
+  Container,
+  ContainerHeader,
+  EmptyState,
+  PaginationFooter,
+  SearchField,
+} from "@/components/Utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -10,9 +16,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
-
-import { FaUserCircle, FaUsers } from "react-icons/fa";
+import { CircleUserRound, Users } from "lucide-react";
 
 import { useGetUsers, useGetRoles } from "@/api/rbac/queries";
 import { useAssignUserRole, useRemoveUserRole } from "@/hooks/rbac/users";
@@ -112,7 +116,7 @@ const RbacUsersPage = () => {
     : null;
 
   return (
-    <PageLayout icon={FaUsers} title="Users">
+    <PageLayout icon={Users} title="Users">
 
         {/* Users grid */}
         <Container>
@@ -122,34 +126,36 @@ const RbacUsersPage = () => {
               : `All Users (${totalRecords})`}
           </ContainerHeader>
 
-          <div className="relative w-full mb-6">
-            <Input
-              id="userSearch"
-              type="text"
-              placeholder="Search by name, email, or NIM..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
+          <SearchField
+            id="userSearch"
+            label="Search users"
+            placeholder="Search by name, email, or NIM..."
+            value={searchQuery}
+            onChange={(value) => {
+              setSearchQuery(value);
+              setCurrentPage(1);
+            }}
+          />
 
           {isLoading && (
-            <p className="text-semantic-foreground/50 text-body-1">
+            <p className="text-sm text-muted-foreground">
               Loading users...
             </p>
           )}
 
           {!isLoading && users.length === 0 && (
-            <p className="text-semantic-foreground/50 text-body-1">
-              {debouncedSearchQuery
-                ? "No users match your search."
-                : "No users found."}
-            </p>
+            <EmptyState
+              icon={Users}
+              title={debouncedSearchQuery ? "No users match your search" : "No users found"}
+              description={
+                debouncedSearchQuery
+                  ? "Try searching by a different name, email, or NIM."
+                  : "Users will appear here after they sign in."
+              }
+            />
           )}
 
-          <div className="flex flex-col justify-center items-center gap-4">
+          <div className="-mx-5 divide-y divide-border border-y border-border">
             {users.map((user) => (
               <UserCard
                 key={user.id}
@@ -161,36 +167,18 @@ const RbacUsersPage = () => {
           </div>
 
           {!isLoading && users.length > 0 && totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 mt-4">
-              <p className="text-body-2 text-semantic-foreground/60">
-                Showing {pageStart}-{pageEnd} of {totalRecords} users
-              </p>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage <= 1}
-                  onClick={() =>
-                    setCurrentPage((page) => Math.max(page - 1, 1))
-                  }
-                >
-                  Previous
-                </Button>
-                <span className="text-body-2 text-semantic-foreground/70 px-2">
-                  Page {paginationMeta?.page ?? currentPage} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage >= totalPages}
-                  onClick={() =>
-                    setCurrentPage((page) => Math.min(page + 1, totalPages))
-                  }
-                >
-                  Next
-                </Button>
-              </div>
+            <div className="mt-4">
+              <PaginationFooter
+                label={`Showing ${pageStart}-${pageEnd} of ${totalRecords} users`}
+                page={paginationMeta?.page ?? currentPage}
+                totalPages={totalPages}
+                onPrevious={() =>
+                  setCurrentPage((page) => Math.max(page - 1, 1))
+                }
+                onNext={() =>
+                  setCurrentPage((page) => Math.min(page + 1, totalPages))
+                }
+              />
             </div>
           )}
         </Container>
@@ -204,7 +192,7 @@ const RbacUsersPage = () => {
           <DialogHeader>
             <DialogTitle>Manage Roles</DialogTitle>
             {liveManageTarget && (
-              <p className="text-body-2 text-semantic-foreground/60 mt-1">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {liveManageTarget.name} · {liveManageTarget.email}
               </p>
             )}
@@ -212,11 +200,11 @@ const RbacUsersPage = () => {
 
           <div className="py-2">
             {allRoles.length === 0 ? (
-              <p className="text-semantic-foreground/50 text-body-2">
+              <p className="text-sm text-muted-foreground">
                 No roles available.
               </p>
             ) : (
-              <div className="flex flex-col gap-2 max-h-64 overflow-y-auto border border-semantic-border rounded-lg p-3">
+              <div className="flex max-h-64 flex-col gap-1 overflow-y-auto rounded-lg border border-border p-2">
                 {allRoles.map((role) => {
                   const isAssigned =
                     liveManageTarget?.roles?.some((r) => r.roleName === role.roleName) ?? false;
@@ -224,7 +212,7 @@ const RbacUsersPage = () => {
                   return (
                     <label
                       key={role.id}
-                      className={`flex items-center gap-3 cursor-pointer rounded-lg px-2 py-1.5 hover:bg-semantic-muted transition-colors ${isPending ? "opacity-50" : ""}`}
+                      className={`flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted ${isPending ? "opacity-50" : ""}`}
                     >
                       <input
                         type="checkbox"
@@ -235,7 +223,7 @@ const RbacUsersPage = () => {
                         }
                         className="w-4 h-4 accent-brand-primary-2 cursor-pointer"
                       />
-                      <span className="text-body-1 text-semantic-foreground">
+                      <span className="text-sm text-foreground">
                         {role.roleName}
                       </span>
                     </label>
@@ -264,8 +252,7 @@ interface UserCardProps {
 
 const UserCard = ({ user, isSelf, onManageRoles }: UserCardProps) => {
   return (
-    <Card className="shadow-sm w-full">
-      <CardContent className="flex items-center gap-4 p-5">
+    <article className="flex min-h-16 w-full items-center gap-4 px-5 py-3 transition-colors hover:bg-muted/35">
         <div className="shrink-0">
           {user.image ? (
             <img
@@ -274,15 +261,15 @@ const UserCard = ({ user, isSelf, onManageRoles }: UserCardProps) => {
               className="w-12 h-12 rounded-full object-cover"
             />
           ) : (
-            <FaUserCircle className="w-12 h-12 text-semantic-foreground/20" />
+            <CircleUserRound className="h-10 w-10 stroke-[1.5] text-muted-foreground" />
           )}
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-body-1 font-semibold text-semantic-foreground truncate">
+          <p className="truncate text-sm font-semibold text-foreground">
             {user.name} {isSelf ? "(You)" : ""}
           </p>
-          <p className="text-body-2 text-semantic-foreground/60 truncate">
+          <p className="truncate text-sm text-muted-foreground">
             {user.email}
           </p>
 
@@ -291,21 +278,21 @@ const UserCard = ({ user, isSelf, onManageRoles }: UserCardProps) => {
               {user.roles?.map((role) => (
                 <span
                   key={role.id}
-                  className="text-xs bg-brand-primary-1/10 text-brand-primary-1 px-2 py-0.5 rounded-full font-medium"
+                  className="rounded-md border border-semantic-info-border bg-semantic-info-background px-2 py-0.5 text-xs font-medium text-semantic-info"
                 >
                   {role.roleName}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-body-2 text-semantic-foreground/40 mt-1 italic">
+            <p className="mt-1 text-sm italic text-muted-foreground">
               No roles assigned
             </p>
           )}
         </div>
 
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           onClick={onManageRoles}
           disabled={isSelf}
@@ -314,8 +301,7 @@ const UserCard = ({ user, isSelf, onManageRoles }: UserCardProps) => {
         >
           Manage Roles
         </Button>
-      </CardContent>
-    </Card>
+    </article>
   );
 };
 
