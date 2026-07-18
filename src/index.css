@@ -156,35 +156,6 @@
     animation-delay: 120ms;
   }
 
-  .event-subevents-panel {
-    height: 0;
-    opacity: 0;
-    transform: translateY(-6px);
-    transform-origin: top;
-    overflow: hidden;
-    transition:
-      height 240ms cubic-bezier(0.32, 0.72, 0, 1),
-      opacity 180ms cubic-bezier(0.23, 1, 0.32, 1),
-      transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
-  }
-
-  .event-subevents-panel-content {
-    overflow: clip;
-  }
-
-  .event-subevents-panel-open {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .form-question-focus {
-    animation: formQuestionFocus 520ms var(--motion-ease-out) both;
-  }
-
-  .form-question-exit {
-    pointer-events: none;
-    animation: formQuestionExit 170ms ease-in both;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -220,30 +191,6 @@
   }
   to {
     opacity: 1;
-  }
-}
-
-@keyframes formQuestionFocus {
-  0% {
-    border-color: hsl(var(--primary) / 0.2);
-    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.2);
-    translate: 0 6px;
-  }
-  55% {
-    border-color: hsl(var(--primary) / 0.55);
-    box-shadow: 0 0 0 5px hsl(var(--primary) / 0.1);
-  }
-  100% {
-    border-color: hsl(var(--border));
-    box-shadow: 0 1px 2px hsl(var(--foreground) / 0.04);
-    translate: 0 0;
-  }
-}
-
-@keyframes formQuestionExit {
-  to {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.985);
   }
 }
 

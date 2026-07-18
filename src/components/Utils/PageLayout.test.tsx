@@ -24,10 +24,10 @@ vi.mock("./Sidebar", () => ({
   ),
 }));
 
-const renderLayout = (path: string, title = "Events") =>
+const renderLayout = (path: string, title = "Events", backTo?: string) =>
   render(
     <MemoryRouter initialEntries={[path]}>
-      <PageLayout icon={CalendarDays} title={title}>
+      <PageLayout icon={CalendarDays} title={title} backTo={backTo}>
         <p>Page content</p>
       </PageLayout>
     </MemoryRouter>,
@@ -59,11 +59,28 @@ describe("PageLayout", () => {
     expect(within(breadcrumbs).getByText("Subevent A Form")).toBeInTheDocument();
   });
 
-  it("uses browser history for the universal back button", () => {
-    renderLayout("/events");
+  it("navigates to the configured breadcrumb parent", () => {
+    renderLayout("/rbac/users", "Users", "/rbac/roles");
 
     fireEvent.click(screen.getByRole("button", { name: "Go back" }));
 
-    expect(navigateMock).toHaveBeenCalledWith(-1);
+    expect(navigateMock).toHaveBeenCalledWith("/rbac/roles");
+  });
+
+  it("derives the parent path for nested event breadcrumbs", () => {
+    renderLayout("/events/event-a/subevents/subevent-a/forms/form-a", "Edit form");
+
+    fireEvent.click(screen.getByRole("button", { name: "Go back" }));
+
+    expect(navigateMock).toHaveBeenCalledWith(
+      "/events/event-a/subevents/subevent-a/forms",
+    );
+  });
+
+  it("disables back navigation when the breadcrumb has no routable parent", () => {
+    renderLayout("/events");
+
+    expect(screen.getByRole("button", { name: "Go back" })).toBeDisabled();
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 });
