@@ -6,6 +6,7 @@ import RedirectLoadingPage from "@/pages/loading";
 import RbacPermissionsPage from "@/pages/rbac/permissions";
 import RbacRolesPage from "@/pages/rbac/roles";
 import RbacUsersPage from "@/pages/rbac/users";
+import RbacUserDetailPage from "@/pages/rbac/users/detail";
 import EventsPage from "@/pages/events";
 import EventEditorPage from "@/pages/events/editor";
 import EventWorkspacePage from "@/pages/events/workspace";
@@ -135,6 +136,16 @@ export const publicRoutes: Route[] = [
     isProtected: true,
     requiredPermission: "manage_permissions",
     group: "RBAC",
+  },
+  {
+    key: "router-rbac-user-detail",
+    title: "User detail",
+    description: "RBAC User Detail",
+    component: RbacUserDetailPage,
+    path: "/rbac/users/:userId",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_users",
   },
   {
     key: "router-rbac-roles",

@@ -29,6 +29,11 @@ export const Api = {
 
   // User (RBAC) endpoints
   userList: `${API_URL}/api/users`,
+  userSummary: `${API_URL}/api/users/summary`,
+  userExport: `${API_URL}/api/users/export`,
+  userDetail: `${API_URL}/api/user/:id`,
+  userResendVerification: `${API_URL}/api/user/:id/resend-verification`,
   userAssignRole: `${API_URL}/api/role/assign-user`,
   userRemoveRole: `${API_URL}/api/role/remove-user`,
+
 };

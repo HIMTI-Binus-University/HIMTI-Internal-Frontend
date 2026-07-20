@@ -1,308 +1,35 @@
-import { useEffect, useState } from "react";
-
-import {
-  PageLayout,
-  Container,
-  ContainerHeader,
-  EmptyState,
-  PaginationFooter,
-  SearchField,
-} from "@/components/Utils";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { CircleUserRound, Users } from "lucide-react";
-
-import { useGetUsers, useGetRoles } from "@/api/rbac/queries";
+import { useState } from "react";
+import { Download, Search, Users } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { exportUsers, useGetRoles, useGetUsers, useGetUserSummary } from "@/api/rbac/queries";
 import { useAssignUserRole, useRemoveUserRole } from "@/hooks/rbac/users";
+import { Container, PageLayout, PaginationFooter } from "@/components/Utils";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { authClient } from "@/utils/auth-client";
-import type { RbacUser } from "@/types/rbac";
+import type { RbacUser, RbacUserListParams } from "@/types/rbac";
 
-const USERS_PER_PAGE = 10;
+const PAGE_SIZE = 20;
+const selectFilters = [["memberType", "Member type", ["STUDENT", "LECTURER", "OTHER"]], ["institutionType", "Institution", ["BINUS", "NON_BINUS"]], ["verification", "BINUS verification", ["true", "false"]], ["status", "Status", ["ACTIVE", "INACTIVE", "SUSPENDED"]], ["completed", "Completed", ["true", "false"]]] as const;
+const text = (value: string | null | undefined) => value || "-";
 
-const RbacUsersPage = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // Manage roles dialog state
-  const [manageTarget, setManageTarget] = useState<RbacUser | null>(null);
-  const [pendingRoles, setPendingRoles] = useState<Set<string>>(new Set());
-
-  const { data: session } = authClient.useSession();
-  const currentUserId = session?.user?.id;
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery.trim());
-    }, 400);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [searchQuery]);
-
-  const { data: usersData, isLoading } = useGetUsers({
-    page: currentPage,
-    limit: USERS_PER_PAGE,
-    search: debouncedSearchQuery,
-  });
-  const { data: allRoles = [] } = useGetRoles();
-
-  const assignUserRole = useAssignUserRole();
-  const removeUserRole = useRemoveUserRole();
-
-  const users = usersData?.data ?? [];
-  const paginationMeta = usersData?.meta;
-  const totalPages = paginationMeta?.totalPages ?? 1;
-  const totalRecords = paginationMeta?.totalRecords ?? 0;
-  const pageStart =
-    totalRecords === 0
-      ? 0
-      : ((paginationMeta?.page ?? currentPage) - 1) * USERS_PER_PAGE + 1;
-  const pageEnd = Math.min(
-    (paginationMeta?.page ?? currentPage) * USERS_PER_PAGE,
-    totalRecords,
-  );
-
-  useEffect(() => {
-    if (
-      paginationMeta &&
-      paginationMeta.totalPages > 0 &&
-      currentPage > paginationMeta.totalPages
-    ) {
-      setCurrentPage(paginationMeta.totalPages);
-    }
-  }, [currentPage, paginationMeta]);
-
-  const openManageDialog = (user: RbacUser) => {
-    setManageTarget(user);
-    setPendingRoles(new Set());
-  };
-
-  const handleRoleToggle = (roleId: string, isCurrentlyAssigned: boolean) => {
-    if (!manageTarget || pendingRoles.has(roleId)) return;
-
-    setPendingRoles((prev) => new Set(prev).add(roleId));
-
-    const mutation = isCurrentlyAssigned ? removeUserRole : assignUserRole;
-    mutation.mutate(
-      { userId: manageTarget.id, roleId },
-      {
-        onSuccess: () => {
-          setPendingRoles((prev) => {
-            const next = new Set(prev);
-            next.delete(roleId);
-            return next;
-          });
-        },
-        onError: () => {
-          setPendingRoles((prev) => {
-            const next = new Set(prev);
-            next.delete(roleId);
-            return next;
-          });
-        },
-      },
-    );
-  };
-
-  // Sync manageTarget with live data after mutations
-  const liveManageTarget = manageTarget
-    ? users.find((u) => u.id === manageTarget.id) ?? manageTarget
-    : null;
-
-  return (
-    <PageLayout icon={Users} title="Users">
-
-        {/* Users grid */}
-        <Container>
-          <ContainerHeader>
-            {debouncedSearchQuery
-              ? `Results for "${debouncedSearchQuery}" (${totalRecords})`
-              : `All Users (${totalRecords})`}
-          </ContainerHeader>
-
-          <SearchField
-            id="userSearch"
-            label="Search users"
-            placeholder="Search by name, email, or NIM..."
-            value={searchQuery}
-            onChange={(value) => {
-              setSearchQuery(value);
-              setCurrentPage(1);
-            }}
-          />
-
-          {isLoading && (
-            <p className="text-sm text-muted-foreground">
-              Loading users...
-            </p>
-          )}
-
-          {!isLoading && users.length === 0 && (
-            <EmptyState
-              icon={Users}
-              title={debouncedSearchQuery ? "No users match your search" : "No users found"}
-              description={
-                debouncedSearchQuery
-                  ? "Try searching by a different name, email, or NIM."
-                  : "Users will appear here after they sign in."
-              }
-            />
-          )}
-
-          <div className="-mx-5 divide-y divide-border border-y border-border">
-            {users.map((user) => (
-              <UserCard
-                key={user.id}
-                user={user}
-                isSelf={user.id === currentUserId}
-                onManageRoles={() => openManageDialog(user)}
-              />
-            ))}
-          </div>
-
-          {!isLoading && users.length > 0 && totalPages > 1 && (
-            <div className="mt-4">
-              <PaginationFooter
-                label={`Showing ${pageStart}-${pageEnd} of ${totalRecords} users`}
-                page={paginationMeta?.page ?? currentPage}
-                totalPages={totalPages}
-                onPrevious={() =>
-                  setCurrentPage((page) => Math.max(page - 1, 1))
-                }
-                onNext={() =>
-                  setCurrentPage((page) => Math.min(page + 1, totalPages))
-                }
-              />
-            </div>
-          )}
-        </Container>
-
-      {/* Manage roles dialog */}
-      <Dialog
-        open={!!manageTarget}
-        onOpenChange={(open) => !open && setManageTarget(null)}
-      >
-        <DialogContent className="sm:max-w-[440px]">
-          <DialogHeader>
-            <DialogTitle>Manage Roles</DialogTitle>
-            {liveManageTarget && (
-              <p className="mt-1 text-sm text-muted-foreground">
-                {liveManageTarget.name} · {liveManageTarget.email}
-              </p>
-            )}
-          </DialogHeader>
-
-          <div className="py-2">
-            {allRoles.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No roles available.
-              </p>
-            ) : (
-              <div className="flex max-h-64 flex-col gap-1 overflow-y-auto rounded-lg border border-border p-2">
-                {allRoles.map((role) => {
-                  const isAssigned =
-                    liveManageTarget?.roles?.some((r) => r.roleName === role.roleName) ?? false;
-                  const isPending = pendingRoles.has(role.id);
-                  return (
-                    <label
-                      key={role.id}
-                      className={`flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted ${isPending ? "opacity-50" : ""}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isAssigned}
-                        disabled={isPending}
-                        onChange={() =>
-                          handleRoleToggle(role.id, isAssigned)
-                        }
-                        className="w-4 h-4 accent-brand-primary-2 cursor-pointer"
-                      />
-                      <span className="text-sm text-foreground">
-                        {role.roleName}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setManageTarget(null)}>
-              Done
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </PageLayout>
-  );
+const UsersPage = () => {
+  const [params, setParams] = useSearchParams(); const [exporting, setExporting] = useState(false); const [target, setTarget] = useState<RbacUser | null>(null); const [pending, setPending] = useState<Set<string>>(new Set());
+  const filters: RbacUserListParams = { page: Number(params.get("page")) || 1, limit: PAGE_SIZE, ...Object.fromEntries(["search", "binusRegion", ...selectFilters.map(([key]) => key)].map((key) => [key, params.get(key) ?? ""])) };
+  const { data, isLoading, isError } = useGetUsers(filters); const { data: summary } = useGetUserSummary(filters); const { data: roles = [] } = useGetRoles(); const { data: session } = authClient.useSession();
+  const assign = useAssignUserRole(); const remove = useRemoveUserRole(); const users = data?.data ?? []; const meta = data?.meta;
+  const updateFilter = (key: string, value: string) => { const next = new URLSearchParams(params); value ? next.set(key, value) : next.delete(key); if (key !== "page") next.delete("page"); setParams(next); };
+  const handleExport = async () => { setExporting(true); try { const response = await exportUsers(filters); const url = URL.createObjectURL(response.data); const link = document.createElement("a"); link.href = url; link.download = "users.csv"; link.click(); URL.revokeObjectURL(url); } finally { setExporting(false); } };
+  const toggleRole = (roleId: string, assigned: boolean) => { if (!target || pending.has(roleId)) return; setPending((current) => new Set(current).add(roleId)); (assigned ? remove : assign).mutate({ userId: target.id, roleId }, { onSettled: () => setPending((current) => { const next = new Set(current); next.delete(roleId); return next; }) }); };
+  const liveTarget = target ? users.find((user) => user.id === target.id) ?? target : null;
+  return <PageLayout icon={Users} title="Users" actions={<Button size="sm" variant="outline" onClick={handleExport} disabled={exporting}><Download className="mr-2 h-4 w-4" />{exporting ? "Exporting..." : "Export CSV"}</Button>}>
+    <section aria-label="User summary" className="grid grid-cols-2 gap-3 lg:grid-cols-4"><Summary label="Total" value={summary?.total} /><Summary label="Registered today" value={summary?.today} /><Summary label="Unverified BINUS" value={summary?.unverifiedBinus} /><Summary label="By member type" value={summary && Object.entries(summary.byMemberType).map(([key, value]) => `${key}: ${value}`).join(" · ")} /></section>
+    <Container padding="none" className="overflow-hidden"><div className="border-b p-4"><div className="grid gap-3 md:grid-cols-2"><label className="relative"><span className="sr-only">Search users</span><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input className="pl-9" type="search" placeholder="Search name, email, phone, NIM, or ID" value={params.get("search") ?? ""} onChange={(e) => updateFilter("search", e.target.value)} /></label><Input aria-label="BINUS region" placeholder="Filter by BINUS region" value={params.get("binusRegion") ?? ""} onChange={(e) => updateFilter("binusRegion", e.target.value)} /></div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">{selectFilters.map(([key, label, options]) => <label key={key} className="text-xs font-medium text-muted-foreground">{label}<select className="mt-1 h-9 w-full rounded-lg border border-input bg-card px-2 text-sm" value={params.get(key) ?? ""} onChange={(e) => updateFilter(key, e.target.value)}><option value="">All</option>{options.map((option) => <option key={option} value={option}>{option === "true" ? "Yes" : option === "false" ? "No" : option.replaceAll("_", " ")}</option>)}</select></label>)}</div></div>
+      <div className="overflow-x-auto"><table className="w-full min-w-[1550px] text-left text-sm"><thead className="bg-muted/50 text-xs uppercase text-muted-foreground"><tr>{["ID", "Name", "Email", "Phone", "Member", "Institution", "Region", "Academic area", "Verification", "Status", "Completed", "Roles", "Registered", "Actions"].map((heading) => <th key={heading} className="px-3 py-2">{heading}</th>)}</tr></thead><tbody className="divide-y">{users.map((user) => <tr key={user.id} className="hover:bg-muted/35"><td className="max-w-40 truncate px-3 py-2 font-mono text-xs">{user.id}</td><td className="px-3 py-2 font-medium"><Link className="text-primary hover:underline" to={`/rbac/users/${user.id}`}>{user.name}</Link></td><td className="px-3 py-2">{user.email}</td><td className="px-3 py-2">{text(user.phoneNumber)}</td><td className="px-3 py-2">{text(user.memberType)}</td><td className="px-3 py-2">{text(user.institutionType)}</td><td className="px-3 py-2">{text(user.binusRegion?.name)}</td><td className="px-3 py-2">{text(user.studyProgramName || user.department || user.affiliation)}</td><td className="px-3 py-2">{user.binusEmailVerified ? "VERIFIED" : "UNVERIFIED"}</td><td className="px-3 py-2">{user.status}</td><td className="px-3 py-2">{user.registrationCompletedAt ? "Yes" : "No"}</td><td className="px-3 py-2"><div className="flex flex-wrap gap-1">{user.roles?.map((role) => <span key={role.id} className="rounded-md border border-semantic-info-border bg-semantic-info-background px-2 py-0.5 text-xs text-semantic-info">{role.roleName}</span>)}</div></td><td className="px-3 py-2">{new Date(user.createdAt).toLocaleDateString()}</td><td className="px-3 py-2"><Button size="sm" variant="secondary" disabled={user.id === session?.user?.id} title={user.id === session?.user?.id ? "You cannot change your own roles" : undefined} onClick={() => setTarget(user)}>Manage roles</Button></td></tr>)}</tbody></table></div>
+      <div aria-live="polite">{isLoading && <p className="p-6 text-sm text-muted-foreground">Loading users...</p>}{isError && <p className="p-6 text-sm text-semantic-danger">Could not load users.</p>}{!isLoading && !isError && !users.length && <p className="p-6 text-sm text-muted-foreground">No users match these filters.</p>}</div>{meta && meta.totalPages > 1 && <div className="border-t p-4"><PaginationFooter label={`Page ${meta.page} of ${meta.totalPages} · ${meta.totalRecords} users`} page={meta.page} totalPages={meta.totalPages} onPrevious={() => updateFilter("page", String(meta.page - 1))} onNext={() => updateFilter("page", String(meta.page + 1))} /></div>}</Container>
+    <Dialog open={!!target} onOpenChange={(open) => !open && setTarget(null)}><DialogContent><DialogHeader><DialogTitle>Manage roles</DialogTitle><p className="text-sm text-muted-foreground">{liveTarget?.name} · {liveTarget?.email}</p></DialogHeader><div className="space-y-1 py-2">{roles.map((role) => { const assigned = liveTarget?.roles?.some((item) => item.roleName === role.roleName) ?? false; return <label key={role.id} className="flex min-h-10 items-center gap-3 rounded-lg px-2 hover:bg-muted"><input type="checkbox" checked={assigned} disabled={pending.has(role.id)} onChange={() => toggleRole(role.id, assigned)} />{role.roleName}</label>; })}</div><DialogFooter><Button variant="outline" onClick={() => setTarget(null)}>Done</Button></DialogFooter></DialogContent></Dialog>
+  </PageLayout>;
 };
-
-interface UserCardProps {
-  user: RbacUser;
-  isSelf: boolean;
-  onManageRoles: () => void;
-}
-
-const UserCard = ({ user, isSelf, onManageRoles }: UserCardProps) => {
-  return (
-    <article className="flex min-h-16 w-full items-center gap-4 px-5 py-3 transition-colors hover:bg-muted/35">
-        <div className="shrink-0">
-          {user.image ? (
-            <img
-              src={user.image}
-              alt={user.name}
-              className="w-12 h-12 rounded-full object-cover"
-            />
-          ) : (
-            <CircleUserRound className="h-10 w-10 stroke-[1.5] text-muted-foreground" />
-          )}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <p className="truncate text-sm font-semibold text-foreground">
-            {user.name} {isSelf ? "(You)" : ""}
-          </p>
-          <p className="truncate text-sm text-muted-foreground">
-            {user.email}
-          </p>
-
-          {(user.roles?.length ?? 0) > 0 ? (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {user.roles?.map((role) => (
-                <span
-                  key={role.id}
-                  className="rounded-md border border-semantic-info-border bg-semantic-info-background px-2 py-0.5 text-xs font-medium text-semantic-info"
-                >
-                  {role.roleName}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-1 text-sm italic text-muted-foreground">
-              No roles assigned
-            </p>
-          )}
-        </div>
-
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={onManageRoles}
-          disabled={isSelf}
-          className="shrink-0"
-          title={isSelf ? "You cannot change your own roles" : undefined}
-        >
-          Manage Roles
-        </Button>
-    </article>
-  );
-};
-
-export default RbacUsersPage;
+const Summary = ({ label, value }: { label: string; value?: number | string }) => <Container padding="compact"><p className="text-xs uppercase text-muted-foreground">{label}</p><p className="mt-1 truncate text-xl font-semibold">{value ?? "-"}</p></Container>;
+export default UsersPage;

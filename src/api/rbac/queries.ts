@@ -18,6 +18,9 @@ import type {
   DeleteRolePayload,
   AssignRolePermissionPayload,
   AssignUserRolePayload,
+  RbacUser,
+  RbacUserSummary,
+  UpdateUserPayload,
 } from "@/types/rbac";
 
 // ─── Permissions ─────────────────────────────────────────────────────────────
@@ -190,27 +193,47 @@ export const useMutationRemoveRolePermission = (
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export const useGetUsers = (params: RbacUserListParams = {}) => {
-  const page = params.page ?? 1;
-  const limit = params.limit ?? 10;
-  const search = params.search?.trim() ?? "";
-  const status = params.status ?? "ACTIVE";
+  const cleanParams = Object.fromEntries(Object.entries(params).filter(([, value]) => value !== "" && value != null));
 
   return useQuery({
-    queryKey: ["rbac-users", { page, limit, search, status }],
+    queryKey: ["rbac-users", cleanParams],
     queryFn: () =>
       apiClient
-        .get<RbacUserListResponse>(Api.userList, {
-          params: {
-            page,
-            limit,
-            status,
-            ...(search ? { search } : {}),
-          },
-        })
+        .get<RbacUserListResponse>(Api.userList, { params: cleanParams })
         .then((res) => res.data),
     staleTime: 5 * 60 * 1000,
   });
 };
+
+export const useGetUserSummary = (params: RbacUserListParams) =>
+  useQuery({
+    queryKey: ["rbac-users", "summary", params],
+    queryFn: () => apiClient.get<{ data: RbacUserSummary }>(Api.userSummary, { params }).then((res) => res.data.data),
+  });
+
+export const useGetUser = (id: string) =>
+  useQuery({
+    queryKey: ["rbac-users", id],
+    queryFn: () => apiClient.get<{ data: RbacUser }>(Api.userDetail.replace(":id", id)).then((res) => res.data.data),
+    enabled: !!id,
+  });
+
+export const useUpdateUser = (id: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdateUserPayload) => apiClient.patch<{ data: RbacUser }>(Api.userDetail.replace(":id", id), payload).then((res) => res.data.data),
+    onSuccess: (user) => {
+      queryClient.setQueryData(["rbac-users", id], user);
+      queryClient.invalidateQueries({ queryKey: ["rbac-users"] });
+    },
+  });
+};
+
+export const useResendUserVerification = (id: string) =>
+  useMutation({ mutationFn: () => apiClient.post(Api.userResendVerification.replace(":id", id)) });
+
+export const exportUsers = (params: RbacUserListParams) =>
+  apiClient.get<Blob>(Api.userExport, { params, responseType: "blob" });
 
 export const useMutationAssignUserRole = (
   options?: UseMutationOptions<unknown, AxiosError, AssignUserRolePayload>,
