@@ -5,13 +5,12 @@ import { PageLayout } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { canEditEventContent } from "./lifecycle";
 import { useEventsStore } from "./store";
 import type { EventStatus } from "@/types/events";
 
 const field = "w-full rounded-lg border border-input bg-card px-3 py-2 text-sm leading-6 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 export default function EventEditorPage() {
-  const { eventId } = useParams(); const navigate = useNavigate(); const { data, saveEvent } = useEventsStore(); const existing = data.events.find((event) => event.id === eventId); const isNew = !eventId; const locked = existing ? existing.status === "ARCHIVED" || !canEditEventContent(existing) : false; const [error, setError] = useState("");
+  const { eventId } = useParams(); const navigate = useNavigate(); const { data, saveEvent } = useEventsStore(); const existing = data.events.find((event) => event.id === eventId); const isNew = !eventId; const locked = false; const [error, setError] = useState("");
   const submit = (formEvent: FormEvent<HTMLFormElement>) => {
     formEvent.preventDefault();
     if (locked) return;
@@ -19,7 +18,6 @@ export default function EventEditorPage() {
     const name = String(values.get("name") || "").trim();
     if (!name) { setError("Event name is required."); return; }
     const id = existing?.id ?? `event-${Date.now()}`;
-    // status changes only via workspace lifecycle transitions
     const status = (existing?.status ?? "DRAFT") as EventStatus;
     saveEvent({ id, name, publicDescription: String(values.get("description") || ""), coverImageUrl: String(values.get("coverImageUrl") || "") || undefined, status, createdAt: existing?.createdAt ?? new Date().toISOString(), createdBy: existing?.createdBy ?? "admin-1", updatedAt: new Date().toISOString(), updatedBy: "admin-1" });
     navigate(`/events/${id}`);
