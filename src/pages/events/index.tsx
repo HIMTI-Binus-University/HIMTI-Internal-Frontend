@@ -37,7 +37,7 @@ export default function EventsPage() {
           const search = `${event.name} ${event.publicDescription ?? ""}`.toLowerCase();
           return (
             search.includes(query.trim().toLowerCase()) &&
-            (status === "ALL" || event.status === status)
+            (status === "ALL" ? event.status !== "ARCHIVED" : event.status === status)
           );
         })
         .sort(
@@ -92,12 +92,12 @@ export default function EventsPage() {
               placeholder="Search event name or description"
             />
           </label>
-          <Select items={{ ALL: "All statuses", DRAFT: "Draft", PUBLISHED: "Published", CLOSED: "Closed", ARCHIVED: "Archived" }} value={status} onValueChange={(value) => setStatus(value as EventStatus | "ALL")}>
+          <Select items={{ ALL: "All active statuses", DRAFT: "Draft", UPCOMING: "Upcoming", OPEN: "Open", CLOSED: "Closed", ARCHIVED: "Archived" }} value={status} onValueChange={(value) => setStatus(value as EventStatus | "ALL")}>
             <SelectTrigger aria-label="Filter event status"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">All statuses</SelectItem>
               <SelectItem value="DRAFT">Draft</SelectItem>
-              <SelectItem value="PUBLISHED">Published</SelectItem>
+              <SelectItem value="UPCOMING">Upcoming</SelectItem><SelectItem value="OPEN">Open</SelectItem>
               <SelectItem value="CLOSED">Closed</SelectItem>
               <SelectItem value="ARCHIVED">Archived</SelectItem>
             </SelectContent>

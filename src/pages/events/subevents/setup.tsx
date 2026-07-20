@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { SetupStepper, Warning } from "../components";
-import { canPublishSubevent, subeventPublishBlockers } from "../lifecycle";
 import { useEventsStore } from "../store";
 import type { PaymentSetting, Subevent, SubeventType, TicketOption, TicketType } from "@/types/events";
 
@@ -49,16 +48,12 @@ export default function SubeventSetupPage() {
   const updateTicket = (ticketIndex: number, patch: Partial<TicketOption>) => setTickets((items) => items.map((item, itemIndex) => itemIndex === ticketIndex ? { ...item, ...patch } : item));
   const warnings = [!ready.includes(0) && "Complete the subevent details.", !ready.includes(1) && "Add registration dates and at least one ticket.", !ready.includes(2) && "Complete or disable payment setup."].filter(Boolean) as string[];
   const addTicket = () => setTickets((items) => [...items, { id: `ticket-${Date.now()}`, subeventId: draft.id, name: `Ticket ${items.length + 1}`, description: "", type: "INDIVIDUAL", price: 0, currency: "IDR", capacity: draft.capacity, status: "DRAFT" }]);
-  const formCtx = { assignments: data.subeventForms.filter((item) => item.subeventId === draft.id), versions: data.formVersions, forms: data.forms };
-  const save = (status: "DRAFT" | "PUBLISHED") => {
-    const next = status === "PUBLISHED" && !canPublishSubevent(event, draft, formCtx) ? "DRAFT" : status;
-    saveSubevent({ ...draft, status: next, updatedAt: new Date().toISOString(), updatedBy: "admin-1" });
-    tickets.forEach((ticket) => saveTicket({ ...ticket, status: next === "PUBLISHED" ? "ACTIVE" : ticket.status }));
+  const save = () => {
+    saveSubevent({ ...draft, status: "DRAFT", updatedAt: new Date().toISOString(), updatedBy: "admin-1" });
+    tickets.forEach((ticket) => saveTicket({ ...ticket, status: "DRAFT" }));
     savePayment(payment);
     navigate(`/events/${event.id}/subevents/${draft.id}/overview`);
   };
-  const publishBlockers = subeventPublishBlockers(event, draft, formCtx);
-  const canPublishNow = canPublishSubevent(event, draft, formCtx);
   const continueSetup = () => {
     setCompleted((items) => items.includes(index) ? items : [...items, index]);
     navigate(path(steps[index + 1]));
@@ -215,8 +210,8 @@ export default function SubeventSetupPage() {
             <div data-testid="subevent-setup-actions" className="flex w-full flex-col-reverse gap-2 rounded-xl border border-border bg-card/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
               <Button variant="secondary" asChild><Link to={index === 0 ? `/events/${event.id}` : path(steps[index - 1])}><ArrowLeft />{index === 0 ? "Cancel" : "Previous"}</Link></Button>
               <div className="flex flex-col-reverse gap-2 sm:flex-row">
-                <Button variant="secondary" onClick={() => save("DRAFT")}>Save as draft</Button>
-                {index < steps.length - 1 ? <Button onClick={continueSetup}>Continue<ArrowRight /></Button> : <Button disabled={warnings.length > 0 || !canPublishNow} title={publishBlockers.join(". ") || undefined} onClick={() => save("PUBLISHED")}><Send />Publish subevent</Button>}
+                <Button variant="secondary" onClick={save}>Save as draft</Button>
+                {index < steps.length - 1 ? <Button onClick={continueSetup}>Continue<ArrowRight /></Button> : <Button onClick={save}><Send />Create draft</Button>}
               </div>
             </div>
           </div>

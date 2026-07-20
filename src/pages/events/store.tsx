@@ -23,10 +23,6 @@ import {
   applyEventTransition,
   applyFormTransition,
   applySubeventTransition,
-  canEditEventContent,
-  canEditFormContent,
-  canLimitedSubeventEdit,
-  canMutateSubeventConfig,
 } from "./lifecycle";
 
 type Store = {
@@ -68,10 +64,8 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       saveEvent: (event) =>
         setData((current) => {
           const existing = current.events.find((item) => item.id === event.id);
-          if (!existing) return { ...current, events: upsert(current.events, event) };
+          if (!existing) return { ...current, events: upsert(current.events, { ...event, status: "DRAFT" }) };
           if (existing.status !== event.status) return current;
-          if (!canEditEventContent(existing)) return current;
-          if (existing.status === "ARCHIVED") return current;
           return { ...current, events: upsert(current.events, { ...event, status: existing.status }) };
         }),
       saveSubevent: (subevent) =>
@@ -80,50 +74,27 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
           const parent = current.events.find((item) => item.id === subevent.eventId);
           if (!parent) return current;
           if (!existing) {
-            if (!canCreateUnder(parent.status)) return current;
             return { ...current, subevents: upsert(current.subevents, { ...subevent, status: "DRAFT" }) };
           }
           if (existing.status !== subevent.status) return current;
-          if (canMutateSubeventConfig(parent, existing)) {
-            return { ...current, subevents: upsert(current.subevents, { ...subevent, status: existing.status }) };
-          }
-          if (canLimitedSubeventEdit(existing)) {
-            const capacityOk =
-              subevent.capacity === undefined
-              || existing.capacity === undefined
-              || subevent.capacity >= existing.capacity;
-            if (!capacityOk) return current;
-            return {
-              ...current,
-              subevents: upsert(current.subevents, {
-                ...existing,
-                capacity: subevent.capacity ?? existing.capacity,
-                registrationClosesAt: subevent.registrationClosesAt ?? existing.registrationClosesAt,
-                editLockAt: subevent.editLockAt ?? existing.editLockAt,
-                privateDescription: subevent.privateDescription ?? existing.privateDescription,
-                updatedAt: subevent.updatedAt,
-                updatedBy: subevent.updatedBy,
-              }),
-            };
-          }
-          return current;
+          return { ...current, subevents: upsert(current.subevents, { ...subevent, status: existing.status }) };
         }),
-      transitionEvent: (id, status, selectedSubeventIds) =>
-        setData((current) => applyEventTransition(current, id, status, selectedSubeventIds) ?? current),
+      transitionEvent: (id, status, _selectedSubeventIds) =>
+        setData((current) => applyEventTransition(current, id, status) ?? current),
       transitionSubevent: (id, status) =>
         setData((current) => applySubeventTransition(current, id, status) ?? current),
       transitionForm: (id, status) =>
         setData((current) => applyFormTransition(current, id, status) ?? current),
       savePayment: (settings) =>
         setData((current) => {
-          const { subevent, event } = parentOfSubevent(current, settings.subeventId);
-          if (!subevent || !event || !canMutateSubeventConfig(event, subevent)) return current;
+          const { subevent } = parentOfSubevent(current, settings.subeventId);
+          if (!subevent) return current;
           return { ...current, paymentSettings: upsert(current.paymentSettings, settings) };
         }),
       saveTicket: (ticket) =>
         setData((current) => {
-          const { subevent, event } = parentOfSubevent(current, ticket.subeventId);
-          if (!subevent || !event || !canMutateSubeventConfig(event, subevent)) return current;
+          const { subevent } = parentOfSubevent(current, ticket.subeventId);
+          if (!subevent) return current;
           return { ...current, ticketOptions: upsert(current.ticketOptions, ticket) };
         }),
       archiveTicket: (id) =>
@@ -131,7 +102,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
           const ticket = current.ticketOptions.find((item) => item.id === id);
           if (!ticket) return current;
           const { subevent, event } = parentOfSubevent(current, ticket.subeventId);
-          if (!subevent || !event || !canMutateSubeventConfig(event, subevent)) return current;
+          if (!subevent || !event) return current;
           return {
             ...current,
             ticketOptions: current.ticketOptions.map((item) =>
@@ -144,15 +115,6 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
           const version =
             current.formVersions.find((candidate) => candidate.formId === form.id)
             ?? { id: `version-${form.id}`, formId: form.id, versionNumber: 1, status: "DRAFT" as const };
-          const assignment = current.subeventForms.find((item) => item.formVersionId === version.id);
-          const subevent = current.subevents.find((item) => item.id === assignment?.subeventId);
-          const event = current.events.find((item) => item.id === subevent?.eventId);
-          if (subevent && event) {
-            const existingForm = current.forms.find((item) => item.id === form.id) ?? form;
-            if (!canEditFormContent(event, subevent, existingForm, version.status)) return current;
-          } else if (version.status === "PUBLISHED" || form.status === "PUBLISHED" || form.status === "CLOSED" || form.status === "ARCHIVED") {
-            return current;
-          }
           return {
             ...current,
             forms: upsert(current.forms, { ...form, status: current.forms.find((item) => item.id === form.id)?.status ?? form.status }),
@@ -170,7 +132,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       saveAssignments: (subeventId, assignments) =>
         setData((current) => {
           const { subevent, event } = parentOfSubevent(current, subeventId);
-          if (!subevent || !event || !canMutateSubeventConfig(event, subevent)) return current;
+          if (!subevent || !event) return current;
           const versionToForm = new Map(current.formVersions.map((version) => [version.id, version.formId]));
           const ownedElsewhere = new Set(
             current.subeventForms
@@ -210,8 +172,6 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   );
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 };
-
-const canCreateUnder = (status: EventStatus) => status === "DRAFT" || status === "PUBLISHED";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useEventsStore = () => {
