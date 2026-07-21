@@ -37,4 +37,13 @@ export const Api = {
   userAssignRole: `${API_URL}/api/role/assign-user`,
   userRemoveRole: `${API_URL}/api/role/remove-user`,
 
+  // Membership period and resource endpoints
+  membershipPeriods: `${API_URL}/api/membership/periods`,
+  membershipPeriod: `${API_URL}/api/membership/periods/:id`,
+  membershipPeriodActivate: `${API_URL}/api/membership/periods/:id/activate`,
+  membershipPeriodReregistration: `${API_URL}/api/membership/periods/:id/reregistration`,
+  membershipPeriodResources: `${API_URL}/api/membership/periods/:id/resources`,
+  membershipResource: `${API_URL}/api/membership/resources/:id`,
+  membershipResourceOrder: `${API_URL}/api/membership/periods/:id/resources/order`,
+
 };

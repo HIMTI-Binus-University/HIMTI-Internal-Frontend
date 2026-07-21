@@ -14,6 +14,7 @@ import SubeventSetupPage from "@/pages/events/subevents/setup";
 import SubeventWorkspacePage from "@/pages/events/subevents/workspace";
 import FormEditorPage from "@/pages/events/subevents/form-editor";
 import RegistrationReviewPage from "@/pages/events/subevents/registration-review";
+import BatchesPage from "@/pages/batches";
 
 export const publicRoutes: Route[] = [
   {
@@ -43,6 +44,17 @@ export const publicRoutes: Route[] = [
     isEnabled: true,
     isProtected: true,
     requiredPermission: "manage_urls",
+    group: "Tools",
+  },
+  {
+    key: "router-batches",
+    title: "Batch",
+    description: "Academic Period Management",
+    component: BatchesPage,
+    path: "/batches",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_batch",
     group: "Tools",
   },
   {
