@@ -19,8 +19,8 @@ import type {
   AssignRolePermissionPayload,
   AssignUserRolePayload,
   RbacUser,
-  RbacUserSummary,
   UpdateUserPayload,
+  RbacUserSummary,
 } from "@/types/rbac";
 
 // ─── Permissions ─────────────────────────────────────────────────────────────
@@ -205,11 +205,12 @@ export const useGetUsers = (params: RbacUserListParams = {}) => {
   });
 };
 
-export const useGetUserSummary = (params: RbacUserListParams) =>
-  useQuery({
-    queryKey: ["rbac-users", "summary", params],
-    queryFn: () => apiClient.get<{ data: RbacUserSummary }>(Api.userSummary, { params }).then((res) => res.data.data),
-  });
+export const useGetUserSummary = (params: RbacUserListParams = {}) => useQuery({
+  queryKey: ["rbac-users-summary", params],
+  queryFn: () => apiClient.get<{ data: RbacUserSummary }>(Api.userSummary, { params }).then((res) => res.data.data),
+});
+
+export const exportUsers = (params: RbacUserListParams) => apiClient.get(Api.userExport, { params, responseType: "blob" });
 
 export const useGetUser = (id: string) =>
   useQuery({
@@ -229,11 +230,9 @@ export const useUpdateUser = (id: string) => {
   });
 };
 
-export const useResendUserVerification = (id: string) =>
-  useMutation({ mutationFn: () => apiClient.post(Api.userResendVerification.replace(":id", id)) });
-
-export const exportUsers = (params: RbacUserListParams) =>
-  apiClient.get<Blob>(Api.userExport, { params, responseType: "blob" });
+export const useResendUserVerification = (id: string) => useMutation({
+  mutationFn: () => apiClient.post(Api.userResendVerification.replace(":id", id)),
+});
 
 export const useMutationAssignUserRole = (
   options?: UseMutationOptions<unknown, AxiosError, AssignUserRolePayload>,

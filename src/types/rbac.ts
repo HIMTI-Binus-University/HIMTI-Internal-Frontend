@@ -17,26 +17,31 @@ export interface RbacUser {
   id: string;
   name: string;
   email: string;
-  image?: string;
+  image: string | null;
   roles?: { id: string; roleName: string; status: string }[];
-  binusEmail: string | null;
-  binusEmailVerified: boolean;
-  binusEmailVerifiedAt: string | null;
+  permissions?: { id: string; name: string; status: string }[];
+  emailVerified: boolean;
+  outlookEmail: string | null;
+  outlookEmailVerified?: boolean;
   memberType: "STUDENT" | "LECTURER" | "OTHER" | null;
   institutionType: "BINUS" | "NON_BINUS" | null;
   binusRegion: { id: string; name: string } | null;
-  nim: string | null;
   universityName: string | null;
   studyProgramName: string | null;
-  graduateBatch: string | null;
   department: string | null;
   affiliation: string | null;
+  registrationCompletedAt: string | null;
+  nim: string | null;
+  universityId: string | null;
+  studyProgramId: string | null;
+  university: { id: string; name: string } | null;
+  studyProgram: { id: string; name: string } | null;
+  graduateBatch: string | null;
   phoneNumber: string | null;
   lineId: string | null;
   status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
-  registrationCompletedAt: string | null;
   createdAt: string;
-  updatedAt: string | null;
+  updatedAt?: string | null;
 }
 
 export interface RbacUserListParams {
@@ -44,6 +49,7 @@ export interface RbacUserListParams {
   limit?: number;
   search?: string;
   status?: string;
+  sort?: string;
   memberType?: string;
   institutionType?: string;
   binusRegion?: string;
@@ -99,4 +105,4 @@ export interface RbacUserSummary {
   byMemberType: Record<string, number>;
 }
 
-export type UpdateUserPayload = Partial<Pick<RbacUser, "name" | "email" | "binusEmail" | "memberType" | "institutionType" | "nim" | "universityName" | "studyProgramName" | "graduateBatch" | "department" | "affiliation" | "phoneNumber" | "lineId" | "status"> & { binusRegionId: string | null }>;
+export type UpdateUserPayload = Partial<Pick<RbacUser, "name" | "email" | "emailVerified" | "outlookEmail" | "outlookEmailVerified" | "image" | "status" | "nim" | "universityId" | "studyProgramId" | "graduateBatch" | "phoneNumber" | "lineId" | "memberType" | "institutionType" | "universityName" | "studyProgramName" | "department" | "affiliation">> & { binusRegionId?: string | null };
