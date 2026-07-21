@@ -9,7 +9,7 @@ import {
   MoreHorizontal,
   Plus,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { PageLayout } from "@/components/Utils";
@@ -17,6 +17,7 @@ import { StatusBadge } from "@/components/events/StatusBadge";
 import { dateTime, percent, shortDate } from "@/components/events/helpers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,7 @@ import {
   statusActionLabel,
   statusActions,
   subeventPublishBlockers,
+  statuses,
 } from "./lifecycle";
 import { useEventsStore } from "./store";
 
@@ -74,10 +76,7 @@ export default function EventWorkspacePage() {
     subeventIds.has(item.subeventId),
   ).length;
 
-  const formCtx = useMemo(
-    () => ({ assignments: data.subeventForms, versions: data.formVersions, forms: data.forms }),
-    [data.subeventForms, data.formVersions, data.forms],
-  );
+  const formCtx = { assignments: data.subeventForms, versions: data.formVersions, forms: data.forms };
 
   const changeSubeventStatus = (id: string, status: SubeventStatus) => {
     transitionSubevent(id, status);
@@ -85,7 +84,7 @@ export default function EventWorkspacePage() {
 
   const changeEventStatus = (status: EventStatus) => {
     if (!canTransition(event.status, status)) return;
-    if (status === "PUBLISHED") {
+    if (status === "OPEN") {
       const candidates = subevents.filter((item) => item.status === "DRAFT" || item.status === "CLOSED");
       setSelected(
         candidates
@@ -101,7 +100,7 @@ export default function EventWorkspacePage() {
       return;
     }
     if (status === "CLOSED") {
-      const live = subevents.filter((item) => item.status === "PUBLISHED").length;
+      const live = subevents.filter((item) => item.status === "OPEN").length;
       if (live && !window.confirm(`Close this event? ${live} published subevent${live === 1 ? "" : "s"} and their published forms will be closed.`)) return;
     }
     if (status === "ARCHIVED" && !window.confirm("Archive this event? All subevents and forms will be archived.")) return;
@@ -109,7 +108,7 @@ export default function EventWorkspacePage() {
   };
 
   const confirmPublish = () => {
-    transitionEvent(event.id, "PUBLISHED", selected);
+    transitionEvent(event.id, "OPEN", selected);
     setPublishOpen(false);
   };
 
@@ -176,6 +175,10 @@ export default function EventWorkspacePage() {
                     <Archive />
                     {event.status === "ARCHIVED" ? "Unarchive" : "Archive"}
                   </Button>
+                  <Select value={event.status} onValueChange={(value) => changeEventStatus(value as EventStatus)}>
+                    <SelectTrigger className="w-36" aria-label="Event status"><SelectValue /></SelectTrigger>
+                    <SelectContent>{statuses.map((status) => <SelectItem key={status} value={status}>{status.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
+                  </Select>
                   {nextActions.map((status) => (
                     <Button
                       key={status}
@@ -262,7 +265,7 @@ export default function EventWorkspacePage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 disabled={
-                                  subevent.status === "PUBLISHED"
+                                  subevent.status === "OPEN"
                                   || (subevent.status !== "DRAFT" && subevent.status !== "CLOSED" && subevent.status !== "ARCHIVED")
                                 }
                                 onSelect={() =>

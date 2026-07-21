@@ -1,9 +1,9 @@
-export type LifecycleStatus = "DRAFT" | "PUBLISHED" | "CLOSED" | "ARCHIVED";
+export type LifecycleStatus = "DRAFT" | "UPCOMING" | "OPEN" | "CLOSED" | "ARCHIVED";
 export type EventStatus = LifecycleStatus;
 export type SubeventStatus = LifecycleStatus;
 export type SubeventType = "MAIN_EVENT" | "WORKSHOP" | "SEMINAR" | "COMPETITION" | "WELCOMING_PARTY" | "DOMESTIC_STUDY_TOUR" | "INTERNATIONAL_STUDY_TOUR" | "COMPANY_VISIT" | "OTHER";
 export type TicketType = "INDIVIDUAL" | "BUNDLE";
-export type TicketStatus = "DRAFT" | "ACTIVE" | "INACTIVE" | "SOLD_OUT" | "ARCHIVED";
+export type TicketStatus = LifecycleStatus;
 export type FormStatus = LifecycleStatus;
 export type FormVersionStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 export type FormPurpose = "MAIN_REGISTRATION" | "TRANSPORTATION" | "ACCOMMODATION" | "ADDITIONAL_INFORMATION" | "OTHER";
