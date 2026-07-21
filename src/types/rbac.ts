@@ -13,19 +13,35 @@ export interface Role {
   permissions?: Permission[];
 }
 
-export interface RbacUser {
+export type UserStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED";
+export type MemberType = "STUDENT" | "LECTURER" | "OTHER";
+export type InstitutionType = "BINUS" | "NON_BINUS";
+
+export interface UserRelation {
+  id: string;
+  name: string;
+  shortName: string | null;
+}
+
+export interface UserRole {
+  id: string;
+  roleName: string;
+  status: string;
+}
+
+export interface RbacUserListItem {
   id: string;
   name: string;
   email: string;
   image: string | null;
-  roles?: { id: string; roleName: string; status: string }[];
-  permissions?: { id: string; name: string; status: string }[];
+  roles: UserRole[];
   emailVerified: boolean;
   outlookEmail: string | null;
-  outlookEmailVerified?: boolean;
-  memberType: "STUDENT" | "LECTURER" | "OTHER" | null;
-  institutionType: "BINUS" | "NON_BINUS" | null;
-  binusRegion: { id: string; name: string } | null;
+  outlookEmailVerified: boolean;
+  memberType: MemberType | null;
+  institutionType: InstitutionType | null;
+  regionId: string | null;
+  region: UserRelation | null;
   universityName: string | null;
   studyProgramName: string | null;
   department: string | null;
@@ -34,32 +50,40 @@ export interface RbacUser {
   nim: string | null;
   universityId: string | null;
   studyProgramId: string | null;
-  university: { id: string; name: string } | null;
-  studyProgram: { id: string; name: string } | null;
+  university: UserRelation | null;
+  studyProgram: UserRelation | null;
   graduateBatch: string | null;
   phoneNumber: string | null;
   lineId: string | null;
-  status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
+  status: UserStatus;
   createdAt: string;
-  updatedAt?: string | null;
+  createdBy: string | null;
+  updatedAt: string | null;
+  updatedBy: string | null;
 }
+
+export interface RbacUserDetail extends RbacUserListItem {
+  permissions: { id: string; name: string; status: string }[];
+}
+
+export type RbacUserUpdateResult = Omit<RbacUserListItem, "roles">;
 
 export interface RbacUserListParams {
   page?: number;
   limit?: number;
   search?: string;
-  status?: string;
+  status?: UserStatus;
   sort?: string;
-  memberType?: string;
-  institutionType?: string;
-  binusRegion?: string;
-  verification?: string;
-  completed?: string;
+  memberType?: MemberType;
+  institutionType?: InstitutionType;
+  regionId?: string;
+  verification?: boolean;
+  completed?: boolean;
 }
 
 export interface RbacUserListResponse {
   msg: string;
-  data: RbacUser[];
+  data: RbacUserListItem[];
   meta: {
     page: number;
     limit: number;
@@ -101,8 +125,41 @@ export interface AssignUserRolePayload {
 export interface RbacUserSummary {
   total: number;
   today: number;
-  unverifiedBinus: number;
+  unverifiedOutlookEmail: number;
   byMemberType: Record<string, number>;
 }
 
-export type UpdateUserPayload = Partial<Pick<RbacUser, "name" | "email" | "emailVerified" | "outlookEmail" | "outlookEmailVerified" | "image" | "status" | "nim" | "universityId" | "studyProgramId" | "graduateBatch" | "phoneNumber" | "lineId" | "memberType" | "institutionType" | "universityName" | "studyProgramName" | "department" | "affiliation">> & { binusRegionId?: string | null };
+export interface UpdateUserPayload {
+  name?: string;
+  email?: string;
+  emailVerified?: boolean;
+  outlookEmail?: string | null;
+  outlookEmailVerified?: boolean;
+  image?: string | null;
+  status?: UserStatus;
+  memberType?: MemberType | null;
+  institutionType?: InstitutionType | null;
+  universityId?: string | null;
+  universityName?: string | null;
+  studyProgramId?: string | null;
+  studyProgramName?: string | null;
+  regionId?: string | null;
+  nim?: string | null;
+  graduateBatch?: string | null;
+  department?: string | null;
+  affiliation?: string | null;
+  phoneNumber?: string | null;
+  lineId?: string | null;
+}
+
+export interface RegistrationOption {
+  id: string;
+  name: string;
+  shortName: string | null;
+}
+
+export interface RegistrationOptions {
+  universities: RegistrationOption[];
+  studyPrograms: RegistrationOption[];
+  binusRegions: RegistrationOption[];
+}

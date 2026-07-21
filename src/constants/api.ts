@@ -3,7 +3,7 @@ import { API_URL } from "./api-service";
 export const Api = {
   // Auth endpoints
   authSignInSocial: `${API_URL}/api/auth/sign-in/social`,
-  getMe: `${API_URL}/api/registration/me`,
+  getMe: `${API_URL}/api/user/me`,
 
   // URL Shortener endpoints
   urlCreate: `${API_URL}/api/url/create-url`,
@@ -32,6 +32,7 @@ export const Api = {
   userSummary: `${API_URL}/api/users/summary`,
   userExport: `${API_URL}/api/users/export`,
   userDetail: `${API_URL}/api/user/:id`,
+  userRegistrationOptions: `${API_URL}/api/user/registration-options`,
   userResendVerification: `${API_URL}/api/user/:id/resend-verification`,
   userAssignRole: `${API_URL}/api/role/assign-user`,
   userRemoveRole: `${API_URL}/api/role/remove-user`,
