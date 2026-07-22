@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AxiosError } from "axios";
 import {
   ArrowDown,
@@ -60,6 +60,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import type { Period, Resource, ResourcePayload } from "@/types/batches";
+import { getSafeHttpUrl, normalizeHttpUrlInput } from "@/utils/http-url";
 
 const ALL_REGIONS = "all";
 const EMPTY_PERIODS: Period[] = [];
@@ -89,6 +90,7 @@ const BatchesPage = () => {
   });
   const [resourceFormError, setResourceFormError] = useState("");
   const [deleteResourceTarget, setDeleteResourceTarget] = useState<Resource | null>(null);
+  const resourceDialogRef = useRef<HTMLDivElement>(null);
 
   const periodsQuery = useGetPeriods();
   const periods = periodsQuery.data ?? EMPTY_PERIODS;
@@ -112,10 +114,20 @@ const BatchesPage = () => {
   const orderResources = useOrderResources(selectedPeriod?.id ?? "");
 
   useEffect(() => {
-    if (!periods.length || selectedPeriod) return;
+    if (
+      !periods.length ||
+      selectedPeriod ||
+      (selectedId && periodsQuery.isFetching)
+    ) return;
     const fallback = periods.find((period) => period.isActive) ?? periods[0];
     setSearchParams({ period: fallback.id }, { replace: true });
-  }, [periods, selectedPeriod, setSearchParams]);
+  }, [
+    periods,
+    periodsQuery.isFetching,
+    selectedId,
+    selectedPeriod,
+    setSearchParams,
+  ]);
 
   const selectPeriod = (id: string | null) => {
     if (id) setSearchParams({ period: id });
@@ -179,9 +191,11 @@ const BatchesPage = () => {
     }
     if (resourceForm.url) {
       try {
-        new URL(resourceForm.url);
+        normalizeHttpUrlInput(resourceForm.url);
       } catch {
-        setResourceFormError("URL must be a valid absolute URL.");
+        setResourceFormError(
+          "Enter a valid web link such as youtube.com. Only HTTP and HTTPS links are allowed.",
+        );
         return;
       }
     }
@@ -374,36 +388,39 @@ const BatchesPage = () => {
             <EmptyState icon={Layers3} title="No generic cards yet" description="Add the first resource for this academic period." />
           ) : (
             <div className="-mx-5 -mb-5 divide-y divide-border border-t border-border">
-              {resources.map((resource, index) => (
-                <article key={resource.id} className="flex flex-col gap-4 px-5 py-4 transition-colors hover:bg-muted/35 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="font-semibold text-foreground">{resource.title}</h2>
-                      <Badge variant="neutral">{resource.region?.shortName || resource.region?.name || "All regions"}</Badge>
+              {resources.map((resource, index) => {
+                const safeUrl = getSafeHttpUrl(resource.url);
+                return (
+                  <article key={resource.id} className="flex flex-col gap-4 px-5 py-4 transition-colors hover:bg-muted/35 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="font-semibold text-foreground">{resource.title}</h2>
+                        <Badge variant="neutral">{resource.region?.shortName || resource.region?.name || "All regions"}</Badge>
+                      </div>
+                      <p className="mt-1 max-w-3xl whitespace-pre-wrap text-sm text-muted-foreground">{resource.description}</p>
+                      {safeUrl && (
+                        <a href={safeUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 break-all text-sm font-medium text-primary hover:underline">
+                          {resource.url}<ExternalLink className="h-4 w-4 shrink-0" />
+                        </a>
+                      )}
                     </div>
-                    <p className="mt-1 max-w-3xl whitespace-pre-wrap text-sm text-muted-foreground">{resource.description}</p>
-                    {resource.url && (
-                      <a href={resource.url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 break-all text-sm font-medium text-primary hover:underline">
-                        {resource.url}<ExternalLink className="h-4 w-4 shrink-0" />
-                      </a>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <IconButton label={`Move ${resource.title} up`} disabled={index === 0 || orderResources.isPending} onClick={() => moveResource(index, -1)}>
-                      <ArrowUp />
-                    </IconButton>
-                    <IconButton label={`Move ${resource.title} down`} disabled={index === resources.length - 1 || orderResources.isPending} onClick={() => moveResource(index, 1)}>
-                      <ArrowDown />
-                    </IconButton>
-                    <IconButton label={`Edit ${resource.title}`} tone="primary" onClick={() => openResourceDialog(resource)}>
-                      <Pencil />
-                    </IconButton>
-                    <IconButton label={`Delete ${resource.title}`} tone="danger" onClick={() => setDeleteResourceTarget(resource)}>
-                      <Trash2 />
-                    </IconButton>
-                  </div>
-                </article>
-              ))}
+                    <div className="flex shrink-0 items-center gap-1">
+                      <IconButton label={`Move ${resource.title} up`} disabled={index === 0 || orderResources.isPending} onClick={() => moveResource(index, -1)}>
+                        <ArrowUp />
+                      </IconButton>
+                      <IconButton label={`Move ${resource.title} down`} disabled={index === resources.length - 1 || orderResources.isPending} onClick={() => moveResource(index, 1)}>
+                        <ArrowDown />
+                      </IconButton>
+                      <IconButton label={`Edit ${resource.title}`} tone="primary" onClick={() => openResourceDialog(resource)}>
+                        <Pencil />
+                      </IconButton>
+                      <IconButton label={`Delete ${resource.title}`} tone="danger" onClick={() => setDeleteResourceTarget(resource)}>
+                        <Trash2 />
+                      </IconButton>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
         </Container>
@@ -434,7 +451,7 @@ const BatchesPage = () => {
       </Dialog>
 
       <Dialog open={resourceDialogOpen} onOpenChange={setResourceDialogOpen}>
-        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-[560px]">
+        <DialogContent ref={resourceDialogRef} className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-[560px]">
           <DialogHeader>
             <DialogTitle>{editResource ? "Edit generic card" : "Add generic card"}</DialogTitle>
             <DialogDescription>Region is card context only; every member in the period can see every card.</DialogDescription>
@@ -450,7 +467,7 @@ const BatchesPage = () => {
             </div>
             <div>
               <Label htmlFor="resource-url" className="mb-2">URL <span className="font-normal text-muted-foreground">(optional)</span></Label>
-              <Input id="resource-url" type="url" placeholder="https://example.com" value={resourceForm.url ?? ""} onChange={(event) => { setResourceForm({ ...resourceForm, url: event.target.value || null }); setResourceFormError(""); }} />
+              <Input id="resource-url" type="text" inputMode="url" placeholder="youtube.com or https://example.com" value={resourceForm.url ?? ""} onChange={(event) => { setResourceForm({ ...resourceForm, url: event.target.value || null }); setResourceFormError(""); }} />
             </div>
             <div>
               <Label htmlFor="resource-region" className="mb-2">Region context</Label>
@@ -460,7 +477,7 @@ const BatchesPage = () => {
                 onValueChange={(value) => setResourceForm({ ...resourceForm, regionId: value === ALL_REGIONS ? null : value })}
               >
                 <SelectTrigger id="resource-region"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent portalContainer={resourceDialogRef}>
                   <SelectItem value={ALL_REGIONS}>All regions</SelectItem>
                   {regions.map((region) => <SelectItem key={region.id} value={region.id}>{region.shortName || region.name}</SelectItem>)}
                 </SelectContent>
