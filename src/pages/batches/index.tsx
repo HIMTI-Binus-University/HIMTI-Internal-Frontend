@@ -28,6 +28,7 @@ import {
 } from "@/api/batches/queries";
 import { useGetRegistrationOptions } from "@/api/rbac/queries";
 import { Container, ContainerHeader, EmptyState, PageLayout } from "@/components/Utils";
+import { ResourceMarkdown } from "@/components/resource-markdown";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -397,7 +398,9 @@ const BatchesPage = () => {
                         <h2 className="font-semibold text-foreground">{resource.title}</h2>
                         <Badge variant="neutral">{resource.region?.shortName || resource.region?.name || "All regions"}</Badge>
                       </div>
-                      <p className="mt-1 max-w-3xl whitespace-pre-wrap text-sm text-muted-foreground">{resource.description}</p>
+                      <ResourceMarkdown className="mt-1 max-w-3xl text-sm text-muted-foreground">
+                        {resource.description}
+                      </ResourceMarkdown>
                       {safeUrl && (
                         <a href={safeUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 break-all text-sm font-medium text-primary hover:underline">
                           {resource.url}<ExternalLink className="h-4 w-4 shrink-0" />
@@ -464,6 +467,17 @@ const BatchesPage = () => {
             <div>
               <Label htmlFor="resource-description" className="mb-2">Description</Label>
               <textarea id="resource-description" rows={4} className={textareaClass} value={resourceForm.description} onChange={(event) => { setResourceForm({ ...resourceForm, description: event.target.value }); setResourceFormError(""); }} />
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Markdown supported: **bold**, *italic*, lists, `code`, quotes, and [links](https://example.com).
+              </p>
+              {resourceForm.description.trim() && (
+                <div className="mt-3 rounded-lg border border-border bg-muted/25 p-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preview</p>
+                  <ResourceMarkdown className="text-sm text-muted-foreground">
+                    {resourceForm.description}
+                  </ResourceMarkdown>
+                </div>
+              )}
             </div>
             <div>
               <Label htmlFor="resource-url" className="mb-2">URL <span className="font-normal text-muted-foreground">(optional)</span></Label>
