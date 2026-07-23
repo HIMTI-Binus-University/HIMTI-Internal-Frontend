@@ -1,11 +1,17 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { eventSeed } from "@/data/events";
 import type {
   ActivityLog,
   BundleGroup,
-  Event,
+  PrototypeEvent,
   EventData,
-  EventStatus,
+  LifecycleStatus,
   Form,
   FormQuestion,
   FormSection,
@@ -14,9 +20,8 @@ import type {
   PaymentSetting,
   Registration,
   RegistrationNote,
-  Subevent,
+  PrototypeSubevent,
   SubeventForm,
-  SubeventStatus,
   TicketOption,
 } from "@/types/events";
 import {
@@ -27,15 +32,23 @@ import {
 
 type Store = {
   data: EventData;
-  saveEvent: (event: Event) => void;
-  saveSubevent: (subevent: Subevent) => void;
-  transitionEvent: (id: string, status: EventStatus, selectedSubeventIds?: string[]) => void;
-  transitionSubevent: (id: string, status: SubeventStatus) => void;
+  saveEvent: (event: PrototypeEvent) => void;
+  saveSubevent: (subevent: PrototypeSubevent) => void;
+  transitionEvent: (
+    id: string,
+    status: LifecycleStatus,
+    selectedSubeventIds?: string[],
+  ) => void;
+  transitionSubevent: (id: string, status: LifecycleStatus) => void;
   transitionForm: (id: string, status: FormStatus) => void;
   savePayment: (settings: PaymentSetting) => void;
   saveTicket: (ticket: TicketOption) => void;
   archiveTicket: (id: string) => void;
-  saveForm: (form: Form, sections: FormSection[], questions: FormQuestion[]) => void;
+  saveForm: (
+    form: Form,
+    sections: FormSection[],
+    questions: FormQuestion[],
+  ) => void;
   saveAssignments: (subeventId: string, assignments: SubeventForm[]) => void;
   updateRegistration: (id: string, patch: Partial<Registration>) => void;
   updatePayment: (id: string, patch: Partial<Payment>) => void;
@@ -64,44 +77,85 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       saveEvent: (event) =>
         setData((current) => {
           const existing = current.events.find((item) => item.id === event.id);
-          if (!existing) return { ...current, events: upsert(current.events, { ...event, status: "DRAFT" }) };
+          if (!existing)
+            return {
+              ...current,
+              events: upsert(current.events, { ...event, status: "DRAFT" }),
+            };
           if (existing.status !== event.status) return current;
-          return { ...current, events: upsert(current.events, { ...event, status: existing.status }) };
+          return {
+            ...current,
+            events: upsert(current.events, {
+              ...event,
+              status: existing.status,
+            }),
+          };
         }),
       saveSubevent: (subevent) =>
         setData((current) => {
-          const existing = current.subevents.find((item) => item.id === subevent.id);
-          const parent = current.events.find((item) => item.id === subevent.eventId);
+          const existing = current.subevents.find(
+            (item) => item.id === subevent.id,
+          );
+          const parent = current.events.find(
+            (item) => item.id === subevent.eventId,
+          );
           if (!parent) return current;
           if (!existing) {
-            return { ...current, subevents: upsert(current.subevents, { ...subevent, status: "DRAFT" }) };
+            return {
+              ...current,
+              subevents: upsert(current.subevents, {
+                ...subevent,
+                status: "DRAFT",
+              }),
+            };
           }
           if (existing.status !== subevent.status) return current;
-          return { ...current, subevents: upsert(current.subevents, { ...subevent, status: existing.status }) };
+          return {
+            ...current,
+            subevents: upsert(current.subevents, {
+              ...subevent,
+              status: existing.status,
+            }),
+          };
         }),
       transitionEvent: (id, status, _selectedSubeventIds) =>
-        setData((current) => applyEventTransition(current, id, status) ?? current),
+        setData(
+          (current) => applyEventTransition(current, id, status) ?? current,
+        ),
       transitionSubevent: (id, status) =>
-        setData((current) => applySubeventTransition(current, id, status) ?? current),
+        setData(
+          (current) => applySubeventTransition(current, id, status) ?? current,
+        ),
       transitionForm: (id, status) =>
-        setData((current) => applyFormTransition(current, id, status) ?? current),
+        setData(
+          (current) => applyFormTransition(current, id, status) ?? current,
+        ),
       savePayment: (settings) =>
         setData((current) => {
           const { subevent } = parentOfSubevent(current, settings.subeventId);
           if (!subevent) return current;
-          return { ...current, paymentSettings: upsert(current.paymentSettings, settings) };
+          return {
+            ...current,
+            paymentSettings: upsert(current.paymentSettings, settings),
+          };
         }),
       saveTicket: (ticket) =>
         setData((current) => {
           const { subevent } = parentOfSubevent(current, ticket.subeventId);
           if (!subevent) return current;
-          return { ...current, ticketOptions: upsert(current.ticketOptions, ticket) };
+          return {
+            ...current,
+            ticketOptions: upsert(current.ticketOptions, ticket),
+          };
         }),
       archiveTicket: (id) =>
         setData((current) => {
           const ticket = current.ticketOptions.find((item) => item.id === id);
           if (!ticket) return current;
-          const { subevent, event } = parentOfSubevent(current, ticket.subeventId);
+          const { subevent, event } = parentOfSubevent(
+            current,
+            ticket.subeventId,
+          );
           if (!subevent || !event) return current;
           return {
             ...current,
@@ -112,19 +166,33 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         }),
       saveForm: (form, sections, questions) =>
         setData((current) => {
-          const version =
-            current.formVersions.find((candidate) => candidate.formId === form.id)
-            ?? { id: `version-${form.id}`, formId: form.id, versionNumber: 1, status: "DRAFT" as const };
+          const version = current.formVersions.find(
+            (candidate) => candidate.formId === form.id,
+          ) ?? {
+            id: `version-${form.id}`,
+            formId: form.id,
+            versionNumber: 1,
+            status: "DRAFT" as const,
+          };
           return {
             ...current,
-            forms: upsert(current.forms, { ...form, status: current.forms.find((item) => item.id === form.id)?.status ?? form.status }),
+            forms: upsert(current.forms, {
+              ...form,
+              status:
+                current.forms.find((item) => item.id === form.id)?.status ??
+                form.status,
+            }),
             formVersions: upsert(current.formVersions, version),
             formSections: [
-              ...current.formSections.filter((section) => section.formVersionId !== version.id),
+              ...current.formSections.filter(
+                (section) => section.formVersionId !== version.id,
+              ),
               ...sections,
             ],
             formQuestions: [
-              ...current.formQuestions.filter((question) => question.formVersionId !== version.id),
+              ...current.formQuestions.filter(
+                (question) => question.formVersionId !== version.id,
+              ),
               ...questions,
             ],
           };
@@ -133,7 +201,9 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         setData((current) => {
           const { subevent, event } = parentOfSubevent(current, subeventId);
           if (!subevent || !event) return current;
-          const versionToForm = new Map(current.formVersions.map((version) => [version.id, version.formId]));
+          const versionToForm = new Map(
+            current.formVersions.map((version) => [version.id, version.formId]),
+          );
           const ownedElsewhere = new Set(
             current.subeventForms
               .filter((assignment) => assignment.subeventId !== subeventId)
@@ -142,8 +212,15 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
           return {
             ...current,
             subeventForms: [
-              ...current.subeventForms.filter((assignment) => assignment.subeventId !== subeventId),
-              ...assignments.filter((assignment) => !ownedElsewhere.has(versionToForm.get(assignment.formVersionId))),
+              ...current.subeventForms.filter(
+                (assignment) => assignment.subeventId !== subeventId,
+              ),
+              ...assignments.filter(
+                (assignment) =>
+                  !ownedElsewhere.has(
+                    versionToForm.get(assignment.formVersionId),
+                  ),
+              ),
             ],
           };
         }),
@@ -151,31 +228,51 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         setData((current) => ({
           ...current,
           registrations: current.registrations.map((registration) =>
-            registration.id === id ? { ...registration, ...patch, updatedAt: new Date().toISOString() } : registration,
+            registration.id === id
+              ? {
+                  ...registration,
+                  ...patch,
+                  updatedAt: new Date().toISOString(),
+                }
+              : registration,
           ),
         })),
       updatePayment: (id, patch) =>
         setData((current) => ({
           ...current,
-          payments: current.payments.map((payment) => (payment.id === id ? { ...payment, ...patch } : payment)),
+          payments: current.payments.map((payment) =>
+            payment.id === id ? { ...payment, ...patch } : payment,
+          ),
         })),
       updateBundle: (id, patch) =>
         setData((current) => ({
           ...current,
-          bundleGroups: current.bundleGroups.map((bundle) => (bundle.id === id ? { ...bundle, ...patch } : bundle)),
+          bundleGroups: current.bundleGroups.map((bundle) =>
+            bundle.id === id ? { ...bundle, ...patch } : bundle,
+          ),
         })),
-      addNote: (note) => setData((current) => ({ ...current, registrationNotes: [...current.registrationNotes, note] })),
+      addNote: (note) =>
+        setData((current) => ({
+          ...current,
+          registrationNotes: [...current.registrationNotes, note],
+        })),
       addActivity: (activity) =>
-        setData((current) => ({ ...current, activityLogs: [...current.activityLogs, activity] })),
+        setData((current) => ({
+          ...current,
+          activityLogs: [...current.activityLogs, activity],
+        })),
     }),
     [data],
   );
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+  return (
+    <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
+  );
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useEventsStore = () => {
   const store = useContext(StoreContext);
-  if (!store) throw new Error("useEventsStore must be used inside EventsProvider");
+  if (!store)
+    throw new Error("useEventsStore must be used inside EventsProvider");
   return store;
 };

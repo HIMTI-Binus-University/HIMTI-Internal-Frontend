@@ -46,4 +46,13 @@ export const Api = {
   membershipResource: `${API_URL}/api/membership/resources/:id`,
   membershipResourceOrder: `${API_URL}/api/membership/periods/:id/resources/order`,
 
+  // Event hub administration endpoints
+  eventList: `${API_URL}/api/event/get-list`,
+  eventCreate: `${API_URL}/api/event/create-event`,
+  eventUpdate: `${API_URL}/api/event/update-event/:id`,
+  eventSubeventOrder: `${API_URL}/api/event/:id/sub-events/order`,
+  subeventList: `${API_URL}/api/sub-event/get-list`,
+  subeventDetail: `${API_URL}/api/sub-event/get-list/:id`,
+  subeventCreate: `${API_URL}/api/sub-event/create-sub-event`,
+  subeventUpdate: `${API_URL}/api/sub-event/update-sub-event/:id`,
 };
