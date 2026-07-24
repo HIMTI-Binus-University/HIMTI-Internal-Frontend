@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { authClient } from "@/utils/auth-client";
 import { HimtiPermission } from "@/types/route";
 import { useGetMe } from "@/api/auth/queries";
+import { needsRegistrationCompletion } from "@/utils/registration-access";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -24,6 +25,8 @@ export const ProtectedRoute = ({
     if (!isPending) {
       if (!session) {
         navigate("/login", { replace: true });
+      } else if (meData && needsRegistrationCompletion(meData)) {
+        navigate("/complete-registration", { replace: true });
       } else if (
         requiredPermission &&
         meData &&
@@ -40,6 +43,7 @@ export const ProtectedRoute = ({
   const isAuthorized =
     session &&
     meData &&
+    !needsRegistrationCompletion(meData) &&
     (!requiredPermission || meData.permissions.includes(requiredPermission));
 
   return isAuthorized ? <>{children}</> : null;
