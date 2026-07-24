@@ -31,11 +31,25 @@ const normalizeHost = (value: string) =>
 const isLocalHost = (hostname: string) =>
   hostname === "localhost" || hostname === "127.0.0.1";
 
+const getDefaultRegistrationAppUrl = () => {
+  if (typeof window !== "undefined") {
+    if (isLocalHost(window.location.hostname)) return "http://localhost:3001";
+    if (window.location.hostname.startsWith("dev-")) {
+      return "https://dev-registration.himtibinus.or.id";
+    }
+  }
+
+  return "https://registration.himtibinus.or.id";
+};
+
 export const runtimeConfig = {
   apiBaseUrl: trimTrailingSlash(readEnv("VITE_API_BASE_URL")),
   adminAppUrl: trimTrailingSlash(readEnv("VITE_ADMIN_APP_URL")),
   linkAppUrl: trimTrailingSlash(readEnv("VITE_LINK_APP_URL")),
   ofogUrl: trimTrailingSlash(readEnv("VITE_OFOG_URL")),
+  registrationAppUrl: trimTrailingSlash(
+    import.meta.env.VITE_REGISTRATION_APP_URL || getDefaultRegistrationAppUrl(),
+  ),
   localLinkBasePath: normalizeBasePath(readEnv("VITE_LOCAL_LINK_BASE_PATH")),
 };
 

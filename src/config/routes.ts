@@ -15,6 +15,7 @@ import SubeventWorkspacePage from "@/pages/events/subevents/workspace";
 import FormEditorPage from "@/pages/events/subevents/form-editor";
 import RegistrationReviewPage from "@/pages/events/subevents/registration-review";
 import BatchesPage from "@/pages/batches";
+import CompleteRegistrationPage from "@/pages/complete-registration";
 
 export const publicRoutes: Route[] = [
   {
@@ -32,6 +33,15 @@ export const publicRoutes: Route[] = [
     description: "Login Page",
     component: LoginPage,
     path: "/login",
+    isEnabled: true,
+    isProtected: false,
+  },
+  {
+    key: "router-complete-registration",
+    title: "Complete registration",
+    description: "Complete HIMTI membership registration",
+    component: CompleteRegistrationPage,
+    path: "/complete-registration",
     isEnabled: true,
     isProtected: false,
   },

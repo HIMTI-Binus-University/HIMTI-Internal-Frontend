@@ -36,6 +36,7 @@ jobs:
       api_base_url: ${{ steps.vars.outputs.api_base_url }}
       admin_app_url: ${{ steps.vars.outputs.admin_app_url }}
       link_app_url: ${{ steps.vars.outputs.link_app_url }}
+      registration_app_url: ${{ steps.vars.outputs.registration_app_url }}
 
     steps:
       - name: Checkout Code
@@ -66,6 +67,7 @@ jobs:
             echo "api_base_url=https://api.himtibinus.or.id" >> "$GITHUB_OUTPUT"
             echo "admin_app_url=https://admin.himtibinus.or.id" >> "$GITHUB_OUTPUT"
             echo "link_app_url=https://link.himtibinus.or.id" >> "$GITHUB_OUTPUT"
+            echo "registration_app_url=https://registration.himtibinus.or.id" >> "$GITHUB_OUTPUT"
           else
             echo "target=development" >> "$GITHUB_OUTPUT"
             echo "image_tag=dev" >> "$GITHUB_OUTPUT"
@@ -74,6 +76,7 @@ jobs:
             echo "api_base_url=https://dev-api.himtibinus.or.id" >> "$GITHUB_OUTPUT"
             echo "admin_app_url=https://dev-admin.himtibinus.or.id" >> "$GITHUB_OUTPUT"
             echo "link_app_url=https://dev-link.himtibinus.or.id" >> "$GITHUB_OUTPUT"
+            echo "registration_app_url=https://dev-registration.himtibinus.or.id" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Show deployment target
@@ -119,6 +122,7 @@ jobs:
             VITE_ADMIN_APP_URL=${{ steps.vars.outputs.admin_app_url }}
             VITE_LINK_APP_URL=${{ steps.vars.outputs.link_app_url }}
             VITE_OFOG_URL=https://ofog.himtibinus.or.id
+            VITE_REGISTRATION_APP_URL=${{ steps.vars.outputs.registration_app_url }}
             VITE_LOCAL_LINK_BASE_PATH=/link
 
   deploy:

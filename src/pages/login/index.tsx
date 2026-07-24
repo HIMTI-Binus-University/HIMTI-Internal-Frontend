@@ -7,18 +7,22 @@ import HimtiLogov2 from "@/components/logos/HimtiLogov2";
 import { Button } from "@/components/ui/button";
 import { getFirstAccessibleInternalRoute } from "@/config/routes";
 import { authClient } from "@/utils/auth-client";
+import { needsRegistrationCompletion } from "@/utils/registration-access";
 
 const TypingHelloAnimation = () => {
-  const greetings = useMemo(() => [
-    "Hello",
-    "你好",
-    "Hola",
-    "नमस्ते",
-    "Ciao",
-    "أهلاً",
-    "Olá",
-    "こんにちは",
-  ], []);
+  const greetings = useMemo(
+    () => [
+      "Hello",
+      "你好",
+      "Hola",
+      "नमस्ते",
+      "Ciao",
+      "أهلاً",
+      "Olá",
+      "こんにちは",
+    ],
+    [],
+  );
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [displayText, setDisplayText] = useState("");
@@ -69,6 +73,11 @@ export const LoginPage = () => {
 
   useEffect(() => {
     if (!session || isMeLoading || !meData) return;
+
+    if (needsRegistrationCompletion(meData)) {
+      navigate("/complete-registration", { replace: true });
+      return;
+    }
 
     const firstRoute = getFirstAccessibleInternalRoute(meData.permissions);
     navigate(firstRoute?.path ?? "/?warning=no-permissions", { replace: true });
@@ -151,7 +160,10 @@ export const LoginPage = () => {
 
             {errorMessage && (
               <div className="mt-6 flex gap-3 rounded-xl border border-semantic-danger-border bg-semantic-danger-background px-4 py-3 text-sm text-semantic-danger">
-                <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+                <AlertCircle
+                  aria-hidden="true"
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                />
                 <p>{errorMessage}</p>
               </div>
             )}
