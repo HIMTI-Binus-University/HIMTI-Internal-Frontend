@@ -1,125 +1,504 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { AlertTriangle, Archive, ArrowDown, ArrowUp, CalendarClock, CheckCircle2, ClipboardList, CreditCard, Download, Edit3, MapPin, MoreHorizontal, Plus, Search, Tags, Ticket, UsersRound } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import type { AxiosError } from "axios";
+import { CalendarClock, Edit3, ExternalLink, MapPin, Tags } from "lucide-react";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
+
+import {
+  useGetEvents,
+  useGetSubevent,
+  useUpdateSubevent,
+} from "@/api/events/queries";
 import { PageLayout } from "@/components/Utils";
+import { ImagePreview } from "@/components/events/ImagePreview";
 import { StatusBadge } from "@/components/events/StatusBadge";
-import { dateTime, percent, shortDate, titleCase } from "@/components/events/helpers";
-import { formatCurrency } from "@/data/events";
+import { dateTime, titleCase } from "@/components/events/helpers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { EmptyState, IconBox, ProgressBar, StatCard, Warning, WorkspaceHeader, WorkspaceTabs, type WorkspaceSection } from "../components";
-import { canMutateSubeventConfig, canSetFormStatus, canSetSubeventStatus, statusActionLabel, statusActions, statuses, subeventOpenBlockers } from "../lifecycle";
-import { useEventsStore } from "../store";
-import type { PaymentSetting, RegistrationStatus, SubeventStatus, SubeventType, TicketOption, TicketType } from "@/types/events";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type {
+  Subevent,
+  SubeventStatus,
+  SubeventType,
+  SubeventVisibility,
+} from "@/types/events";
+import { getSafeHttpUrl, normalizeHttpUrlInput } from "@/utils/http-url";
+import {
+  EmptyState,
+  IconBox,
+  WorkspaceHeader,
+  WorkspaceTabs,
+  type WorkspaceSection,
+} from "../components";
+import {
+  combineEventDateTime,
+  normalizeOptionalEventUrl,
+  splitEventDateTime,
+} from "../event-form";
 
-const textarea = "w-full rounded-lg border border-input bg-card px-3 py-2 text-sm leading-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const sections: WorkspaceSection[] = ["overview", "registration-setup", "forms", "payment", "registrations"];
+const sections: WorkspaceSection[] = [
+  "overview",
+  "registration-setup",
+  "forms",
+  "payment",
+  "registrations",
+];
+const statuses: SubeventStatus[] = ["DRAFT", "OPEN", "CLOSED", "CANCELLED"];
+const types: SubeventType[] = [
+  "MAIN_EVENT",
+  "WORKSHOP",
+  "SEMINAR",
+  "COMPETITION",
+  "WELCOMING_PARTY",
+  "DOMESTIC_STUDY_TOUR",
+  "INTERNATIONAL_STUDY_TOUR",
+  "COMPANY_VISIT",
+  "OTHER",
+];
+const visibilities: SubeventVisibility[] = [
+  "PUBLIC",
+  "INTERNAL",
+  "INVITE_ONLY",
+];
+const textarea =
+  "w-full rounded-lg border border-input bg-card px-3 py-2 text-sm leading-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const apiError = (error: unknown) =>
+  (error as AxiosError<{ message?: string; msg?: string }>).response?.data
+    ?.message ??
+  (error as AxiosError<{ msg?: string }>).response?.data?.msg ??
+  "Failed to save subevent.";
 
 export default function SubeventWorkspacePage() {
-  const { eventId, subeventId, section } = useParams(); const [searchParams, setSearchParams] = useSearchParams(); const store = useEventsStore(); const { data } = store; const event = data.events.find((item) => item.id === eventId); const subevent = data.subevents.find((item) => item.id === subeventId); const active = sections.includes(section as WorkspaceSection) ? section as WorkspaceSection : "overview";
-  if (!event || !subevent) return <Navigate to={event ? `/events/${event.id}` : "/events"} replace />;
-  const basePath = `/events/${event.id}/subevents/${subevent.id}`;
-  const changeStatus = (status: SubeventStatus) => {
-    if (!canSetSubeventStatus(data, subevent, status)) return;
-    store.transitionSubevent(subevent.id, status);
+  const { eventId = "", subeventId = "", section } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const eventsQuery = useGetEvents();
+  const subeventQuery = useGetSubevent(subeventId);
+  const update = useUpdateSubevent(eventId);
+  const [error, setError] = useState("");
+  const event = eventsQuery.data?.data.find((item) => item.id === eventId);
+  const subevent = subeventQuery.data;
+  const active = sections.includes(section as WorkspaceSection)
+    ? (section as WorkspaceSection)
+    : "overview";
+  if (
+    (!eventsQuery.isLoading && !event) ||
+    (subeventQuery.isError && !subevent)
+  )
+    return <Navigate to={event ? `/events/${eventId}` : "/events"} replace />;
+  if (!event || !subevent)
+    return (
+      <PageLayout icon={CalendarClock} title="Subevent workspace">
+        <p className="py-12 text-center text-sm text-muted-foreground">
+          Loading subevent...
+        </p>
+      </PageLayout>
+    );
+  const basePath = `/events/${eventId}/subevents/${subeventId}`;
+  const close = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("edit");
+    setSearchParams(next);
   };
-  const openBlockers = subeventOpenBlockers(data, subevent);
-  return <PageLayout icon={CalendarClock} title="Subevent workspace" breadcrumbs={["Tools", "Events", event.name, subevent.name]}><WorkspaceHeader eyebrow="Subevent" title={subevent.name} description={<><p>{subevent.publicDescription || "No public description configured."}</p><div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium"><span className="inline-flex items-center gap-1.5"><Tags aria-hidden="true" className="h-4 w-4 text-primary" />{titleCase(subevent.type)}</span><span className="inline-flex items-center gap-1.5"><CalendarClock aria-hidden="true" className="h-4 w-4 text-primary" />{dateTime(subevent.startsAt)}</span><span className="inline-flex items-center gap-1.5"><MapPin aria-hidden="true" className="h-4 w-4 text-primary" />{subevent.locationName || "Location pending"}</span></div></>} status={subevent.status} actions={<><Button size="sm" variant="edit" asChild><Link to={`${basePath}/overview?edit=true`}><Edit3 />Edit</Link></Button><Select value={subevent.status} onValueChange={(value) => changeStatus(value as SubeventStatus)}><SelectTrigger className="w-36" aria-label="Subevent status"><SelectValue /></SelectTrigger><SelectContent>{statuses.map((status) => <SelectItem key={status} value={status} disabled={status === "OPEN" && openBlockers.length > 0}>{status === "OPEN" && openBlockers.length > 0 ? `Open — ${openBlockers.join(", ")}` : titleCase(status)}</SelectItem>)}</SelectContent></Select></>} /><WorkspaceTabs basePath={basePath} active={active} />
-    {active === "overview" && <Overview subeventId={subevent.id} basePath={basePath} />}
-    {active === "registration-setup" && <RegistrationSetup subeventId={subevent.id} />}
-    {active === "forms" && <FormsSection subeventId={subevent.id} basePath={basePath} />}
-    {active === "payment" && <PaymentSection subeventId={subevent.id} />}
-    {active === "registrations" && <RegistrationsSection subeventId={subevent.id} basePath={basePath} />}
-    <EditSubeventDialog subeventId={subevent.id} open={searchParams.get("edit") === "true"} close={() => { const next = new URLSearchParams(searchParams); next.delete("edit"); setSearchParams(next); }} />
-  </PageLayout>;
+  const destination = getSafeHttpUrl(subevent.destinationUrl);
+
+  return (
+    <PageLayout
+      icon={CalendarClock}
+      title="Subevent workspace"
+      breadcrumbs={["Tools", "Events", event.name, subevent.name]}
+      backTo={`/events/${eventId}`}
+    >
+      <WorkspaceHeader
+        eyebrow="Subevent"
+        title={subevent.name}
+        description={
+          <>
+            <p>
+              {subevent.publicDescription ||
+                "No public description configured."}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-5 text-xs font-medium">
+              <span className="inline-flex items-center gap-1.5">
+                <Tags className="h-4 w-4 text-primary" />
+                {titleCase(subevent.type)} · {titleCase(subevent.visibility)}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarClock className="h-4 w-4 text-primary" />
+                {dateTime(subevent.date)}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="h-4 w-4 text-primary" />
+                {subevent.locationName || "Location pending"}
+              </span>
+            </div>
+          </>
+        }
+        status={subevent.status}
+        actions={
+          <>
+            <Button variant="edit" asChild>
+              <Link to={`${basePath}/overview?edit=true`}>
+                <Edit3 />
+                Edit
+              </Link>
+            </Button>
+            {destination && (
+              <Button size="sm" variant="secondary" asChild>
+                <a href={destination} target="_blank" rel="noreferrer">
+                  <ExternalLink />
+                  Destination
+                </a>
+              </Button>
+            )}
+            <Select
+              value={subevent.status}
+              onValueChange={(status) =>
+                update.mutate(
+                  { id: subevent.id, status: status as SubeventStatus },
+                  { onError: (failure) => setError(apiError(failure)) },
+                )
+              }
+            >
+              <SelectTrigger className="w-36" aria-label="Subevent status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {statuses.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {status}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        }
+      />
+      <WorkspaceTabs basePath={basePath} active={active} />
+      {error && (
+        <p role="alert" className="text-sm text-semantic-danger">
+          {error}
+        </p>
+      )}
+      {active === "overview" ? (
+        <Overview subevent={subevent} />
+      ) : (
+        <PrototypeNotice section={active} />
+      )}
+      <EditDialog
+        subevent={subevent}
+        open={searchParams.get("edit") === "true"}
+        close={close}
+      />
+    </PageLayout>
+  );
 }
 
-const subeventTypes: SubeventType[] = ["MAIN_EVENT", "WORKSHOP", "SEMINAR", "COMPETITION", "WELCOMING_PARTY", "DOMESTIC_STUDY_TOUR", "INTERNATIONAL_STUDY_TOUR", "COMPANY_VISIT", "OTHER"];
-const EditSubeventDialog = ({ subeventId, open, close }: { subeventId: string; open: boolean; close: () => void }) => {
-  const store = useEventsStore();
-  const subevent = store.data.subevents.find((item) => item.id === subeventId)!;
-  const mutable = true;
-  const save = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const values = new FormData(event.currentTarget);
-    store.saveSubevent({ ...subevent, name: String(values.get("name")), publicDescription: String(values.get("publicDescription")), privateDescription: String(values.get("privateDescription")), type: String(values.get("type")) as SubeventType, startsAt: String(values.get("startsAt")), endsAt: String(values.get("endsAt")), locationName: String(values.get("locationName")), locationAddress: String(values.get("locationAddress")), locationUrl: String(values.get("locationUrl")), capacity: Number(values.get("capacity")) || undefined, maxTicketsPerUser: Number(values.get("maxTicketsPerUser")) || 1, updatedAt: new Date().toISOString(), updatedBy: "admin-1" });
-    close();
+const Overview = ({ subevent }: { subevent: Subevent }) => (
+  <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
+    <ImagePreview
+      src={subevent.posterUrl}
+      alt={subevent.name}
+      className="h-80 w-full rounded-xl border"
+    />
+    <Card>
+      <CardHeader>
+        <CardTitle>Published card content</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div>
+          <StatusBadge status={subevent.status} />
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+            {subevent.publicDescription || "No public description configured."}
+          </p>
+        </div>
+        <dl className="grid gap-3 sm:grid-cols-2">
+          <Info icon={CalendarClock} label="Date">
+            {dateTime(subevent.date)}
+          </Info>
+          <Info icon={MapPin} label="Location">
+            {subevent.locationName || "Pending"}
+          </Info>
+          <Info icon={Tags} label="Visibility">
+            {titleCase(subevent.visibility)}
+          </Info>
+          <Info icon={Tags} label="Display position">
+            {subevent.position + 1}
+          </Info>
+        </dl>
+      </CardContent>
+    </Card>
+  </div>
+);
+const Info = ({
+  icon,
+  label,
+  children,
+}: {
+  icon: React.ComponentType;
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <div className="flex gap-3 rounded-lg border bg-muted/20 p-3">
+    <IconBox icon={icon} className="h-9 w-9" />
+    <div>
+      <dt className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="mt-1 text-sm font-medium">{children}</dd>
+    </div>
+  </div>
+);
+const PrototypeNotice = ({ section }: { section: string }) => (
+  <EmptyState
+    title={titleCase(section)}
+    description="Coming soon!"
+  />
+);
+
+const EditDialog = ({
+  subevent,
+  open,
+  close,
+}: {
+  subevent: Subevent;
+  open: boolean;
+  close: () => void;
+}) => {
+  const update = useUpdateSubevent(subevent.eventId);
+  const [error, setError] = useState("");
+  const [poster, setPoster] = useState(subevent.posterUrl ?? "");
+  const initialDateTime = splitEventDateTime(subevent.date);
+  useEffect(
+    () => setPoster(subevent.posterUrl ?? ""),
+    [subevent.posterUrl, open],
+  );
+  const save = (formEvent: FormEvent<HTMLFormElement>) => {
+    formEvent.preventDefault();
+    const values = new FormData(formEvent.currentTarget);
+    const name = String(values.get("name") ?? "").trim();
+    if (!name) return setError("Subevent name is required.");
+    try {
+      update.mutate(
+        {
+          id: subevent.id,
+          name,
+          publicDescription: String(
+            values.get("publicDescription") ?? "",
+          ).trim(),
+          privateDescription: String(
+            values.get("privateDescription") ?? "",
+          ).trim(),
+          date: combineEventDateTime(values.get("date"), values.get("time")),
+          type: String(values.get("type")) as SubeventType,
+          visibility: String(values.get("visibility")) as SubeventVisibility,
+          locationName: String(values.get("locationName") ?? "").trim(),
+          locationUrl: normalizeOptionalEventUrl(
+            values.get("locationUrl"),
+            "location",
+          ),
+          posterUrl: normalizeOptionalEventUrl(
+            values.get("posterUrl"),
+            "poster",
+          ),
+          destinationUrl: normalizeOptionalEventUrl(
+            values.get("destinationUrl"),
+            "destination",
+          ),
+          price: Number(values.get("price")) || 0,
+          maxParticipants: Number(values.get("maxParticipants")) || undefined,
+          maxTicketsPerUser:
+            Number(values.get("maxTicketsPerUser")) || undefined,
+        },
+        { onSuccess: close, onError: (failure) => setError(apiError(failure)) },
+      );
+    } catch (failure) {
+      setError((failure as Error).message);
+    }
   };
-  return <Dialog open={open} onOpenChange={(value) => !value && close()}><DialogContent className="max-h-[calc(100vh-2rem)] max-w-2xl overflow-y-auto"><DialogHeader><DialogTitle>Edit subevent details</DialogTitle><DialogDescription>Update the details from the first step of subevent setup.</DialogDescription></DialogHeader><form className="grid gap-4 sm:grid-cols-2" onSubmit={save}><fieldset disabled={!mutable} className="contents"><label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold">Subevent name</span><Input name="name" defaultValue={subevent.name} required /></label><label className="space-y-2"><span className="text-sm font-semibold">Public description</span><textarea name="publicDescription" defaultValue={subevent.publicDescription} rows={4} className={textarea} /></label><label className="space-y-2"><span className="text-sm font-semibold">Private description</span><textarea name="privateDescription" defaultValue={subevent.privateDescription} rows={4} className={textarea} /></label><label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold">Subevent type</span><Select name="type" defaultValue={subevent.type}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{subeventTypes.map((type) => <SelectItem key={type} value={type}>{titleCase(type)}</SelectItem>)}</SelectContent></Select></label><label className="space-y-2"><span className="text-sm font-semibold">Starts at</span><Input name="startsAt" type="datetime-local" defaultValue={subevent.startsAt.slice(0, 16)} /></label><label className="space-y-2"><span className="text-sm font-semibold">Ends at</span><Input name="endsAt" type="datetime-local" defaultValue={subevent.endsAt.slice(0, 16)} /></label><label className="space-y-2"><span className="text-sm font-semibold">Venue or platform</span><Input name="locationName" defaultValue={subevent.locationName} /></label><label className="space-y-2"><span className="text-sm font-semibold">Physical address</span><Input name="locationAddress" defaultValue={subevent.locationAddress} /></label><label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold">Map or meeting URL</span><Input name="locationUrl" type="url" defaultValue={subevent.locationUrl} /></label><label className="space-y-2"><span className="text-sm font-semibold">Capacity</span><Input name="capacity" type="number" min="1" defaultValue={subevent.capacity} /></label><label className="space-y-2"><span className="text-sm font-semibold">Maximum tickets per participant</span><Input name="maxTicketsPerUser" type="number" min="1" defaultValue={subevent.maxTicketsPerUser} /></label></fieldset><div className="flex justify-end gap-2 sm:col-span-2"><Button type="button" variant="secondary" onClick={close}>Cancel</Button><Button disabled={!mutable}>Save details</Button></div></form></DialogContent></Dialog>;
+  return (
+    <Dialog open={open} onOpenChange={(value) => !value && close()}>
+      <DialogContent className="max-h-[calc(100vh-2rem)] max-w-3xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit subevent content</DialogTitle>
+          <DialogDescription>
+            Update persisted event-hub content and required backend fields.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="grid gap-4 sm:grid-cols-2"
+          onSubmit={save}
+          onChange={() => setError("")}
+        >
+          <Field label="Subevent name" className="sm:col-span-2">
+            <Input name="name" defaultValue={subevent.name} />
+          </Field>
+          <Field label="Public description">
+            <textarea
+              name="publicDescription"
+              defaultValue={subevent.publicDescription ?? ""}
+              rows={4}
+              className={textarea}
+            />
+          </Field>
+          <Field label="Private description">
+            <textarea
+              name="privateDescription"
+              defaultValue={subevent.privateDescription ?? ""}
+              rows={4}
+              className={textarea}
+            />
+          </Field>
+          <Field label="Date">
+            <Input
+              name="date"
+              type="date"
+              defaultValue={initialDateTime.date}
+            />
+          </Field>
+          <Field label="Time">
+            <Input
+              name="time"
+              type="time"
+              defaultValue={initialDateTime.time}
+            />
+          </Field>
+          <Field label="Type">
+            <Select name="type" defaultValue={subevent.type}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {types.map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {titleCase(item)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Visibility">
+            <Select name="visibility" defaultValue={subevent.visibility}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {visibilities.map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {titleCase(item)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Venue">
+            <Input
+              name="locationName"
+              defaultValue={subevent.locationName ?? ""}
+            />
+          </Field>
+          <Field label="Location URL">
+            <Input
+              name="locationUrl"
+              defaultValue={subevent.locationUrl ?? ""}
+            />
+          </Field>
+          <Field label="Destination URL">
+            <Input
+              name="destinationUrl"
+              defaultValue={subevent.destinationUrl ?? ""}
+            />
+          </Field>
+          <Field label="Poster URL" className="sm:col-span-2">
+            <Input
+              name="posterUrl"
+              value={poster}
+              onChange={(change) => setPoster(change.target.value)}
+            />
+          </Field>
+          <ImagePreview
+            src={
+              poster
+                ? (() => {
+                    try {
+                      return normalizeHttpUrlInput(poster);
+                    } catch {
+                      return null;
+                    }
+                  })()
+                : null
+            }
+            alt="Poster preview"
+            className="h-40 w-full rounded-xl border sm:col-span-2"
+          />
+          <Field label="Price">
+            <Input
+              name="price"
+              type="number"
+              min="0"
+              defaultValue={subevent.price}
+            />
+          </Field>
+          <Field label="Maximum participants">
+            <Input
+              name="maxParticipants"
+              type="number"
+              min="1"
+              defaultValue={subevent.maxParticipants ?? ""}
+            />
+          </Field>
+          <Field label="Maximum tickets per user">
+            <Input
+              name="maxTicketsPerUser"
+              type="number"
+              min="1"
+              defaultValue={subevent.maxTicketsPerUser ?? ""}
+            />
+          </Field>
+          {error && (
+            <p
+              role="alert"
+              className="text-sm text-semantic-danger sm:col-span-2"
+            >
+              {error}
+            </p>
+          )}
+          <div className="flex justify-end gap-2 sm:col-span-2">
+            <Button type="button" variant="secondary" onClick={close}>
+              Cancel
+            </Button>
+            <Button disabled={update.isPending}>
+              {update.isPending ? "Saving..." : "Save changes"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 };
-
-const Overview = ({ subeventId, basePath: _basePath }: { subeventId: string; basePath: string }) => {
-  const { data } = useEventsStore();
-  const subevent = data.subevents.find((item) => item.id === subeventId)!;
-  const registrations = data.registrations.filter((item) => item.subeventId === subeventId);
-  const registrationIds = new Set(registrations.map((item) => item.id));
-  const payments = data.payments.filter((item) => registrationIds.has(item.registrationId));
-  const tickets = data.ticketOptions.filter((item) => item.subeventId === subeventId);
-  const bundles = data.bundleGroups.filter((bundle) => tickets.some((ticket) => ticket.id === bundle.ticketOptionId));
-  const occupied = registrations.filter((item) => !["DRAFT", "CANCELLED"].includes(item.status)).length;
-  const remaining = subevent.capacity === undefined ? "Unlimited" : Math.max(0, subevent.capacity - occupied);
-
-  return <div className="space-y-6"><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><StatCard label="Registrations" value={registrations.length} detail={registrations.filter((item) => item.status === "PENDING_REVIEW").length + " awaiting review"} icon={UsersRound} /><StatCard label="Remaining capacity" value={remaining} detail={occupied + " occupied"} icon={Ticket} /><StatCard label="Payments to review" value={payments.filter((item) => item.status === "PENDING_REVIEW").length} detail={payments.filter((item) => item.status === "REJECTED").length + " rejected"} icon={CreditCard} tone={payments.some((item) => item.status === "PENDING_REVIEW") ? "warning" : "default"} /><StatCard label="Bundles to validate" value={bundles.filter((item) => item.status === "PENDING_VALIDATION").length} detail={bundles.filter((item) => item.status === "WAITING_FOR_MEMBERS").length + " waiting for members"} icon={UsersRound} /></div><div className="grid gap-6 lg:grid-cols-[1.2fr_.8fr]"><Card><CardHeader><CardTitle>Subevent information</CardTitle></CardHeader><CardContent className="space-y-5"><p className="text-sm leading-6 text-muted-foreground">{subevent.publicDescription || "No public description configured."}</p><dl className="grid gap-3 sm:grid-cols-2"><InfoItem icon={CalendarClock} label="Schedule">{dateTime(subevent.startsAt)} – {dateTime(subevent.endsAt)}</InfoItem><InfoItem icon={MapPin} label="Location">{subevent.locationName || "Pending"}<span className="block font-normal text-muted-foreground">{subevent.locationAddress}</span></InfoItem><InfoItem icon={Ticket} label="Registration period">{shortDate(subevent.registrationOpensAt)} – {shortDate(subevent.registrationClosesAt)}</InfoItem><InfoItem icon={ClipboardList} label="Answer lock-in">{dateTime(subevent.editLockAt)}</InfoItem></dl><ProgressBar value={percent(occupied, subevent.capacity)} label={occupied + " of " + (subevent.capacity ?? "unlimited") + " occupied"} /></CardContent></Card><Card><CardHeader><CardTitle>Registration health</CardTitle></CardHeader><CardContent className="space-y-4">{[["Pending review", registrations.filter((item) => item.status === "PENDING_REVIEW").length], ["Confirmed", registrations.filter((item) => item.status === "CONFIRMED").length], ["Requires correction", registrations.filter((item) => item.status === "REQUIRES_CORRECTION").length], ["Rejected or cancelled", registrations.filter((item) => ["REJECTED", "CANCELLED"].includes(item.status)).length]].map(([label, count]) => <div key={label} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0"><span className="text-sm text-muted-foreground">{label}</span><span className="font-bold tabular-nums">{count}</span></div>)}</CardContent></Card></div></div>;
-};
-
-const InfoItem = ({ icon, label, children }: { icon: React.ComponentType; label: string; children: React.ReactNode }) => <div className="flex gap-3 rounded-lg border border-border bg-muted/20 p-3"><IconBox icon={icon} className="h-9 w-9" /><div className="min-w-0"><dt className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</dt><dd className="mt-1 text-sm font-medium">{children}</dd></div></div>;
-
-
-const RegistrationSetup = ({ subeventId }: { subeventId: string }) => { const store = useEventsStore(); const { data } = store; const subevent = data.subevents.find((item) => item.id === subeventId)!; const parent = store.data.events.find((item) => item.id === subevent.eventId)!; const mutable = true; const registrations = data.registrations.filter((item) => item.subeventId === subeventId); const occupied = registrations.filter((item) => !["DRAFT", "CANCELLED"].includes(item.status)).length; const tickets = data.ticketOptions.filter((item) => item.subeventId === subeventId); const [saved, setSaved] = useState(false); const [autoConfirm, setAutoConfirm] = useState(subevent.autoConfirmWhenComplete); const saveRules = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const values = new FormData(event.currentTarget); const capacity = Number(values.get("capacity")); if (capacity < occupied) return; store.saveSubevent({ ...subevent, registrationOpensAt: String(values.get("opens")), registrationClosesAt: String(values.get("closes")), editLockAt: String(values.get("lock")), capacity, autoConfirmWhenComplete: autoConfirm, updatedAt: new Date().toISOString() }); setSaved(true); };
-  void parent;
-  const createTicket = () => store.saveTicket({ id: `ticket-${Date.now()}`, subeventId, name: "New ticket", type: "INDIVIDUAL", description: "", price: 0, currency: "IDR", capacity: subevent.capacity, status: "DRAFT" });
-  return <div className="space-y-6"><Card><CardHeader><CardTitle>Registration rules</CardTitle></CardHeader><CardContent><form className="grid gap-5 md:grid-cols-2" onSubmit={saveRules}><fieldset disabled={!mutable} className="contents"><label className="space-y-2"><span className="text-sm font-semibold">Registration opens</span><Input name="opens" type="datetime-local" defaultValue={subevent.registrationOpensAt?.slice(0, 16)} /></label><label className="space-y-2"><span className="text-sm font-semibold">Registration closes</span><Input name="closes" type="datetime-local" defaultValue={subevent.registrationClosesAt?.slice(0, 16)} /></label><label className="space-y-2"><span className="text-sm font-semibold">Answer editing locks</span><Input name="lock" type="datetime-local" defaultValue={subevent.editLockAt?.slice(0, 16)} /></label><label className="space-y-2"><span className="text-sm font-semibold">Capacity</span><Input name="capacity" type="number" min={occupied} defaultValue={subevent.capacity} /><span className="block text-xs text-muted-foreground">Cannot be below {occupied} occupied slots.</span></label><div className="flex items-center justify-between gap-4 rounded-lg border border-border p-4 md:col-span-2"><span><span className="block text-sm font-semibold">Automatically confirm complete registrations</span><span className="text-xs text-muted-foreground">Only applies when no manual review requirement remains.</span></span><Switch label="Automatically confirm complete registrations" checked={autoConfirm} disabled={!mutable} onCheckedChange={setAutoConfirm} /></div></fieldset><div className="flex items-center justify-end gap-3 md:col-span-2"><span role="status" className="text-sm text-semantic-success">{saved && "Registration rules saved"}</span><Button disabled={!mutable}>Save changes</Button></div></form></CardContent></Card><Card><CardHeader><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center"><div><CardTitle>Ticket and bundle options</CardTitle><p className="mt-1 text-sm text-muted-foreground">Prices here define the amount participants must pay.</p></div><Button size="sm" disabled={!mutable} onClick={createTicket}><Plus />Create ticket</Button></div></CardHeader><CardContent className="space-y-4">{tickets.map((ticket) => <TicketEditor key={ticket.id} ticket={ticket} />)}{!tickets.length && <EmptyState icon={Ticket} title="No ticket options" description="Create an individual or bundle ticket before opening registration." />}</CardContent></Card></div>; };
-
-const TicketEditor = ({ ticket }: { ticket: TicketOption }) => { const store = useEventsStore(); const sub = store.data.subevents.find((item) => item.id === ticket.subeventId)!; const parent = store.data.events.find((item) => item.id === sub.eventId)!; void parent; const mutable = true; const [editing, setEditing] = useState(false); const save = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const values = new FormData(event.currentTarget); store.saveTicket({ ...ticket, name: String(values.get("name")), description: String(values.get("description")), type: String(values.get("type")) as TicketType, price: Number(values.get("price")), capacity: Number(values.get("capacity")) || undefined, bundleSize: String(values.get("type")) === "BUNDLE" ? Number(values.get("bundleSize")) || 2 : undefined, salesOpensAt: String(values.get("opens")) || undefined, salesClosesAt: String(values.get("closes")) || undefined }); setEditing(false); };
-  return <div className="rounded-xl border border-border p-4"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start"><div><div className="flex flex-wrap gap-2"><p className="font-bold">{ticket.name}</p><StatusBadge status={ticket.status} /><span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">{titleCase(ticket.type)}</span></div><p className="mt-1 text-sm text-muted-foreground">{ticket.description || "No description"}</p></div><div className="flex items-center gap-2"><p className="mr-2 font-bold text-primary">{formatCurrency(ticket.price)}</p><Button size="sm" variant="secondary" disabled={!mutable} onClick={() => setEditing((value) => !value)}><Edit3 />Edit</Button><Button size="sm" variant="delete" disabled={!mutable || ticket.status === "ARCHIVED"} onClick={() => store.archiveTicket(ticket.id)}><Archive />Archive</Button></div></div><div className="mt-4 grid gap-3 text-sm sm:grid-cols-3"><p><span className="text-xs text-muted-foreground">Capacity</span><br /><strong>{ticket.capacity ?? "Unlimited"}</strong></p><p><span className="text-xs text-muted-foreground">Sales period</span><br /><strong>{shortDate(ticket.salesOpensAt)} – {shortDate(ticket.salesClosesAt)}</strong></p><p><span className="text-xs text-muted-foreground">Bundle size</span><br /><strong>{ticket.bundleSize ?? "Not applicable"}</strong></p></div>{editing && <form className="mt-5 grid gap-4 border-t border-border pt-5 md:grid-cols-2" onSubmit={save}><fieldset disabled={!mutable} className="contents"><label className="space-y-2"><span className="text-sm font-semibold">Name</span><Input name="name" defaultValue={ticket.name} /></label><label className="space-y-2"><span className="text-sm font-semibold">Type</span><Select items={{ INDIVIDUAL: "Individual", BUNDLE: "Bundle" }} name="type" defaultValue={ticket.type}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="INDIVIDUAL">Individual</SelectItem><SelectItem value="BUNDLE">Bundle</SelectItem></SelectContent></Select></label><label className="space-y-2"><span className="text-sm font-semibold">Description</span><Input name="description" defaultValue={ticket.description} /></label><label className="space-y-2"><span className="text-sm font-semibold">Price</span><Input name="price" type="number" min="0" defaultValue={ticket.price} /></label><label className="space-y-2"><span className="text-sm font-semibold">Capacity</span><Input name="capacity" type="number" min="1" defaultValue={ticket.capacity} /></label><label className="space-y-2"><span className="text-sm font-semibold">Required bundle members</span><Input name="bundleSize" type="number" min="2" defaultValue={ticket.bundleSize} /></label><label className="space-y-2"><span className="text-sm font-semibold">Sales open</span><Input name="opens" type="datetime-local" defaultValue={ticket.salesOpensAt?.slice(0, 16)} /></label><label className="space-y-2"><span className="text-sm font-semibold">Sales close</span><Input name="closes" type="datetime-local" defaultValue={ticket.salesClosesAt?.slice(0, 16)} /></label></fieldset><div className="flex justify-end gap-2 md:col-span-2"><Button type="button" variant="secondary" onClick={() => setEditing(false)}>Cancel</Button><Button disabled={!mutable}>Save ticket</Button></div></form>}</div>; };
-
-const FormsSection = ({ subeventId, basePath }: { subeventId: string; basePath: string }) => {
-  const store = useEventsStore();
-  const { data } = store;
-  const subevent = data.subevents.find((item) => item.id === subeventId)!; const parent = store.data.events.find((item) => item.id === subevent.eventId)!; const mutable = canMutateSubeventConfig(parent, subevent);
-  const forms = data.subeventForms.filter((item) => item.subeventId === subeventId).sort((a, b) => a.orderIndex - b.orderIndex);
-  const [movedFormId, setMovedFormId] = useState<string>();
-  const formRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
-  useEffect(() => {
-    if (!movedFormId) return;
-    const form = formRefs.current[movedFormId];
-    form?.focus();
-    form?.scrollIntoView?.({ block: "nearest" });
-  }, [forms, movedFormId]);
-
-  const reorder = (id: string, direction: number) => {
-    const index = forms.findIndex((item) => item.id === id);
-    const target = index + direction;
-    if (!mutable || target < 0 || target >= forms.length) return;
-    const next = [...forms];
-    [next[index], next[target]] = [next[target], next[index]];
-    setMovedFormId(id);
-    store.saveAssignments(subeventId, next.map((item, orderIndex) => ({ ...item, orderIndex })));
-  };
-
-  return <div className="space-y-6"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><h2 className="text-xl font-bold">Forms</h2><p className="mt-1 text-sm text-muted-foreground">Forms created here belong only to this subevent.</p>{mutable && <p className="mt-1 text-xs text-muted-foreground">Required forms must be published before this subevent can go live.</p>}</div><Button disabled={!mutable} asChild={mutable}>{!mutable ? <><Plus />Create form</> : <Link to={basePath + "/forms/new"}><Plus />Create form</Link>}</Button></div>{forms.length ? <div className="space-y-4">{forms.map((assignment, index) => { const version = data.formVersions.find((item) => item.id === assignment.formVersionId)!; const form = data.forms.find((item) => item.id === version.formId)!; const count = data.formQuestions.filter((question) => question.formVersionId === version.id).length; const submissions = data.formSubmissions.filter((submission) => submission.subeventFormId === assignment.id); return <Card key={assignment.id} ref={(node) => { formRefs.current[assignment.id] = node; }} tabIndex={-1} className={movedFormId === assignment.id ? "border-primary ring-2 ring-primary/20" : undefined}><CardContent className="p-5"><div className="flex flex-col justify-between gap-4 lg:flex-row"><div><div className="flex flex-wrap gap-2"><h3 className="font-bold">{form.name}</h3><StatusBadge status={form.status} /><span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">{assignment.isRequired ? "Required" : "Optional"}</span></div><p className="mt-1 text-sm text-muted-foreground">{titleCase(assignment.purpose)} · {titleCase(assignment.completionStage)} · {count} questions</p><p className="mt-2 text-xs text-muted-foreground">{submissions.filter((item) => item.status !== "DRAFT").length} completed · due {shortDate(assignment.dueAt)}</p></div><div className="flex flex-wrap gap-2"><Button size="sm" variant="secondary" aria-label={"Move " + form.name + " up"} disabled={!mutable || index === 0} onClick={() => reorder(assignment.id, -1)}><ArrowUp /></Button><Button size="sm" variant="secondary" aria-label={"Move " + form.name + " down"} disabled={!mutable || index === forms.length - 1} onClick={() => reorder(assignment.id, 1)}><ArrowDown /></Button><Button size="sm" variant="edit" disabled={!mutable} asChild={mutable}>{!mutable ? <><Edit3 />Edit</> : <Link to={basePath + "/forms/" + form.id}><Edit3 />Edit</Link>}</Button><Button size="sm" variant="delete" disabled={!canSetFormStatus(parent, subevent, form, form.status === "ARCHIVED" ? "DRAFT" : "ARCHIVED") && form.status !== "ARCHIVED"} onClick={() => store.transitionForm(form.id, form.status === "ARCHIVED" ? "DRAFT" : "ARCHIVED")}><Archive />{form.status === "ARCHIVED" ? "Unarchive" : "Archive"}</Button>{statusActions(form.status).map((status) => <Button key={status} size="sm" variant="secondary" disabled={!canSetFormStatus(parent, subevent, form, status)} onClick={() => store.transitionForm(form.id, status)}>{statusActionLabel(form.status, status)}</Button>)}<DropdownMenu><DropdownMenuTrigger asChild><Button size="sm" variant="ghost" disabled={!mutable} aria-label={"Form options for " + form.name}><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem disabled={!mutable} onSelect={() => store.saveAssignments(subeventId, forms.map((item) => item.id === assignment.id ? { ...item, isRequired: !item.isRequired } : item))}>Mark {assignment.isRequired ? "optional" : "required"}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></div></CardContent></Card>; })}</div> : <EmptyState icon={ClipboardList} title="No forms yet" description="Create a form for this subevent to collect registration information." action={<Button disabled={!mutable} asChild={mutable}>{!mutable ? <><Plus />Create form</> : <Link to={basePath + "/forms/new"}><Plus />Create form</Link>}</Button>} />}</div>;
-};
-
-
-const PaymentSection = ({ subeventId }: { subeventId: string }) => {
-  const store = useEventsStore();
-  const { data } = store;
-  const existing = data.paymentSettings.find((item) => item.subeventId === subeventId) ?? { id: "payment-" + subeventId, subeventId, isPaymentRequired: false, acceptedMimeTypes: ["image/jpeg", "image/png"], maximumFileSizeBytes: 5_000_000 };
-  const [settings, setSettings] = useState<PaymentSetting>(existing);
-  const [saved, setSaved] = useState(false);
-  const subevent = data.subevents.find((item) => item.id === subeventId)!; const parent = data.events.find((item) => item.id === subevent.eventId)!; const mutable = canMutateSubeventConfig(parent, subevent);
-  const tickets = data.ticketOptions.filter((item) => item.subeventId === subeventId);
-  const save = (event: FormEvent) => { event.preventDefault(); store.savePayment(settings); setSaved(true); };
-
-  return <div className="grid gap-6 lg:grid-cols-[1fr_22rem]"><Card><CardHeader><CardTitle>Payment and proof requirements</CardTitle><p className="text-sm text-muted-foreground">Configure where participants pay. Ticket and bundle prices remain authoritative.</p></CardHeader><CardContent><form className="space-y-5" onSubmit={save}><fieldset disabled={!mutable} className="space-y-5"><div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/30 p-4"><span><span className="block font-semibold">Payment required</span><span className="text-sm text-muted-foreground">Turn off for free registration.</span></span><Switch label="Payment required" checked={settings.isPaymentRequired} disabled={!mutable} onCheckedChange={(checked) => { setSettings((current) => ({ ...current, isPaymentRequired: checked })); setSaved(false); }} /></div>{settings.isPaymentRequired && <div className="grid gap-5 md:grid-cols-2"><label className="space-y-2"><span className="text-sm font-semibold">Bank or payment destination</span><Input value={settings.bankName ?? ""} onChange={(event) => setSettings((current) => ({ ...current, bankName: event.target.value }))} /></label><label className="space-y-2"><span className="text-sm font-semibold">Account name</span><Input value={settings.accountName ?? ""} onChange={(event) => setSettings((current) => ({ ...current, accountName: event.target.value }))} /></label><label className="space-y-2"><span className="text-sm font-semibold">Account number</span><Input value={settings.accountNumber ?? ""} onChange={(event) => setSettings((current) => ({ ...current, accountNumber: event.target.value }))} /></label><label className="space-y-2"><span className="text-sm font-semibold">Proof deadline</span><Input type="datetime-local" value={settings.proofDeadline?.slice(0, 16) ?? ""} onChange={(event) => setSettings((current) => ({ ...current, proofDeadline: event.target.value }))} /></label><label className="space-y-2 md:col-span-2"><span className="text-sm font-semibold">Instructions</span><textarea className={textarea} rows={5} value={settings.paymentInstructions ?? ""} onChange={(event) => setSettings((current) => ({ ...current, paymentInstructions: event.target.value }))} /></label></div>}<div className="flex items-center justify-end gap-3"><span role="status" className="text-sm text-semantic-success">{saved && "Payment setup saved"}</span><Button disabled={!mutable}>Save changes</Button></div></fieldset></form></CardContent></Card><aside><Card><CardHeader><CardTitle className="text-base">Current ticket prices</CardTitle></CardHeader><CardContent className="space-y-3">{tickets.map((ticket) => <div key={ticket.id} className="flex justify-between gap-3 text-sm"><span>{ticket.name}</span><strong>{formatCurrency(ticket.price)}</strong></div>)}{!tickets.length && <Warning>No tickets are configured.</Warning>}</CardContent></Card></aside></div>;
-};
-
-
-const RegistrationsSection = ({ subeventId, basePath }: { subeventId: string; basePath: string }) => { const { data } = useEventsStore(); const [query, setQuery] = useState(""); const [status, setStatus] = useState<RegistrationStatus | "ALL">("ALL"); const [ticket, setTicket] = useState("ALL"); const [selected, setSelected] = useState<string[]>([]); const registrations = data.registrations.filter((item) => item.subeventId === subeventId); const tickets = data.ticketOptions.filter((item) => item.subeventId === subeventId); const rows = useMemo(() => registrations.filter((registration) => { const user = data.users.find((item) => item.id === registration.userId); return `${user?.name} ${user?.email}`.toLowerCase().includes(query.toLowerCase()) && (status === "ALL" || registration.status === status) && (ticket === "ALL" || registration.ticketOptionId === ticket); }), [data.users, query, registrations, status, ticket]); const exportRows = () => { const csv = ["Participant,Email,Ticket,Registration Status,Payment Status", ...rows.map((registration) => { const user = data.users.find((item) => item.id === registration.userId); const payment = data.payments.find((item) => item.registrationId === registration.id); return [user?.name, user?.email, registration.ticketNameSnapshot, registration.status, payment?.status].map((value) => `"${value ?? ""}"`).join(","); })].join("\n"); const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); const anchor = document.createElement("a"); anchor.href = url; anchor.download = `registrations-${subeventId}.csv`; anchor.click(); URL.revokeObjectURL(url); };
-  return <div className="space-y-5"><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><StatCard label="Total" value={registrations.length} icon={UsersRound} /><StatCard label="Pending review" value={registrations.filter((item) => item.status === "PENDING_REVIEW").length} icon={AlertTriangle} tone="warning" /><StatCard label="Confirmed" value={registrations.filter((item) => item.status === "CONFIRMED").length} icon={CheckCircle2} tone="success" /><StatCard label="Requires correction" value={registrations.filter((item) => item.status === "REQUIRES_CORRECTION").length} icon={AlertTriangle} tone="danger" /></div><Card><CardContent className="grid gap-3 p-4 lg:grid-cols-[1fr_12rem_13rem_auto]"><label className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input className="pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search participant or email" /></label><Select items={{ ALL: "All statuses", PENDING_REVIEW: "Pending review", CONFIRMED: "Confirmed", REQUIRES_CORRECTION: "Requires correction", REJECTED: "Rejected" }} value={status} onValueChange={(value) => setStatus(value as RegistrationStatus | "ALL")}><SelectTrigger aria-label="Filter registration status"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">All statuses</SelectItem><SelectItem value="PENDING_REVIEW">Pending review</SelectItem><SelectItem value="CONFIRMED">Confirmed</SelectItem><SelectItem value="REQUIRES_CORRECTION">Requires correction</SelectItem><SelectItem value="REJECTED">Rejected</SelectItem></SelectContent></Select><Select items={[{ value: "ALL", label: "All tickets" }, ...tickets.map((item) => ({ value: item.id, label: item.name }))]} value={ticket} onValueChange={(value) => value && setTicket(value)}><SelectTrigger aria-label="Filter ticket"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">All tickets</SelectItem>{tickets.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select><Button variant="secondary" onClick={exportRows}><Download />Export CSV</Button></CardContent></Card>{rows.length ? <Card className="overflow-hidden"><div className="overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><thead className="border-b border-border bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="p-4"><input type="checkbox" aria-label="Select all visible registrations" checked={selected.length === rows.length && rows.length > 0} onChange={(event) => setSelected(event.target.checked ? rows.map((row) => row.id) : [])} /></th><th className="p-4">Participant</th><th className="p-4">Ticket</th><th className="p-4">Registration</th><th className="p-4">Payment</th><th className="p-4">Bundle</th><th className="p-4">Updated</th><th className="p-4"></th></tr></thead><tbody>{rows.map((registration) => { const user = data.users.find((item) => item.id === registration.userId); const payment = data.payments.find((item) => item.registrationId === registration.id); const membership = data.bundleMembers.find((item) => item.registrationId === registration.id); const bundle = data.bundleGroups.find((item) => item.id === membership?.bundleGroupId); return <tr key={registration.id} className="border-b border-border last:border-0 hover:bg-muted/25"><td className="p-4"><input type="checkbox" aria-label={`Select ${user?.name}`} checked={selected.includes(registration.id)} onChange={(event) => setSelected((ids) => event.target.checked ? [...ids, registration.id] : ids.filter((id) => id !== registration.id))} /></td><td className="p-4"><p className="font-semibold">{user?.name}</p><p className="text-xs text-muted-foreground">{user?.email}</p></td><td className="p-4"><p>{registration.ticketNameSnapshot}</p><p className="text-xs text-muted-foreground">{formatCurrency(registration.priceSnapshot)}</p></td><td className="p-4"><StatusBadge status={registration.status} /></td><td className="p-4">{payment && <StatusBadge status={payment.status} />}</td><td className="p-4">{bundle ? <StatusBadge status={bundle.status} /> : <span className="text-muted-foreground">—</span>}</td><td className="p-4 text-muted-foreground">{shortDate(registration.updatedAt)}</td><td className="p-4"><Button size="sm" asChild><Link to={`${basePath}/registrations/${registration.id}`}>Review</Link></Button></td></tr>; })}</tbody></table></div></Card> : <EmptyState icon={UsersRound} title="No registrations match" description="Clear one or more filters, or wait for participants to submit." />}{selected.length > 0 && <div className="sticky bottom-4 flex items-center justify-between rounded-xl border border-primary/20 bg-card p-3 shadow-lg"><span className="text-sm font-semibold">{selected.length} selected</span><div className="flex gap-2"><Button size="sm" variant="secondary">Request correction</Button><Button size="sm" onClick={exportRows}>Export selected</Button></div></div>}</div>; };
+const Field = ({
+  label,
+  className,
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) => (
+  <label className={`space-y-2 ${className ?? ""}`}>
+    <span className="block text-sm font-semibold">{label}</span>
+    {children}
+  </label>
+);

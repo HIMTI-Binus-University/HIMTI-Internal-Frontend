@@ -18,6 +18,7 @@ import {
   KeyRound,
   Link2,
   LogOut,
+  Layers3,
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -31,6 +32,7 @@ type SidebarProps = {
 const routeIconMap: Record<string, LucideIcon> = {
   "router-url-shortener": Link2,
   "router-events": CalendarDays,
+  "router-batches": Layers3,
   "router-rbac-permissions": KeyRound,
   "router-rbac-roles": BadgeCheck,
   "router-rbac-users": Users,

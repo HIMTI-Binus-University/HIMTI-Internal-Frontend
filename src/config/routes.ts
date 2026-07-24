@@ -6,6 +6,7 @@ import RedirectLoadingPage from "@/pages/loading";
 import RbacPermissionsPage from "@/pages/rbac/permissions";
 import RbacRolesPage from "@/pages/rbac/roles";
 import RbacUsersPage from "@/pages/rbac/users";
+import RbacUserDetailPage from "@/pages/rbac/users/detail";
 import EventsPage from "@/pages/events";
 import EventEditorPage from "@/pages/events/editor";
 import EventWorkspacePage from "@/pages/events/workspace";
@@ -13,6 +14,7 @@ import SubeventSetupPage from "@/pages/events/subevents/setup";
 import SubeventWorkspacePage from "@/pages/events/subevents/workspace";
 import FormEditorPage from "@/pages/events/subevents/form-editor";
 import RegistrationReviewPage from "@/pages/events/subevents/registration-review";
+import BatchesPage from "@/pages/batches";
 
 export const publicRoutes: Route[] = [
   {
@@ -42,6 +44,17 @@ export const publicRoutes: Route[] = [
     isEnabled: true,
     isProtected: true,
     requiredPermission: "manage_urls",
+    group: "Tools",
+  },
+  {
+    key: "router-batches",
+    title: "Batch",
+    description: "Academic Period Management",
+    component: BatchesPage,
+    path: "/batches",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_batch",
     group: "Tools",
   },
   {
@@ -135,6 +148,16 @@ export const publicRoutes: Route[] = [
     isProtected: true,
     requiredPermission: "manage_permissions",
     group: "RBAC",
+  },
+  {
+    key: "router-rbac-user-detail",
+    title: "User detail",
+    description: "RBAC User Detail",
+    component: RbacUserDetailPage,
+    path: "/rbac/users/:userId",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_users",
   },
   {
     key: "router-rbac-roles",

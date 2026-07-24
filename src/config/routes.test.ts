@@ -21,6 +21,12 @@ describe("internal route access helpers", () => {
     expect(route?.path).toBe("/url-shortener");
   });
 
+  it("exposes batch management only with the manage_batch permission", () => {
+    expect(getAccessibleInternalRoutes(["manage_batch"]).map((route) => route.path)).toEqual([
+      "/batches",
+    ]);
+  });
+
   it("returns undefined when the user has no internal tool permissions", () => {
     expect(getFirstAccessibleInternalRoute([])).toBeUndefined();
     expect(getFirstAccessibleInternalRoute(["view_dashboard"])).toBeUndefined();

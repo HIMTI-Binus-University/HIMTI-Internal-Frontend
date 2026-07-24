@@ -33,9 +33,10 @@ const SelectContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Popup> & {
     align?: React.ComponentPropsWithoutRef<typeof SelectPrimitive.Positioner>["align"]
     sideOffset?: number
+    portalContainer?: React.ComponentPropsWithoutRef<typeof SelectPrimitive.Portal>["container"]
   }
->(({ className, children, align = "start", sideOffset = 6, ...props }, ref) => (
-  <SelectPrimitive.Portal>
+>(({ className, children, align = "start", sideOffset = 6, portalContainer, ...props }, ref) => (
+  <SelectPrimitive.Portal container={portalContainer}>
     <SelectPrimitive.Positioner
       align={align}
       alignItemWithTrigger={false}

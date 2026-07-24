@@ -3,7 +3,7 @@ import { API_URL } from "./api-service";
 export const Api = {
   // Auth endpoints
   authSignInSocial: `${API_URL}/api/auth/sign-in/social`,
-  getMe: `${API_URL}/api/registration/me`,
+  getMe: `${API_URL}/api/user/me`,
 
   // URL Shortener endpoints
   urlCreate: `${API_URL}/api/url/create-url`,
@@ -29,6 +29,30 @@ export const Api = {
 
   // User (RBAC) endpoints
   userList: `${API_URL}/api/users`,
+  userSummary: `${API_URL}/api/users/summary`,
+  userExport: `${API_URL}/api/users/export`,
+  userDetail: `${API_URL}/api/user/:id`,
+  userRegistrationOptions: `${API_URL}/api/user/registration-options`,
+  userResendVerification: `${API_URL}/api/user/:id/resend-verification`,
   userAssignRole: `${API_URL}/api/role/assign-user`,
   userRemoveRole: `${API_URL}/api/role/remove-user`,
+
+  // Membership period and resource endpoints
+  membershipPeriods: `${API_URL}/api/membership/periods`,
+  membershipPeriod: `${API_URL}/api/membership/periods/:id`,
+  membershipPeriodActivate: `${API_URL}/api/membership/periods/:id/activate`,
+  membershipPeriodReregistration: `${API_URL}/api/membership/periods/:id/reregistration`,
+  membershipPeriodResources: `${API_URL}/api/membership/periods/:id/resources`,
+  membershipResource: `${API_URL}/api/membership/resources/:id`,
+  membershipResourceOrder: `${API_URL}/api/membership/periods/:id/resources/order`,
+
+  // Event hub administration endpoints
+  eventList: `${API_URL}/api/event/get-list`,
+  eventCreate: `${API_URL}/api/event/create-event`,
+  eventUpdate: `${API_URL}/api/event/update-event/:id`,
+  eventSubeventOrder: `${API_URL}/api/event/:id/sub-events/order`,
+  subeventList: `${API_URL}/api/sub-event/get-list`,
+  subeventDetail: `${API_URL}/api/sub-event/get-list/:id`,
+  subeventCreate: `${API_URL}/api/sub-event/create-sub-event`,
+  subeventUpdate: `${API_URL}/api/sub-event/update-sub-event/:id`,
 };

@@ -1,12 +1,25 @@
+import { useState } from "react";
 import { AlertCircle, ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import HimtiLogo from "@/components/logos/HimtiLogo";
 import { Button } from "@/components/ui/button";
+import { authClient } from "@/utils/auth-client";
 
 function HomePage() {
   const [searchParams] = useSearchParams();
+  const { data: session, isPending } = authClient.useSession();
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const showNoPermissionsWarning = searchParams.get("warning") === "no-permissions";
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await authClient.signOut();
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
 
   return (
     <main className="min-h-screen overflow-hidden bg-background text-foreground">
@@ -25,9 +38,25 @@ function HomePage() {
             </div>
           </div>
 
-          <Button asChild variant="secondary" size="sm">
-            <Link to="/login">Sign in</Link>
-          </Button>
+          {isPending ? (
+            <Button variant="secondary" size="sm" disabled>
+              Checking session...
+            </Button>
+          ) : session ? (
+            <Button
+              type="button"
+              variant="delete"
+              size="sm"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+            >
+              {isSigningOut ? "Logging out..." : "Log out"}
+            </Button>
+          ) : (
+            <Button asChild variant="secondary" size="sm">
+              <Link to="/login">Log in</Link>
+            </Button>
+          )}
         </header>
 
         {showNoPermissionsWarning && (
