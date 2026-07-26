@@ -1,6 +1,6 @@
-export const Status = { ACTIVE: 'ACTIVE', INACTIVE: 'INACTIVE' } as const;
+export const Status = { ACTIVE: "ACTIVE", INACTIVE: "INACTIVE" } as const;
 export type Status = (typeof Status)[keyof typeof Status];
-  
+
 export interface UrlItem {
   id: string;
   shortCode: string;
@@ -9,6 +9,10 @@ export interface UrlItem {
   status: Status;
   createdAt: string;
   createdBy: string;
+  creator?: {
+    id: string;
+    name: string;
+  };
   updatedAt: string;
   updatedBy: string | null;
 }
