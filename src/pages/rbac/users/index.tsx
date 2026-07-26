@@ -66,7 +66,7 @@ const UsersPage = () => {
   const users = data?.data ?? [];
   const meta = data?.meta;
   const liveTarget = target
-    ? users.find((user) => user.id === target.id) ?? target
+    ? (users.find((user) => user.id === target.id) ?? target)
     : null;
 
   const updateFilter = (key: string, value: string) => {
@@ -166,17 +166,21 @@ const UsersPage = () => {
 
       <Container padding="none" className="overflow-hidden">
         <div className="border-b p-4">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <label className="relative">
-              <span className="sr-only">Search users</span>
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                type="search"
-                placeholder="Search name, email, NIM, or phone"
-                value={params.get("search") ?? ""}
-                onChange={(event) => updateFilter("search", event.target.value)}
-              />
+          <div className="grid items-end gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <label className="text-xs font-medium text-muted-foreground">
+              Search
+              <span className="relative mt-1 block">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  type="search"
+                  placeholder="Search name, email, NIM, or phone"
+                  value={params.get("search") ?? ""}
+                  onChange={(event) =>
+                    updateFilter("search", event.target.value)
+                  }
+                />
+              </span>
             </label>
             <FilterSelect
               label="BINUS region"
@@ -364,7 +368,9 @@ const UsersPage = () => {
 
         <div aria-live="polite">
           {isLoading && (
-            <p className="p-6 text-sm text-muted-foreground">Loading users...</p>
+            <p className="p-6 text-sm text-muted-foreground">
+              Loading users...
+            </p>
           )}
           {isError && (
             <p className="p-6 text-sm text-semantic-danger">
@@ -391,7 +397,10 @@ const UsersPage = () => {
       </Container>
 
       {canManageRoles && (
-        <Dialog open={!!target} onOpenChange={(open) => !open && setTarget(null)}>
+        <Dialog
+          open={!!target}
+          onOpenChange={(open) => !open && setTarget(null)}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Manage roles</DialogTitle>
@@ -402,7 +411,8 @@ const UsersPage = () => {
             <div className="space-y-1 py-2">
               {roles.map((role) => {
                 const assigned =
-                  liveTarget?.roles.some((item) => item.id === role.id) ?? false;
+                  liveTarget?.roles.some((item) => item.id === role.id) ??
+                  false;
                 return (
                   <label
                     key={role.id}
@@ -445,7 +455,7 @@ const FilterSelect = ({
   <label className="text-xs font-medium text-muted-foreground">
     {label}
     <select
-      className="mt-1 h-9 w-full rounded-lg border border-input bg-card px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="mt-1 h-10 w-full rounded-lg border border-input bg-card px-3 text-sm text-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       value={value}
       onChange={(event) => onChange(event.target.value)}
     >
