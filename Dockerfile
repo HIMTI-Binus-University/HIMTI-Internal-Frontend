@@ -1,7 +1,5 @@
 FROM node:22.22.2-alpine AS builder
 
-RUN npm install --global npm@12.0.1
-
 WORKDIR /app
 
 COPY package*.json ./
