@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -179,6 +180,7 @@ const UrlShortenerPage = () => {
   );
 
   const [showConfirmPopup, setConfirmPopup] = useState(false);
+  const [showCreatePopup, setCreatePopup] = useState(false);
   const [showDeletePopup, setDeletePopup] = useState(false);
   const [showEditPopup, setEditPopup] = useState(false);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
@@ -285,6 +287,7 @@ const UrlShortenerPage = () => {
 
         setCreateErrors({});
         setPageError("");
+        setCreatePopup(false);
         setConfirmPopup(true);
         setTargetUrl("");
         setShortCode("");
@@ -378,7 +381,22 @@ const UrlShortenerPage = () => {
   };
 
   return (
-    <PageLayout icon={Link2} title="URL Shortener">
+    <PageLayout
+      icon={Link2}
+      title="URL Shortener"
+      actions={
+        <Button
+          size="sm"
+          onClick={() => {
+            setCreateErrors({});
+            setCreatePopup(true);
+          }}
+        >
+          <Plus />
+          <span className="max-sm:sr-only">Create link</span>
+        </Button>
+      }
+    >
       {pageError && (
         <div className="flex gap-3 rounded-xl border border-semantic-danger-border bg-semantic-danger-background px-4 py-3 text-sm text-semantic-danger">
           <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
@@ -386,11 +404,22 @@ const UrlShortenerPage = () => {
         </div>
       )}
 
-      {/* FORM CREATE LINK */}
-      <Container>
-        <ContainerHeader>Create New Link</ContainerHeader>
+      <Dialog open={showCreatePopup} onOpenChange={setCreatePopup}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Create link</DialogTitle>
+            <DialogDescription>
+              Choose the destination and the short code people will use.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4">
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleCreateLink();
+            }}
+          >
           <div>
             <Label htmlFor="targetUrl" className="mb-2">
               Target Link
@@ -446,10 +475,13 @@ const UrlShortenerPage = () => {
             )}
           </div>
 
-          <div className="flex justify-end">
-            <Button onClick={handleCreateLink} disabled={createUrl.isPending}>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setCreatePopup(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={createUrl.isPending}>
               {createUrl.isPending ? (
-                "Loading..."
+                "Creating..."
               ) : (
                 <>
                   <Plus />
@@ -457,9 +489,10 @@ const UrlShortenerPage = () => {
                 </>
               )}
             </Button>
-          </div>
-        </div>
-      </Container>
+          </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* LINK CREATION CONFIRMATION DIALOG */}
       {createdLink && (

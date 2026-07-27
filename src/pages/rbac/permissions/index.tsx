@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -22,7 +23,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { KeyRound, Pencil, Trash2 } from "lucide-react";
+import { KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { useGetPermissions } from "@/api/rbac/queries";
 import {
@@ -36,6 +37,7 @@ const RbacPermissionsPage = () => {
   // Create form state
   const [newName, setNewName] = useState("");
   const [createError, setCreateError] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
 
   // Edit dialog state
   const [editTarget, setEditTarget] = useState<Permission | null>(null);
@@ -62,6 +64,7 @@ const RbacPermissionsPage = () => {
         onSuccess: () => {
           setNewName("");
           setCreateError("");
+          setCreateOpen(false);
         },
         onError: (error) => {
           const axiosError = error as AxiosError<{ message?: string }>;
@@ -115,44 +118,22 @@ const RbacPermissionsPage = () => {
   };
 
   return (
-    <PageLayout icon={KeyRound} title="Permissions">
-
-        {/* Create form */}
-        <Container>
-          <ContainerHeader>Add Permission</ContainerHeader>
-          <div className="flex flex-col gap-4 w-full">
-            <div>
-              <Label htmlFor="newPermissionName" className="mb-2">
-                Permission Name
-              </Label>
-              <Input
-                id="newPermissionName"
-                type="text"
-                placeholder="manage_everything"
-                value={newName}
-                onChange={(e) => {
-                  setNewName(e.target.value);
-                  setCreateError("");
-                }}
-                className={createError ? "border-semantic-danger" : ""}
-                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-              />
-              {createError && (
-                <p className="mt-2 text-sm text-semantic-danger">
-                  {createError}
-                </p>
-              )}
-            </div>
-            <Button
-              onClick={handleCreate}
-              disabled={createPermission.isPending}
-              className="ml-auto w-fit"
-            >
-              {createPermission.isPending ? "Adding..." : "Add Permission"}
-            </Button>
-          </div>
-        </Container>
-
+    <PageLayout
+      icon={KeyRound}
+      title="Permissions"
+      actions={
+        <Button
+          size="sm"
+          onClick={() => {
+            setCreateError("");
+            setCreateOpen(true);
+          }}
+        >
+          <Plus />
+          <span className="max-sm:sr-only">Add permission</span>
+        </Button>
+      }
+    >
         {/* Permissions list */}
         <Container>
           <ContainerHeader>Manage Permissions</ContainerHeader>
@@ -203,6 +184,54 @@ const RbacPermissionsPage = () => {
             ))}
           </div>
         </Container>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Add permission</DialogTitle>
+            <DialogDescription>
+              Create a permission that can be assigned to roles.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleCreate();
+            }}
+          >
+            <div>
+              <Label htmlFor="newPermissionName" className="mb-2">
+                Permission name
+              </Label>
+              <Input
+                id="newPermissionName"
+                type="text"
+                placeholder="manage_everything"
+                value={newName}
+                onChange={(event) => {
+                  setNewName(event.target.value);
+                  setCreateError("");
+                }}
+                className={createError ? "border-semantic-danger" : ""}
+              />
+              {createError && (
+                <p role="alert" className="mt-2 text-sm text-semantic-danger">
+                  {createError}
+                </p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createPermission.isPending}>
+                {createPermission.isPending ? "Adding..." : "Add permission"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit dialog */}
       <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>

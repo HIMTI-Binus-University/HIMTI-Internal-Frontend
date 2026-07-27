@@ -1,16 +1,67 @@
+import { useRef } from "react";
 import type { LucideIcon } from "lucide-react";
 import { AlertCircle, ArrowLeft, Check, Inbox, type LucideProps } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import { StatusBadge } from "@/components/events/StatusBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { gsap, useGSAP } from "@/lib/motion";
 import type { EventStatus, SubeventStatus } from "@/types/events";
 
 export const EmptyState = ({ icon: Icon = Inbox, title, description, action }: { icon?: LucideIcon; title: string; description: string; action?: React.ReactNode }) => <Card><CardContent className="px-6 py-14 text-center"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground"><Icon className="h-6 w-6" aria-hidden="true" /></span><h2 className="mt-4 text-lg font-semibold">{title}</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">{description}</p>{action && <div className="mt-5 flex justify-center">{action}</div>}</CardContent></Card>;
 
 export const StatCard = ({ label, value, detail, icon: Icon, tone = "default" }: { label: string; value: React.ReactNode; detail?: string; icon: LucideIcon; tone?: "default" | "warning" | "danger" | "success" }) => <Card className={cn(tone === "warning" && "border-semantic-warning-border", tone === "danger" && "border-semantic-danger-border", tone === "success" && "border-semantic-success-border")}><CardContent className="p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-medium text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{value}</p>{detail && <p className="mt-1 text-xs leading-5 text-muted-foreground">{detail}</p>}</div><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-primary"><Icon className="h-[18px] w-[18px]" aria-hidden="true" /></span></div></CardContent></Card>;
 
-export const ProgressBar = ({ value, label }: { value: number; label: string }) => <div><div className="mb-2 flex justify-between text-xs font-medium text-muted-foreground"><span>{label}</span><span>{value}%</span></div><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${value}%` }} /></div></div>;
+export const ProgressBar = ({ value, label }: { value: number; label: string }) => {
+  const normalized = Math.min(100, Math.max(0, value));
+  const previous = useRef(normalized);
+  const fillRef = useRef<HTMLDivElement>(null);
+  const firstRender = useRef(true);
+
+  useGSAP(() => {
+    const media = gsap.matchMedia();
+    media.add(
+      {
+        reduceMotion: "(prefers-reduced-motion: reduce)",
+        allowMotion: "(prefers-reduced-motion: no-preference)",
+      },
+      ({ conditions }) => {
+        if (firstRender.current || conditions?.reduceMotion) {
+          gsap.set(fillRef.current, {
+            scaleX: normalized / 100,
+            transformOrigin: "left center",
+          });
+        } else {
+          gsap.fromTo(
+            fillRef.current,
+            { scaleX: previous.current / 100, transformOrigin: "left center" },
+            {
+              scaleX: normalized / 100,
+              duration: 0.3,
+              ease: "power2.out",
+              overwrite: "auto",
+            },
+          );
+        }
+        previous.current = normalized;
+        firstRender.current = false;
+      },
+    );
+    return () => media.revert();
+  }, { dependencies: [normalized], scope: fillRef, revertOnUpdate: true });
+
+  return (
+    <div>
+      <div className="mb-2 flex justify-between text-xs font-medium text-muted-foreground">
+        <span>{label}</span>
+        <span>{normalized}%</span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-muted">
+        <div ref={fillRef} className="h-full origin-left rounded-full bg-primary" />
+      </div>
+    </div>
+  );
+};
 
 export const WorkspaceHeader = ({ backTo, eyebrow, title, description, status, actions }: { backTo?: string; eyebrow: string; title: string; description?: React.ReactNode; status?: EventStatus | SubeventStatus; actions?: React.ReactNode }) => <div className="rounded-xl border border-border bg-card"><div className="p-4 sm:p-5">{backTo && <Link to={backTo} className="mb-3 inline-flex min-h-11 items-center gap-2 rounded-lg px-1 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowLeft className="h-4 w-4" />Back</Link>}<div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end"><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">{eyebrow}</p><div className="mt-1 flex flex-wrap items-center gap-2"><h1 className="text-xl font-bold tracking-tight sm:text-2xl">{title}</h1>{status && <StatusBadge status={status} />}</div>{description && <div className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{description}</div>}</div>{actions && <div className="flex flex-wrap gap-2">{actions}</div>}</div></div></div>;
 

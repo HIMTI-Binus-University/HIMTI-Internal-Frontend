@@ -1,111 +1,63 @@
-import { FormEvent, useEffect, useState } from "react";
+import { useState } from "react";
 import { UserRound } from "lucide-react";
 import { useParams } from "react-router-dom";
 
 import { useGetMe } from "@/api/auth/queries";
-import {
-  useGetRegistrationOptions,
-  useGetRoles,
-  useGetUser,
-  useResendUserVerification,
-  useUpdateUser,
-} from "@/api/rbac/queries";
+import { useGetRoles, useGetUser } from "@/api/rbac/queries";
 import { Container, PageLayout } from "@/components/Utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAssignUserRole, useRemoveUserRole } from "@/hooks/rbac/users";
-import type {
-  InstitutionType,
-  MemberType,
-  RbacUserDetail,
-  RegistrationOption,
-  UserStatus,
-} from "@/types/rbac";
-import { buildUserUpdate, type UserFormState } from "./form";
+import type { UserStatus } from "@/types/rbac";
 
 const DetailPage = () => {
   const { userId = "" } = useParams();
-  const { data: user, isLoading, isError } = useGetUser(userId);
-  const { data: options, isError: optionsError } = useGetRegistrationOptions();
+  const { data: user, isLoading, isError, refetch } = useGetUser(userId);
   const { data: me } = useGetMe();
   const canManageRoles = me?.permissions.includes("manage_roles") ?? false;
   const { data: roles = [] } = useGetRoles(canManageRoles);
-  const updateUser = useUpdateUser(userId);
-  const resend = useResendUserVerification(userId);
   const assignRole = useAssignUserRole();
   const removeRole = useRemoveUserRole();
-  const [form, setForm] = useState<UserFormState | null>(null);
-  const [formUserId, setFormUserId] = useState("");
   const [pendingRoles, setPendingRoles] = useState<Set<string>>(new Set());
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    if (user && user.id !== formUserId) {
-      setForm(toForm(user));
-      setFormUserId(user.id);
-    }
-  }, [formUserId, user]);
+  const [roleMessage, setRoleMessage] = useState("");
 
   if (isError) {
     return (
       <PageLayout icon={UserRound} title="User detail" backTo="/rbac/users">
-        <p className="text-sm text-semantic-danger">
-          Could not load this user.
-        </p>
+        <Container>
+          <div className="flex flex-col items-center gap-3 py-8 text-center">
+            <p className="text-sm text-semantic-danger">
+              This user could not be loaded.
+            </p>
+            <Button size="sm" variant="outline" onClick={() => refetch()}>
+              Try again
+            </Button>
+          </div>
+        </Container>
       </PageLayout>
     );
   }
 
-  if (isLoading || !user || !form) {
+  if (isLoading || !user) {
     return (
       <PageLayout icon={UserRound} title="User detail" backTo="/rbac/users">
-        <p className="text-sm text-muted-foreground">Loading user...</p>
+        <Container>
+          <p className="text-sm text-muted-foreground">Loading user...</p>
+        </Container>
       </PageLayout>
     );
   }
-
-  const set = <Key extends keyof UserFormState>(
-    key: Key,
-    value: UserFormState[Key],
-  ) => setForm((current) => (current ? { ...current, [key]: value } : current));
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    setMessage("");
-    const payload = buildUserUpdate(form, user);
-    if (!Object.keys(payload).length) {
-      setMessage("No changes to save.");
-      return;
-    }
-    updateUser.mutate(payload, {
-      onSuccess: () => setMessage("User changes saved."),
-      onError: () => setMessage("Could not save user changes."),
-    });
-  };
-
-  const updateVerification = (
-    field: "emailVerified" | "outlookEmailVerified",
-    checked: boolean,
-  ) => {
-    setMessage("");
-    updateUser.mutate(
-      { [field]: checked },
-      {
-        onSuccess: () => setMessage("Verification status updated."),
-        onError: () => setMessage("Could not update verification status."),
-      },
-    );
-  };
 
   const toggleRole = (roleId: string, assigned: boolean) => {
     if (pendingRoles.has(roleId)) return;
-    setMessage("");
+    setRoleMessage("");
     setPendingRoles((current) => new Set(current).add(roleId));
     (assigned ? removeRole : assignRole).mutate(
       { userId: user.id, roleId },
       {
-        onError: () => setMessage("Could not update this user's roles."),
+        onError: () => setRoleMessage("This role could not be updated."),
         onSettled: () =>
           setPendingRoles((current) => {
             const next = new Set(current);
@@ -116,308 +68,151 @@ const DetailPage = () => {
     );
   };
 
-  const resendVerification = () => {
-    setMessage("");
-    resend.mutate(undefined, {
-      onSuccess: () => setMessage("Verification email sent."),
-      onError: () => setMessage("Could not send verification email."),
-    });
-  };
-
-  const isBinus = form.institutionType === "BINUS";
-  const isStudent = form.memberType === "STUDENT";
-  const isLecturer = form.memberType === "LECTURER";
-  const isOther = form.memberType === "OTHER";
-
   return (
     <PageLayout icon={UserRound} title={user.name} backTo="/rbac/users">
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
-        <Container>
-          <form onSubmit={submit} className="space-y-6">
-            <section aria-labelledby="identity-heading">
-              <h2 id="identity-heading" className="font-semibold">
-                Identity and contact
+      <Container>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
+            <Avatar className="h-14 w-14 border border-semantic-info-border">
+              {user.image && <AvatarImage src={user.image} alt="" />}
+              <AvatarFallback className="bg-semantic-info-background font-semibold text-semantic-info">
+                {initials(user.name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <h2 className="truncate text-xl font-semibold text-foreground">
+                {user.name}
               </h2>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <TextField
-                  id="name"
-                  label="Name"
-                  value={form.name}
-                  onChange={(value) => set("name", value)}
-                />
-                <TextField
-                  id="email"
-                  label="Personal email"
-                  type="email"
-                  value={form.email}
-                  onChange={(value) => set("email", value)}
-                />
-                <TextField
-                  id="phoneNumber"
-                  label="Phone number"
-                  type="tel"
-                  value={form.phoneNumber}
-                  onChange={(value) => set("phoneNumber", value)}
-                />
-                <TextField
-                  id="lineId"
-                  label="LINE ID"
-                  value={form.lineId}
-                  onChange={(value) => set("lineId", value)}
-                />
-                <TextField
-                  id="image"
-                  label="Profile image URL"
-                  type="url"
-                  value={form.image}
-                  onChange={(value) => set("image", value)}
-                />
-                <SelectField
-                  id="status"
-                  label="Account status"
-                  value={form.status}
-                  onChange={(value) => set("status", value as UserStatus)}
-                  options={enumOptions(["ACTIVE", "INACTIVE", "SUSPENDED"])}
-                />
-              </div>
-            </section>
-
-            <section
-              aria-labelledby="membership-heading"
-              className="border-t pt-6"
-            >
-              <h2 id="membership-heading" className="font-semibold">
-                Membership path
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Fields below follow the selected member and institution types.
-              </p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <SelectField
-                  id="memberType"
-                  label="Member type"
-                  value={form.memberType}
-                  emptyLabel="Not set"
-                  onChange={(value) =>
-                    set("memberType", value as MemberType | "")
-                  }
-                  options={enumOptions(["STUDENT", "LECTURER", "OTHER"])}
-                />
-                <SelectField
-                  id="institutionType"
-                  label="Institution type"
-                  value={form.institutionType}
-                  emptyLabel="Not set"
-                  onChange={(value) =>
-                    set("institutionType", value as InstitutionType | "")
-                  }
-                  options={enumOptions(["BINUS", "NON_BINUS"])}
-                />
-
-                {isBinus && (
-                  <>
-                    <OptionField
-                      id="universityId"
-                      label="University"
-                      value={form.universityId}
-                      options={options?.universities ?? []}
-                      onChange={(value) => set("universityId", value)}
-                    />
-                    <OptionField
-                      id="regionId"
-                      label="BINUS region"
-                      value={form.regionId}
-                      options={options?.binusRegions ?? []}
-                      onChange={(value) => set("regionId", value)}
-                    />
-                    <TextField
-                      id="outlookEmail"
-                      label="Outlook email"
-                      type="email"
-                      value={form.outlookEmail}
-                      onChange={(value) => set("outlookEmail", value)}
-                    />
-                  </>
-                )}
-
-                {form.institutionType === "NON_BINUS" && (
-                  <TextField
-                    id="universityName"
-                    label={
-                      isOther
-                        ? "Institution / organization name"
-                        : "University name"
-                    }
-                    value={form.universityName}
-                    onChange={(value) => set("universityName", value)}
-                  />
-                )}
-
-                {isStudent && (
-                  <TextField
-                    id="nim"
-                    label="Student ID / NIM"
-                    value={form.nim}
-                    onChange={(value) => set("nim", value)}
-                  />
-                )}
-
-                {isStudent && isBinus && (
-                  <>
-                    <OptionField
-                      id="studyProgramId"
-                      label="Study program"
-                      value={form.studyProgramId}
-                      options={options?.studyPrograms ?? []}
-                      onChange={(value) => set("studyProgramId", value)}
-                    />
-                    <TextField
-                      id="graduateBatch"
-                      label="Graduation batch"
-                      value={form.graduateBatch}
-                      onChange={(value) => set("graduateBatch", value)}
-                    />
-                  </>
-                )}
-
-                {isStudent && form.institutionType === "NON_BINUS" && (
-                  <TextField
-                    id="studyProgramName"
-                    label="Study program"
-                    value={form.studyProgramName}
-                    onChange={(value) => set("studyProgramName", value)}
-                  />
-                )}
-
-                {isLecturer && (
-                  <TextField
-                    id="department"
-                    label="Department"
-                    value={form.department}
-                    onChange={(value) => set("department", value)}
-                  />
-                )}
-
-                {isOther && (
-                  <TextField
-                    id="affiliation"
-                    label="Affiliation"
-                    value={form.affiliation}
-                    onChange={(value) => set("affiliation", value)}
-                  />
-                )}
-              </div>
-              {optionsError && isBinus && (
-                <p className="mt-3 text-sm text-semantic-danger">
-                  Registration options could not be loaded. Existing IDs remain
-                  selected, but changing them is unavailable.
-                </p>
-              )}
-            </section>
-
-            <div className="flex items-center justify-between gap-4 border-t pt-5">
-              <p role="status" className="text-sm text-muted-foreground">
-                {message}
-              </p>
-              <Button disabled={updateUser.isPending}>
-                {updateUser.isPending ? "Saving..." : "Save changes"}
-              </Button>
+              <p className="truncate text-sm text-muted-foreground">{user.email}</p>
             </div>
-          </form>
-        </Container>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant={statusVariant(user.status)}>{formatEnum(user.status)}</Badge>
+            <Badge variant={user.registrationCompletedAt ? "success" : "warning"}>
+              {user.registrationCompletedAt ? "Registration complete" : "Registration incomplete"}
+            </Badge>
+          </div>
+        </div>
+      </Container>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+        <div className="space-y-6">
+          <DetailSection title="Identity and contact">
+            <DetailItem label="Full name" value={user.name} />
+            <DetailItem
+              label="Personal email"
+              value={user.email}
+              badge={user.emailVerified ? "Verified" : "Unverified"}
+              badgeVariant={user.emailVerified ? "success" : "warning"}
+            />
+            <DetailItem
+              label="Outlook email"
+              value={user.outlookEmail}
+              badge={
+                user.outlookEmail
+                  ? user.outlookEmailVerified
+                    ? "Verified"
+                    : "Unverified"
+                  : undefined
+              }
+              badgeVariant={user.outlookEmailVerified ? "success" : "warning"}
+            />
+            <DetailItem label="Phone number" value={user.phoneNumber} />
+            <DetailItem label="LINE ID" value={user.lineId} />
+            <DetailItem label="Profile image URL" value={user.image} breakAll />
+          </DetailSection>
+
+          <DetailSection title="Membership">
+            <DetailItem label="Member type" value={formatOptionalEnum(user.memberType)} />
+            <DetailItem
+              label="Institution type"
+              value={formatOptionalEnum(user.institutionType)}
+            />
+            <DetailItem
+              label="University"
+              value={user.university?.name || user.universityName}
+            />
+            <DetailItem
+              label="Study program"
+              value={user.studyProgram?.name || user.studyProgramName}
+            />
+            <DetailItem
+              label="BINUS region"
+              value={user.region?.shortName || user.region?.name}
+            />
+            <DetailItem label="Student ID / NIM" value={user.nim} />
+            <DetailItem label="Graduation batch" value={user.graduateBatch} />
+            <DetailItem label="Department" value={user.department} />
+            <DetailItem label="Affiliation" value={user.affiliation} />
+          </DetailSection>
+        </div>
 
         <div className="space-y-6">
-          {canManageRoles && (
-            <Container>
-              <h2 className="font-semibold">Roles</h2>
-              <div className="mt-3 space-y-1">
-                {roles.map((role) => {
-                  const assigned = user.roles.some(
-                    (item) => item.id === role.id,
-                  );
-                  return (
-                    <label
-                      key={role.id}
-                      className="flex min-h-10 items-center gap-3 rounded-lg px-2 text-sm hover:bg-muted"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={assigned}
-                        disabled={
-                          user.id === me?.id || pendingRoles.has(role.id)
-                        }
-                        onChange={() => toggleRole(role.id, assigned)}
-                      />
-                      {role.roleName}
-                    </label>
-                  );
-                })}
+          <Container>
+            <h2 className="font-semibold">Roles</h2>
+            {canManageRoles ? (
+              roles.length ? (
+                <div className="mt-3 space-y-1">
+                  {roles.map((role) => {
+                    const assigned = user.roles.some((item) => item.id === role.id);
+                    const disabled = user.id === me?.id || pendingRoles.has(role.id);
+                    return (
+                      <label
+                        key={role.id}
+                        className="flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2 text-sm transition-colors hover:bg-muted has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60"
+                      >
+                        <Checkbox
+                          checked={assigned}
+                          disabled={disabled}
+                          onCheckedChange={() => toggleRole(role.id, assigned)}
+                        />
+                        {role.roleName}
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-muted-foreground">No roles available.</p>
+              )
+            ) : user.roles.length ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {user.roles.map((role) => <Badge key={role.id} variant="info">{role.roleName}</Badge>)}
               </div>
-              {user.id === me?.id && (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  You cannot change your own roles.
-                </p>
-              )}
-            </Container>
-          )}
+            ) : (
+              <p className="mt-3 text-sm text-muted-foreground">No roles assigned.</p>
+            )}
+            {user.id === me?.id && canManageRoles && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                You cannot change your own roles.
+              </p>
+            )}
+            {roleMessage && (
+              <p role="status" className="mt-3 text-sm text-semantic-danger">
+                {roleMessage}
+              </p>
+            )}
+          </Container>
 
           <Container>
-            <h2 className="font-semibold">Verification</h2>
-            <div className="mt-3 space-y-3">
-              <label className="flex min-h-10 items-center gap-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={user.emailVerified}
-                  disabled={updateUser.isPending}
-                  onChange={(event) =>
-                    updateVerification("emailVerified", event.target.checked)
-                  }
-                />
-                Personal email verified
-              </label>
-              <label className="flex min-h-10 items-center gap-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={user.outlookEmailVerified}
-                  disabled={!user.outlookEmail || updateUser.isPending}
-                  onChange={(event) =>
-                    updateVerification(
-                      "outlookEmailVerified",
-                      event.target.checked,
-                    )
-                  }
-                />
-                Outlook email verified
-              </label>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={
-                  !user.outlookEmail ||
-                  user.outlookEmailVerified ||
-                  resend.isPending
-                }
-                onClick={resendVerification}
-              >
-                {resend.isPending ? "Sending..." : "Resend verification"}
-              </Button>
-              {!user.outlookEmail && (
-                <p className="text-xs text-muted-foreground">
-                  Add an Outlook email before sending verification.
-                </p>
-              )}
-              {user.outlookEmailVerified && (
-                <p className="text-xs text-muted-foreground">
-                  This Outlook email is already verified.
-                </p>
-              )}
-            </div>
+            <h2 className="font-semibold">Permissions</h2>
+            {user.permissions.length ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {user.permissions.map((permission) => (
+                  <Badge key={permission.id} variant="neutral">
+                    {permission.name}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-muted-foreground">
+                No effective permissions.
+              </p>
+            )}
           </Container>
 
           <Container>
             <h2 className="font-semibold">Metadata</h2>
-            <dl className="mt-3 space-y-3 text-sm">
+            <dl className="mt-3 space-y-4 text-sm">
               <Metadata label="User ID" value={user.id} mono />
               <Metadata label="Created" value={formatDate(user.createdAt)} />
               <Metadata label="Updated" value={formatDate(user.updatedAt)} />
@@ -435,97 +230,40 @@ const DetailPage = () => {
   );
 };
 
-const TextField = ({
-  id,
-  label,
-  value,
-  type = "text",
-  onChange,
+const DetailSection = ({
+  title,
+  children,
 }: {
-  id: string;
-  label: string;
-  value: string;
-  type?: string;
-  onChange: (value: string) => void;
+  title: string;
+  children: React.ReactNode;
 }) => (
-  <div>
-    <Label htmlFor={id}>{label}</Label>
-    <Input
-      id={id}
-      className="mt-1.5"
-      type={type}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-    />
-  </div>
+  <Container>
+    <h2 className="font-semibold">{title}</h2>
+    <dl className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">{children}</dl>
+  </Container>
 );
 
-const SelectField = ({
-  id,
+const DetailItem = ({
   label,
   value,
-  options,
-  emptyLabel,
-  onChange,
+  badge,
+  badgeVariant,
+  breakAll = false,
 }: {
-  id: string;
   label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  emptyLabel?: string;
-  onChange: (value: string) => void;
+  value: string | null | undefined;
+  badge?: string;
+  badgeVariant?: "success" | "warning";
+  breakAll?: boolean;
 }) => (
   <div>
-    <Label htmlFor={id}>{label}</Label>
-    <select
-      id={id}
-      className="mt-1.5 h-10 w-full rounded-lg border border-input bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-    >
-      {emptyLabel && <option value="">{emptyLabel}</option>}
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
+    <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+    <dd className={`mt-1 flex flex-wrap items-center gap-2 text-sm font-medium ${breakAll ? "break-all" : ""}`}>
+      {value || "-"}
+      {badge && <Badge variant={badgeVariant}>{badge}</Badge>}
+    </dd>
   </div>
 );
-
-const OptionField = ({
-  id,
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  options: RegistrationOption[];
-  onChange: (value: string) => void;
-}) => {
-  const selectedExists = options.some((option) => option.id === value);
-  return (
-    <SelectField
-      id={id}
-      label={label}
-      value={value}
-      emptyLabel="Not set"
-      onChange={onChange}
-      options={[
-        ...(!selectedExists && value
-          ? [{ value, label: `Current (${value})` }]
-          : []),
-        ...options.map((option) => ({
-          value: option.id,
-          label: option.shortName || option.name,
-        })),
-      ]}
-    />
-  );
-};
 
 const Metadata = ({
   label,
@@ -538,36 +276,36 @@ const Metadata = ({
 }) => (
   <div>
     <dt className="text-muted-foreground">{label}</dt>
-    <dd className={`break-all ${mono ? "font-mono text-xs" : ""}`}>
+    <dd className={`mt-0.5 break-all ${mono ? "font-mono text-xs" : ""}`}>
       {value || "-"}
     </dd>
   </div>
 );
 
-const toForm = (user: RbacUserDetail): UserFormState => ({
-  name: user.name,
-  email: user.email,
-  outlookEmail: user.outlookEmail ?? "",
-  image: user.image ?? "",
-  status: user.status,
-  memberType: user.memberType ?? "",
-  institutionType: user.institutionType ?? "",
-  universityId: user.universityId ?? "",
-  universityName: user.universityName ?? "",
-  studyProgramId: user.studyProgramId ?? "",
-  studyProgramName: user.studyProgramName ?? "",
-  regionId: user.regionId ?? "",
-  nim: user.nim ?? "",
-  graduateBatch: user.graduateBatch ?? "",
-  department: user.department ?? "",
-  affiliation: user.affiliation ?? "",
-  phoneNumber: user.phoneNumber ?? "",
-  lineId: user.lineId ?? "",
-});
+const statusVariant = (status: UserStatus) =>
+  status === "ACTIVE" ? "success" : status === "SUSPENDED" ? "danger" : "neutral";
 
-const enumOptions = (values: readonly string[]) =>
-  values.map((value) => ({ value, label: value.replaceAll("_", " ") }));
+const formatOptionalEnum = (value: string | null) => (value ? formatEnum(value) : "-");
+
+const formatEnum = (value: string) => {
+  if (value === "BINUS") return "BINUS";
+  if (value === "NON_BINUS") return "Non-BINUS";
+  return value
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+};
+
 const formatDate = (value: string | null | undefined) =>
   value ? new Date(value).toLocaleString() : "-";
+
+const initials = (name: string) =>
+  name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 
 export default DetailPage;

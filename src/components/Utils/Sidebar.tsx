@@ -1,12 +1,14 @@
+import { useRef } from "react";
 import { useGetMe } from "@/api/auth/queries";
-import HimtiLogo from "@/components/logos/HimtiLogo";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import { publicRoutes } from "@/config/routes";
+import { gsap, useGSAP } from "@/lib/motion";
 import type { Route } from "@/types/route";
 import { authClient } from "@/utils/auth-client";
 import {
@@ -43,6 +45,57 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const location = useLocation();
   const { data: session, isPending } = authClient.useSession();
   const { data: meData } = useGetMe(!!session);
+  const overlayRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const firstRender = useRef(true);
+
+  useGSAP(
+    () => {
+      const overlay = overlayRef.current;
+      const panel = panelRef.current;
+      if (!overlay || !panel) return;
+
+      const media = gsap.matchMedia();
+      media.add(
+        {
+          desktop: "(min-width: 1024px)",
+          reduceMotion: "(prefers-reduced-motion: reduce)",
+          mobile: "(max-width: 1023px)",
+        },
+        ({ conditions }) => {
+          if (conditions?.desktop) {
+            gsap.set(overlay, { autoAlpha: 0, pointerEvents: "none" });
+            gsap.set(panel, { x: 0, xPercent: 0 });
+            return;
+          }
+
+          const open = isOpen;
+          gsap.set(overlay, { pointerEvents: open ? "auto" : "none" });
+          if (firstRender.current || conditions?.reduceMotion) {
+            gsap.set(overlay, { autoAlpha: open ? 1 : 0 });
+            gsap.set(panel, { x: 0, xPercent: open ? 0 : -100 });
+          } else {
+            gsap.to(overlay, {
+              autoAlpha: open ? 1 : 0,
+              duration: 0.22,
+              ease: "power3.out",
+              overwrite: "auto",
+            });
+            gsap.to(panel, {
+              x: 0,
+              xPercent: open ? 0 : -100,
+              duration: 0.22,
+              ease: "power3.out",
+              overwrite: "auto",
+            });
+          }
+          firstRender.current = false;
+        },
+      );
+      return () => media.revert();
+    },
+    { dependencies: [isOpen], revertOnUpdate: true },
+  );
 
   const handleSignOut = async () => {
     await authClient.signOut({
@@ -76,25 +129,29 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   return (
     <>
       <button
+        ref={overlayRef}
         type="button"
         aria-label="Close navigation"
         onClick={onClose}
-        className={`fixed inset-0 z-30 bg-slate-950/45 transition-opacity lg:hidden ${
-          isOpen ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
+        className="fixed inset-0 z-30 bg-slate-950/45 lg:hidden"
       />
 
       <aside
-        className={`scrollbar-on-dark fixed left-0 top-0 z-40 flex h-screen w-[min(272px,calc(100vw-2rem))] shrink-0 flex-col justify-between overflow-y-auto bg-brand-primary-1 p-5 font-sans text-white transition-transform duration-200 ease-out lg:sticky lg:top-0 lg:w-[272px] lg:translate-x-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        ref={panelRef}
+        className="scrollbar-on-dark fixed left-0 top-0 z-40 flex h-screen w-[min(272px,calc(100vw-2rem))] shrink-0 flex-col justify-between overflow-y-auto bg-brand-primary-1 p-5 font-sans text-white lg:sticky lg:top-0 lg:w-[272px]"
       >
         <div className="flex flex-col gap-8">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 px-1">
-              <HimtiLogo width={44} />
+            <div className="flex min-w-0 items-center gap-3 px-1">
+              <img
+                src="/icon-primary.svg"
+                alt=""
+                width={40}
+                height={46}
+                className="h-[46px] w-10 shrink-0 object-contain brightness-0 invert"
+              />
               <div className="flex flex-col">
-                <span className="text-lg font-bold leading-6">HIMTI</span>
+                <span className="text-base font-bold leading-5">HIMTI BINUS</span>
                 <span className="text-sm font-medium leading-5 text-white/70">
                   Internal Tools
                 </span>
@@ -150,9 +207,9 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
                 <div className="min-w-0 flex-1">
                   {isPending ? (
-                    <div className="flex animate-pulse flex-col gap-1">
-                      <div className="h-3 w-16 rounded bg-brand-primary-1/20" />
-                      <div className="h-4 w-24 rounded bg-brand-primary-1/20" />
+                    <div className="flex flex-col gap-1">
+                      <Skeleton aria-hidden="true" className="h-3 w-16 rounded bg-brand-primary-1/20" />
+                      <Skeleton aria-hidden="true" className="h-4 w-24 rounded bg-brand-primary-1/20" />
                     </div>
                   ) : (
                     <>
@@ -208,26 +265,70 @@ const MenuItem = ({
   path,
   active = false,
   onClick,
-}: MenuItemProps) => (
-  <Link
-    to={path}
-    onClick={onClick}
-    className={`group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
-      active
-        ? "bg-white font-semibold text-brand-primary-1"
-        : "text-white/75 hover:bg-white/10 hover:text-white"
-    }`}
-  >
-    <Icon
-      aria-hidden="true"
-      size={18}
-      strokeWidth={1.75}
-      className={`shrink-0 transition-opacity duration-150 ${
-        active ? "opacity-100" : "opacity-75 group-hover:opacity-100"
+}: MenuItemProps) => {
+  const linkRef = useRef<HTMLAnchorElement>(null);
+  const iconRef = useRef<SVGSVGElement>(null);
+
+  useGSAP(() => {
+    const link = linkRef.current;
+    const icon = iconRef.current;
+    if (!link || !icon) return;
+
+    gsap.set(icon, { opacity: active ? 1 : 0.75 });
+    if (active) return;
+
+    const media = gsap.matchMedia();
+    media.add(
+      {
+        reduceMotion: "(prefers-reduced-motion: reduce)",
+        allowMotion: "(prefers-reduced-motion: no-preference)",
+      },
+      ({ conditions }) => {
+        const setOpacity = (opacity: number) => {
+          if (conditions?.reduceMotion) gsap.set(icon, { opacity });
+          else gsap.to(icon, { opacity, duration: 0.15, ease: "power2.out", overwrite: "auto" });
+        };
+        const show = () => setOpacity(1);
+        const hide = () => setOpacity(0.75);
+        const blur = (event: FocusEvent) => {
+          if (!link.contains(event.relatedTarget as Node | null)) hide();
+        };
+        link.addEventListener("pointerenter", show);
+        link.addEventListener("pointerleave", hide);
+        link.addEventListener("focusin", show);
+        link.addEventListener("focusout", blur);
+        return () => {
+          link.removeEventListener("pointerenter", show);
+          link.removeEventListener("pointerleave", hide);
+          link.removeEventListener("focusin", show);
+          link.removeEventListener("focusout", blur);
+        };
+      },
+    );
+    return () => media.revert();
+  }, { dependencies: [active], scope: linkRef, revertOnUpdate: true });
+
+  return (
+    <Link
+      ref={linkRef}
+      to={path}
+      onClick={onClick}
+      className={`flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
+        active
+          ? "bg-white font-semibold text-brand-primary-1"
+          : "text-white/75 hover:bg-white/10 hover:text-white"
       }`}
-    />
-    <span>{label}</span>
-  </Link>
-);
+    >
+      <Icon
+        ref={iconRef}
+        aria-hidden="true"
+        size={18}
+        strokeWidth={1.75}
+        className="shrink-0"
+      />
+      <span>{label}</span>
+    </Link>
+  );
+};
 
 export default Sidebar;

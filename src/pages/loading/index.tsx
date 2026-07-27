@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { isAxiosError } from "axios";
 import { useParams } from "react-router-dom";
 import { useGetUrlByShortCode } from "@/api/url-shortener/queries";
 import HimtiLogo from "@/components/logos/HimtiLogo";
 import { runtimeConfig } from "@/config/runtime";
 import { Button } from "@/components/ui/button";
+import { gsap, useGSAP } from "@/lib/motion";
 
 type StatusCardProps = {
   title: string;
@@ -36,6 +37,31 @@ const StatusCard = ({ title, description, children }: StatusCardProps) => {
         </div>
 
         <div className="mt-8 w-full">{children}</div>
+      </div>
+    </div>
+  );
+};
+
+const LoadingSpinner = () => {
+  const spinnerRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    const media = gsap.matchMedia();
+    media.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.to(spinnerRef.current, {
+        rotation: 360,
+        duration: 0.9,
+        ease: "none",
+        repeat: -1,
+      });
+    });
+    return () => media.revert();
+  }, { scope: spinnerRef });
+
+  return (
+    <div className="mx-auto flex h-16 w-16 items-center justify-center">
+      <div ref={spinnerRef} className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-brand-primary-1/15 border-t-brand-primary-1">
+        <div className="h-7 w-7 rounded-full bg-brand-primary-1/10" />
       </div>
     </div>
   );
@@ -105,11 +131,7 @@ const RedirectLoadingPage = () => {
             description="Sending you to the HIMTI OFOG page."
           >
             <div className="space-y-6">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-brand-primary-1/15 border-t-brand-primary-1 animate-spin">
-                  <div className="h-7 w-7 rounded-full bg-brand-primary-1/10" />
-                </div>
-              </div>
+              <LoadingSpinner />
 
               <p className="text-ds-subtle text-semantic-foreground/45">
                 No short code was provided, so we are taking you to the default
@@ -167,11 +189,7 @@ const RedirectLoadingPage = () => {
           description="Taking you to your destination in just a moment."
         >
           <div className="space-y-6">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-brand-primary-1/15 border-t-brand-primary-1 animate-spin">
-                <div className="h-7 w-7 rounded-full bg-brand-primary-1/10" />
-              </div>
-            </div>
+            <LoadingSpinner />
 
             <div className="space-y-2">
                 <p className="text-ds-subtle text-semantic-foreground/45">
