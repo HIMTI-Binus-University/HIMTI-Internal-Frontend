@@ -6,6 +6,7 @@ import { type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button-variants"
+import { gsap, useGSAP } from "@/lib/motion"
 
 const AlertDialog = AlertDialogPrimitive.Root
 
@@ -16,34 +17,66 @@ const AlertDialogPortal = AlertDialogPrimitive.Portal
 const AlertDialogOverlay = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Overlay
-    className={cn(
-      "fixed inset-0 z-50 bg-slate-950/55 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      className
-    )}
-    {...props}
-    ref={ref}
-  />
-))
+>(({ className, ...props }, ref) => {
+  const overlayRef = React.useRef<React.ElementRef<typeof AlertDialogPrimitive.Overlay>>(null)
+  React.useImperativeHandle(ref, () => overlayRef.current as React.ElementRef<typeof AlertDialogPrimitive.Overlay>)
+  useGSAP(() => {
+    const media = gsap.matchMedia()
+    media.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.from(overlayRef.current, {
+        autoAlpha: 0,
+        duration: 0.18,
+        ease: "power2.out",
+        clearProps: "opacity,visibility",
+      })
+    })
+    return () => media.revert()
+  }, { scope: overlayRef })
+
+  return (
+    <AlertDialogPrimitive.Overlay
+      className={cn("fixed inset-0 z-50 bg-slate-950/55", className)}
+      {...props}
+      ref={overlayRef}
+    />
+  )
+})
 AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName
 
 const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <AlertDialogPortal>
-    <AlertDialogOverlay />
-    <AlertDialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        "motion-enter fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border border-border bg-card p-5 text-card-foreground shadow-md duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-        className
-      )}
-      {...props}
-    />
-  </AlertDialogPortal>
-))
+>(({ className, ...props }, ref) => {
+  const contentRef = React.useRef<React.ElementRef<typeof AlertDialogPrimitive.Content>>(null)
+  React.useImperativeHandle(ref, () => contentRef.current as React.ElementRef<typeof AlertDialogPrimitive.Content>)
+  useGSAP(() => {
+    const media = gsap.matchMedia()
+    media.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.from(contentRef.current, {
+        autoAlpha: 0,
+        y: 8,
+        duration: 0.2,
+        ease: "power3.out",
+        clearProps: "transform,opacity,visibility",
+      })
+    })
+    return () => media.revert()
+  }, { scope: contentRef })
+
+  return (
+    <AlertDialogPortal>
+      <AlertDialogOverlay />
+      <AlertDialogPrimitive.Content
+        ref={contentRef}
+        className={cn(
+          "fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg [translate:-50%_-50%] gap-4 rounded-xl border border-border bg-card p-5 text-card-foreground shadow-md",
+          className
+        )}
+        {...props}
+      />
+    </AlertDialogPortal>
+  )
+})
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName
 
 const AlertDialogHeader = ({

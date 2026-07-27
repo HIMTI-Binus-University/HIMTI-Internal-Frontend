@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { usePressMotion } from "@/components/ui/press-motion";
 
 type IconButtonTone = "neutral" | "primary" | "danger";
 type IconButtonSize = "sm" | "default";
@@ -31,6 +32,7 @@ const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
     {
       children,
       className,
+      disabled,
       label,
       tone = "neutral",
       size = "default",
@@ -39,23 +41,28 @@ const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
       ...props
     },
     ref,
-  ) => (
-    <button
-      ref={ref}
-      type={type}
-      aria-label={label}
-      title={title ?? label}
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-lg transition-[color,background-color,border-color,transform] duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:size-[18px] [&_svg]:stroke-[1.75]",
-        toneClasses[tone],
-        sizeClasses[size],
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </button>
-  ),
+  ) => {
+    const buttonRef = usePressMotion(ref, disabled);
+
+    return (
+      <button
+        ref={buttonRef}
+        type={type}
+        aria-label={label}
+        title={title ?? label}
+        disabled={disabled}
+        className={cn(
+          "inline-flex shrink-0 items-center justify-center rounded-lg transition-[color,background-color,border-color] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-[18px] [&_svg]:stroke-[1.75]",
+          toneClasses[tone],
+          sizeClasses[size],
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </button>
+    );
+  },
 );
 
 IconButton.displayName = "IconButton";

@@ -252,7 +252,7 @@ export default function SubeventSetupPage() {
                 </span>
               </span>
               <Switch
-                label="Paid subevent"
+                aria-label="Paid subevent"
                 checked={paid}
                 onCheckedChange={setPaid}
               />

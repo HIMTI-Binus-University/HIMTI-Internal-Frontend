@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CalendarDays, ChevronRight, Clock3, Plus, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -17,10 +17,104 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { EventStatus } from "@/types/events";
+import { gsap, useGSAP } from "@/lib/motion";
+import type { EventListItem, EventStatus } from "@/types/events";
 import { EmptyState } from "./components";
 
 const statuses: EventStatus[] = ["DRAFT", "PUBLISHED", "CLOSED", "CANCELLED"];
+
+const EventRow = ({ event }: { event: EventListItem }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const arrowRef = useRef<HTMLSpanElement>(null);
+
+  useGSAP(() => {
+    const card = cardRef.current;
+    const arrow = arrowRef.current;
+    if (!card || !arrow) return;
+
+    const media = gsap.matchMedia();
+    media.add(
+      {
+        reduceMotion: "(prefers-reduced-motion: reduce)",
+        allowMotion: "(prefers-reduced-motion: no-preference)",
+      },
+      ({ conditions }) => {
+        const move = (active: boolean) => {
+          const vars = { y: active ? -2 : 0, x: active ? 4 : 0 };
+          if (conditions?.reduceMotion) {
+            gsap.set(card, { y: vars.y });
+            gsap.set(arrow, { x: vars.x });
+          } else {
+            gsap.to(card, { y: vars.y, duration: 0.18, ease: "power2.out", overwrite: "auto" });
+            gsap.to(arrow, { x: vars.x, duration: 0.18, ease: "power2.out", overwrite: "auto" });
+          }
+        };
+        const enter = () => move(true);
+        const leave = () => move(false);
+        const focusOut = (focusEvent: FocusEvent) => {
+          if (!card.contains(focusEvent.relatedTarget as Node | null)) leave();
+        };
+        card.addEventListener("pointerenter", enter);
+        card.addEventListener("pointerleave", leave);
+        card.addEventListener("focusin", enter);
+        card.addEventListener("focusout", focusOut);
+        return () => {
+          card.removeEventListener("pointerenter", enter);
+          card.removeEventListener("pointerleave", leave);
+          card.removeEventListener("focusin", enter);
+          card.removeEventListener("focusout", focusOut);
+        };
+      },
+    );
+    return () => media.revert();
+  }, { scope: cardRef });
+
+  return (
+    <Card
+      ref={cardRef}
+      className="overflow-hidden transition-[border-color,box-shadow] hover:border-primary/40 hover:shadow-md focus-within:border-primary/40 focus-within:shadow-md"
+    >
+      <CardContent className="p-0">
+        <Link
+          to={`/events/${event.id}`}
+          aria-label={`Open ${event.name} workspace`}
+          className="grid min-h-28 grid-cols-[5rem_minmax(0,1fr)_2.75rem] sm:grid-cols-[7rem_minmax(0,1fr)_3.5rem]"
+        >
+          <ImagePreview
+            src={event.coverImageUrl}
+            alt={event.name}
+            className="h-full w-full"
+          />
+          <div className="min-w-0 px-4 py-4 sm:px-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="truncate text-base font-bold sm:text-lg">
+                {event.name}
+              </h3>
+              <StatusBadge status={event.status} />
+            </div>
+            <p className="mt-1 line-clamp-1 text-sm leading-6 text-muted-foreground">
+              {event.publicDescription || "No public description yet."}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-4 text-xs font-medium text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays className="h-3.5 w-3.5" />
+                {event.subevents.length} subevent
+                {event.subevents.length === 1 ? "" : "s"}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Clock3 className="h-3.5 w-3.5" />
+                Updated {shortDate(event.updatedAt ?? event.createdAt)}
+              </span>
+            </div>
+          </div>
+          <span ref={arrowRef} className="flex items-center justify-center text-muted-foreground">
+            <ChevronRight className="h-5 w-5" />
+          </span>
+        </Link>
+      </CardContent>
+    </Card>
+  );
+};
 
 export default function EventsPage() {
   const [query, setQuery] = useState("");
@@ -111,53 +205,7 @@ export default function EventsPage() {
           />
         ) : events.length ? (
           <div className="grid gap-3">
-            {events.map((event) => (
-              <Card
-                key={event.id}
-                className="group overflow-hidden transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
-              >
-                <CardContent className="p-0">
-                  <Link
-                    to={`/events/${event.id}`}
-                    aria-label={`Open ${event.name} workspace`}
-                    className="grid min-h-28 grid-cols-[5rem_minmax(0,1fr)_2.75rem] sm:grid-cols-[7rem_minmax(0,1fr)_3.5rem]"
-                  >
-                    <ImagePreview
-                      src={event.coverImageUrl}
-                      alt={event.name}
-                      className="h-full w-full"
-                    />
-                    <div className="min-w-0 px-4 py-4 sm:px-5">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate text-base font-bold sm:text-lg">
-                          {event.name}
-                        </h3>
-                        <StatusBadge status={event.status} />
-                      </div>
-                      <p className="mt-1 line-clamp-1 text-sm leading-6 text-muted-foreground">
-                        {event.publicDescription ||
-                          "No public description yet."}
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-4 text-xs font-medium text-muted-foreground">
-                        <span className="inline-flex items-center gap-1.5">
-                          <CalendarDays className="h-3.5 w-3.5" />
-                          {event.subevents.length} subevent
-                          {event.subevents.length === 1 ? "" : "s"}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                          <Clock3 className="h-3.5 w-3.5" />
-                          Updated{" "}
-                          {shortDate(event.updatedAt ?? event.createdAt)}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="flex items-center justify-center text-muted-foreground transition-transform group-hover:translate-x-1">
-                      <ChevronRight className="h-5 w-5" />
-                    </span>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
+            {events.map((event) => <EventRow key={event.id} event={event} />)}
           </div>
         ) : (
           <EmptyState

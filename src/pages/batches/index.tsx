@@ -9,7 +9,6 @@ import {
   Plus,
   RefreshCw,
   Trash2,
-  Users,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
@@ -59,6 +58,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import type { Period, Resource, ResourcePayload } from "@/types/batches";
 import { getSafeHttpUrl, normalizeHttpUrlInput } from "@/utils/http-url";
@@ -247,38 +247,12 @@ const BatchesPage = () => {
       )}
 
       <Container>
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div className="min-w-0 flex-1">
-            <Label className="mb-2" htmlFor="period-selector">Academic period</Label>
-            {periodsQuery.isLoading ? (
-              <div className="h-10 w-full animate-pulse rounded-lg bg-muted sm:max-w-md" />
-            ) : periodsQuery.isError ? (
-              <div className="flex flex-wrap items-center gap-3 text-sm text-semantic-danger">
-                <span>Could not load academic periods.</span>
-                <Button size="sm" variant="outline" onClick={() => periodsQuery.refetch()}>
-                  <RefreshCw /> Retry
-                </Button>
-              </div>
-            ) : periods.length ? (
-              <Select
-                items={periods.map((period) => ({ value: period.id, label: period.label }))}
-                value={selectedPeriod?.id ?? periods[0].id}
-                onValueChange={selectPeriod}
-              >
-                <SelectTrigger id="period-selector" className="sm:max-w-md">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {periods.map((period) => (
-                    <SelectItem key={period.id} value={period.id}>
-                      {period.label}{period.isActive ? " (Active)" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <p className="text-sm text-muted-foreground">Create an academic period to get started.</p>
-            )}
+        <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+          <div>
+            <ContainerHeader className="mb-1">Batch details</ContainerHeader>
+            <p className="text-sm text-muted-foreground">
+              Choose the academic period you want to manage.
+            </p>
           </div>
           {selectedPeriod && (
             <div className="flex flex-wrap gap-2">
@@ -297,51 +271,63 @@ const BatchesPage = () => {
             </div>
           )}
         </div>
-      </Container>
 
-      {selectedPeriod && (
-        <Container>
-          <div className="flex flex-col justify-between gap-5 md:flex-row md:items-start">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <ContainerHeader>{selectedPeriod.label}</ContainerHeader>
-                <Badge variant={selectedPeriod.isActive ? "success" : "neutral"}>
-                  {selectedPeriod.isActive ? "Active" : "Inactive"}
-                </Badge>
-                <Badge variant={selectedPeriod.registrationOpen ? "info" : "neutral"}>
-                  Reregistration {selectedPeriod.registrationOpen ? "open" : "closed"}
-                </Badge>
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">ID: {selectedPeriod.id}</p>
-              <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                <span className="inline-flex items-center gap-2 text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  <strong className="text-foreground">{selectedPeriod._count.memberships}</strong> memberships
-                </span>
-                <span className="inline-flex items-center gap-2 text-muted-foreground">
-                  <Layers3 className="h-4 w-4" />
-                  <strong className="text-foreground">{selectedPeriod._count.resources}</strong> resources
-                </span>
-              </div>
+        <Label className="mb-2" htmlFor="period-selector">Academic period</Label>
+        {periodsQuery.isLoading ? (
+          <Skeleton aria-hidden="true" className="h-10 w-full sm:max-w-md" />
+        ) : periodsQuery.isError ? (
+          <div className="flex flex-wrap items-center gap-3 text-sm text-semantic-danger">
+            <span>Could not load academic periods.</span>
+            <Button size="sm" variant="outline" onClick={() => periodsQuery.refetch()}>
+              <RefreshCw /> Retry
+            </Button>
+          </div>
+        ) : periods.length ? (
+          <Select
+            items={periods.map((period) => ({ value: period.id, label: period.label }))}
+            value={selectedPeriod?.id ?? periods[0].id}
+            onValueChange={selectPeriod}
+          >
+            <SelectTrigger id="period-selector" className="sm:max-w-md">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {periods.map((period) => (
+                <SelectItem key={period.id} value={period.id}>
+                  {period.label}{period.isActive ? " (Active)" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <p className="text-sm text-muted-foreground">Create an academic period to get started.</p>
+        )}
+
+        {selectedPeriod && (
+          <>
+            <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border pt-5">
+              <Badge variant={selectedPeriod.isActive ? "success" : "neutral"}>
+                {selectedPeriod.isActive ? "Active" : "Inactive"}
+              </Badge>
+              <Badge variant={selectedPeriod.registrationOpen ? "info" : "neutral"}>
+                Reregistration {selectedPeriod.registrationOpen ? "open" : "closed"}
+              </Badge>
             </div>
-            <div className="flex flex-col gap-3 rounded-lg bg-muted/50 p-3 sm:min-w-72">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold">Reregistration</p>
-                  <p className="text-xs text-muted-foreground">Allow pengurus to register again</p>
+
+            <dl className="mt-4 divide-y divide-border overflow-hidden rounded-lg bg-muted/50 sm:grid sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+              {[
+                ["Period ID", selectedPeriod.id],
+                ["Memberships", selectedPeriod._count.memberships],
+                ["Resources", selectedPeriod._count.resources],
+              ].map(([label, value]) => (
+                <div key={label} className="px-4 py-3">
+                  <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+                  <dd className="mt-1 text-sm font-semibold text-foreground">{value}</dd>
                 </div>
-                <Switch
-                  checked={selectedPeriod.registrationOpen}
-                  label={`${selectedPeriod.registrationOpen ? "Close" : "Open"} reregistration`}
-                  disabled={setReregistration.isPending}
-                  onCheckedChange={(open) =>
-                    setReregistration.mutate(
-                      { id: selectedPeriod.id, open },
-                      { onError: (error) => setPageError(errorMessage(error, "Failed to update reregistration.")) },
-                    )
-                  }
-                />
-              </div>
+              ))}
+            </dl>
+
+            <div className="mt-5 flex flex-col gap-4 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
               {!selectedPeriod.isActive && (
                 <Button
                   size="sm"
@@ -356,43 +342,74 @@ const BatchesPage = () => {
                   Activate period
                 </Button>
               )}
+              <div className="flex items-center justify-between gap-4 sm:ml-auto">
+                <div>
+                  <p className="text-sm font-semibold">Reregistration</p>
+                  <p className="text-xs text-muted-foreground">Allow pengurus to register again</p>
+                </div>
+                <Switch
+                  checked={selectedPeriod.registrationOpen}
+                  aria-label={`${selectedPeriod.registrationOpen ? "Close" : "Open"} reregistration`}
+                  disabled={setReregistration.isPending}
+                  onCheckedChange={(open) =>
+                    setReregistration.mutate(
+                      { id: selectedPeriod.id, open },
+                      { onError: (error) => setPageError(errorMessage(error, "Failed to update reregistration.")) },
+                    )
+                  }
+                />
+              </div>
             </div>
-          </div>
-        </Container>
-      )}
+          </>
+        )}
+      </Container>
 
-      {selectedPeriod && (
-        <Container>
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <div>
-              <ContainerHeader>Generic cards</ContainerHeader>
-              <p className="mt-1 text-sm text-muted-foreground">Resources shown to pengurus in this period.</p>
-            </div>
+      <Container>
+        <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+          <div>
+            <ContainerHeader className="mb-1">Batch resources</ContainerHeader>
+            <p className="text-sm text-muted-foreground">
+              Resources shown to pengurus in this batch.
+            </p>
+          </div>
+          {selectedPeriod && (
             <Button size="sm" onClick={() => openResourceDialog()}>
               <Plus />
-              <span className="max-sm:sr-only">Add card</span>
+              Add resource
+            </Button>
+          )}
+        </div>
+
+        {!selectedPeriod ? (
+          <EmptyState
+            icon={Layers3}
+            title="No batch selected"
+            description="Choose a batch above to manage its resources."
+          />
+        ) : resourcesQuery.isLoading ? (
+          <div className="space-y-3" aria-label="Loading batch resources">
+            {[0, 1].map((item) => <Skeleton key={item} aria-hidden="true" className="h-24" />)}
+          </div>
+        ) : resourcesQuery.isError ? (
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border px-5 py-8 text-center">
+            <p className="text-sm text-semantic-danger">Could not load batch resources.</p>
+            <Button size="sm" variant="outline" onClick={() => resourcesQuery.refetch()}>
+              <RefreshCw /> Retry
             </Button>
           </div>
-
-          {resourcesQuery.isLoading ? (
-            <div className="space-y-3" aria-label="Loading generic cards">
-              {[0, 1].map((item) => <div key={item} className="h-24 animate-pulse rounded-lg bg-muted" />)}
-            </div>
-          ) : resourcesQuery.isError ? (
-            <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border px-5 py-8 text-center">
-              <p className="text-sm text-semantic-danger">Could not load generic cards.</p>
-              <Button size="sm" variant="outline" onClick={() => resourcesQuery.refetch()}>
-                <RefreshCw /> Retry
-              </Button>
-            </div>
-          ) : resources.length === 0 ? (
-            <EmptyState icon={Layers3} title="No generic cards yet" description="Add the first resource for this academic period." />
-          ) : (
-            <div className="-mx-5 -mb-5 divide-y divide-border border-t border-border">
-              {resources.map((resource, index) => {
-                const safeUrl = getSafeHttpUrl(resource.url);
-                return (
-                  <article key={resource.id} className="flex flex-col gap-4 px-5 py-4 transition-colors hover:bg-muted/35 sm:flex-row sm:items-start sm:justify-between">
+        ) : resources.length === 0 ? (
+          <EmptyState
+            icon={Layers3}
+            title="No batch resources yet"
+            description="Add the first resource for this batch."
+          />
+        ) : (
+          <ul className="-mx-5 -mb-5 divide-y divide-border border-t border-border">
+            {resources.map((resource, index) => {
+              const safeUrl = getSafeHttpUrl(resource.url);
+              return (
+                <li key={resource.id}>
+                  <article className="flex flex-col gap-4 px-5 py-4 transition-colors hover:bg-muted/35 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="font-semibold text-foreground">{resource.title}</h2>
@@ -408,26 +425,26 @@ const BatchesPage = () => {
                       )}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
-                      <IconButton label={`Move ${resource.title} up`} disabled={index === 0 || orderResources.isPending} onClick={() => moveResource(index, -1)}>
+                      <IconButton className="h-11 w-11 sm:h-9 sm:w-9" label={`Move ${resource.title} up`} disabled={index === 0 || orderResources.isPending} onClick={() => moveResource(index, -1)}>
                         <ArrowUp />
                       </IconButton>
-                      <IconButton label={`Move ${resource.title} down`} disabled={index === resources.length - 1 || orderResources.isPending} onClick={() => moveResource(index, 1)}>
+                      <IconButton className="h-11 w-11 sm:h-9 sm:w-9" label={`Move ${resource.title} down`} disabled={index === resources.length - 1 || orderResources.isPending} onClick={() => moveResource(index, 1)}>
                         <ArrowDown />
                       </IconButton>
-                      <IconButton label={`Edit ${resource.title}`} tone="primary" onClick={() => openResourceDialog(resource)}>
+                      <IconButton className="h-11 w-11 sm:h-9 sm:w-9" label={`Edit ${resource.title}`} tone="primary" onClick={() => openResourceDialog(resource)}>
                         <Pencil />
                       </IconButton>
-                      <IconButton label={`Delete ${resource.title}`} tone="danger" onClick={() => setDeleteResourceTarget(resource)}>
+                      <IconButton className="h-11 w-11 sm:h-9 sm:w-9" label={`Delete ${resource.title}`} tone="danger" onClick={() => setDeleteResourceTarget(resource)}>
                         <Trash2 />
                       </IconButton>
                     </div>
                   </article>
-                );
-              })}
-            </div>
-          )}
-        </Container>
-      )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Container>
 
       <Dialog open={!!periodDialog} onOpenChange={(open) => !open && setPeriodDialog(null)}>
         <DialogContent className="sm:max-w-[480px]">
@@ -456,8 +473,8 @@ const BatchesPage = () => {
       <Dialog open={resourceDialogOpen} onOpenChange={setResourceDialogOpen}>
         <DialogContent ref={resourceDialogRef} className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-[560px]">
           <DialogHeader>
-            <DialogTitle>{editResource ? "Edit generic card" : "Add generic card"}</DialogTitle>
-            <DialogDescription>Region is card context only; every member in the period can see every card.</DialogDescription>
+            <DialogTitle>{editResource ? "Edit batch resource" : "Add batch resource"}</DialogTitle>
+            <DialogDescription>Region is resource context only; every member in the period can see every resource.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -501,7 +518,7 @@ const BatchesPage = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setResourceDialogOpen(false)}>Cancel</Button>
-            <Button disabled={createResource.isPending || updateResource.isPending} onClick={saveResource}>Save card</Button>
+            <Button disabled={createResource.isPending || updateResource.isPending} onClick={saveResource}>Save resource</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -525,14 +542,14 @@ const BatchesPage = () => {
       <AlertDialog open={!!deleteResourceTarget} onOpenChange={(open) => !open && setDeleteResourceTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete generic card</AlertDialogTitle>
+            <AlertDialogTitle>Delete batch resource</AlertDialogTitle>
             <AlertDialogDescription>Delete {deleteResourceTarget?.title}? This action cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction variant="delete" onClick={() => deleteResourceTarget && deleteResource.mutate(deleteResourceTarget.id, {
               onSuccess: () => setDeleteResourceTarget(null),
-              onError: (error) => { setDeleteResourceTarget(null); setPageError(errorMessage(error, "Failed to delete card.")); },
+              onError: (error) => { setDeleteResourceTarget(null); setPageError(errorMessage(error, "Failed to delete resource.")); },
             })}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

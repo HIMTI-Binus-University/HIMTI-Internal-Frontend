@@ -32,11 +32,35 @@ describe("HomePage authentication action", () => {
     auth.useSession.mockReset();
   });
 
-  it("links to login when unauthenticated", () => {
+  it("renders the workspace preview and links to login when unauthenticated", () => {
     auth.useSession.mockReturnValue({ data: null, isPending: false });
 
     renderPage();
 
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Everything HIMTI needs to keep moving.",
+    );
+    expect(
+      screen.getByText(
+        "Access internal tools, manage operational work, and find the resources your team needs. All from one workspace.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open workspace" })).toHaveAttribute(
+      "href",
+      "/login",
+    );
+    expect(screen.getByText("URL Shortener")).toBeInTheDocument();
+    expect(screen.getByText("Email Blaster")).toBeInTheDocument();
+    expect(screen.getByText("Event Operations")).toBeInTheDocument();
+    expect(screen.getByText("Member & Role Access")).toBeInTheDocument();
+    expect(screen.getByText("HIMTI Internal Tools")).toBeInTheDocument();
+    expect(
+      screen.queryByText("The workspace behind HIMTI"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Role-based access")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Tools shown based on your role."),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute(
       "href",
       "/login",
