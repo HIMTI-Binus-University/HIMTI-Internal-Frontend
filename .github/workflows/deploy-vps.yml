@@ -52,7 +52,7 @@ jobs:
         run: |
           node --version
           npm --version
-          test "$(npm --version)" = "10.9.4"
+          test "$(npm --version)" = "10.9.7"
 
       - name: Install Dependencies
         run: npm ci
