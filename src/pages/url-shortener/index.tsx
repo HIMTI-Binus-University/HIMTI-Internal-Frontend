@@ -546,13 +546,17 @@ const UrlShortenerPage = () => {
 
       {/* CARD URLs */}
       <Container>
-        <ContainerHeader>
-          {debouncedSearchQuery
-            ? `Results for "${debouncedSearchQuery}" (${totalRecords})`
-            : `Existing Links (${totalRecords})`}
-        </ContainerHeader>
+         <ContainerHeader className="mb-1">URL Shortener</ContainerHeader>
+         <p className="mb-5 text-sm text-muted-foreground">
+           Create and manage short links for your workspace.
+         </p>
+         <div className="mb-4 text-base font-semibold">
+           {debouncedSearchQuery
+             ? `Results for "${debouncedSearchQuery}" (${totalRecords})`
+             : `Existing links (${totalRecords})`}
+         </div>
 
-        <SearchField
+         <SearchField
           id="urlSearch"
           label="Search links"
           placeholder="Search by short code or target URL..."
@@ -669,12 +673,7 @@ const UrlShortenerPage = () => {
                 label={`Showing ${pageStart}-${pageEnd} of ${totalRecords} links`}
                 page={paginationMeta?.page ?? currentPage}
                 totalPages={totalPages}
-                onPrevious={() =>
-                  setCurrentPage((page) => Math.max(page - 1, 1))
-                }
-                onNext={() =>
-                  setCurrentPage((page) => Math.min(page + 1, totalPages))
-                }
+                onPageChange={(page) => setCurrentPage(page)}
               />
             )}
           </div>

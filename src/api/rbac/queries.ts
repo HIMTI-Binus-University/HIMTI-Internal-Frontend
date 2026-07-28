@@ -95,13 +95,40 @@ export const useMutationDeletePermission = (
 
 // ─── Roles ────────────────────────────────────────────────────────────────────
 
+type RoleListResponse = {
+  msg: string;
+  data: Role[];
+  meta: {
+    page: number;
+    limit: number;
+    totalRecords: number;
+    totalPages: number;
+  };
+};
+
+export const getAllRoles = async () => {
+  const firstPage = await apiClient.get<RoleListResponse>(Api.roleList, {
+    params: { page: 1, limit: 100, status: "ACTIVE" },
+  });
+  const { data, meta } = firstPage.data;
+  if (meta.totalPages <= 1) return data;
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: meta.totalPages - 1 }, (_, index) =>
+      apiClient
+        .get<RoleListResponse>(Api.roleList, {
+          params: { page: index + 2, limit: 100, status: "ACTIVE" },
+        })
+        .then((response) => response.data.data),
+    ),
+  );
+  return data.concat(...remainingPages);
+};
+
 export const useGetRoles = (enabled = true) => {
   return useQuery({
     queryKey: ["roles"],
-    queryFn: () =>
-      apiClient
-        .get<{ msg: string; data: Role[]; total: number }>(`${Api.roleList}?status=ACTIVE`)
-        .then((res) => res.data.data),
+    queryFn: getAllRoles,
     staleTime: 5 * 60 * 1000,
     enabled,
   });
