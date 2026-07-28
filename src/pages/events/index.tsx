@@ -151,9 +151,15 @@ export default function EventsPage() {
         </Button>
       }
     >
-      <Container>
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">Events ({totalRecords})</h2>
+       <Container>
+         <div className="mb-5">
+           <h2 className="text-lg font-semibold leading-7 tracking-tight">Events ({totalRecords})</h2>
+           <p className="mt-1 text-sm text-muted-foreground">
+             Create and manage events for your community.
+           </p>
+         </div>
+         <div className="mb-4 flex items-center justify-between gap-3">
+           <h3 className="text-base font-semibold">Results</h3>
           {(query || status !== "ALL") && (
             <Button variant="ghost" size="sm" onClick={clear}>
               Clear filters
@@ -161,21 +167,29 @@ export default function EventsPage() {
           )}
         </div>
         <div className="mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_13rem]">
-          <label className="relative">
-            <span className="sr-only">Search events</span>
-            <Search className="absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted-foreground" />
+          <div className="relative">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground" htmlFor="event-search">
+              Search
+            </label>
+            <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-[calc(50%+0.35rem)] h-[18px] w-[18px] -translate-y-1/2 text-muted-foreground" />
             <Input
+              id="event-search"
+              type="search"
               className="pl-10"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search event name or description"
             />
-          </label>
-          <Select
-            value={status}
-            onValueChange={(value) => setStatus(value as EventStatus | "ALL")}
-          >
-            <SelectTrigger aria-label="Filter event status">
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground" htmlFor="event-status-filter">
+              Status
+            </label>
+            <Select
+              value={status}
+              onValueChange={(value) => setStatus(value as EventStatus | "ALL")}
+            >
+            <SelectTrigger id="event-status-filter" aria-label="Filter by event status">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -185,8 +199,9 @@ export default function EventsPage() {
                   {item}
                 </SelectItem>
               ))}
-            </SelectContent>
-          </Select>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         {eventsQuery.isLoading ? (
           <p className="py-12 text-center text-sm text-muted-foreground">

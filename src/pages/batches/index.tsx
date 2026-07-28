@@ -232,8 +232,8 @@ const BatchesPage = () => {
   return (
     <PageLayout
       icon={Layers3}
-      title="Batch"
-      actions={
+       title="Batches"
+       actions={
         <Button size="sm" onClick={openCreatePeriod}>
           <Plus />
           <span className="max-sm:sr-only">New period</span>
@@ -248,12 +248,14 @@ const BatchesPage = () => {
 
       <Container>
         <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-          <div>
-            <ContainerHeader className="mb-1">Batch details</ContainerHeader>
-            <p className="text-sm text-muted-foreground">
-              Choose the academic period you want to manage.
-            </p>
-          </div>
+           <div>
+             <h2 className="text-lg font-semibold leading-7 tracking-tight text-foreground">
+               Academic periods
+             </h2>
+             <p className="mt-1 text-sm text-muted-foreground">
+               Choose the academic period you want to manage.
+             </p>
+           </div>
           {selectedPeriod && (
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="edit" onClick={openEditPeriod}>

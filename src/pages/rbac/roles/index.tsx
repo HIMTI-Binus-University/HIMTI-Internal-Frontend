@@ -167,8 +167,8 @@ const RbacRolesPage = () => {
   return (
     <PageLayout
       icon={BadgeCheck}
-      title="Roles"
-      actions={
+       title="Roles"
+       actions={
         <Button
           size="sm"
           onClick={() => {
@@ -183,7 +183,10 @@ const RbacRolesPage = () => {
     >
         {/* Roles list */}
         <Container>
-          <ContainerHeader>Manage Roles</ContainerHeader>
+          <ContainerHeader className="mb-1">Roles</ContainerHeader>
+          <p className="mb-5 text-sm text-muted-foreground">
+            Define reusable access groups for workspace members.
+          </p>
 
           {isLoading && (
             <p className="text-sm text-muted-foreground">

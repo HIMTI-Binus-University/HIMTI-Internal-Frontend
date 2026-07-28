@@ -69,7 +69,7 @@ const PageLayout = ({
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="min-w-0 flex-1 p-4 font-sans sm:p-6">
-        <header ref={headerRef} className="relative mb-6 flex min-h-14 items-center justify-between gap-3 rounded-xl border border-border bg-card/70 px-3 py-2 text-card-foreground sm:px-4">
+        <header ref={headerRef} className="relative mb-6 flex min-h-14 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/70 px-3 py-2 text-card-foreground sm:px-4">
           <div className="flex min-w-0 items-center gap-2">
             <button
               type="button"
@@ -90,8 +90,9 @@ const PageLayout = ({
               <Menu aria-hidden="true" className="h-5 w-5 stroke-[1.75]" />
             </button>
 
-            <nav aria-label="Breadcrumb" className="min-w-0">
-              <ol className="flex min-w-0 items-center gap-1 text-sm leading-5">
+            <div className="min-w-0">
+              <nav aria-label="Breadcrumb">
+                <ol className="flex min-w-0 items-center gap-1 text-sm leading-5">
                 {breadcrumbs.map((crumb, index) => {
                   const isCurrent = index === breadcrumbs.length - 1;
 
@@ -113,8 +114,9 @@ const PageLayout = ({
                     </li>
                   );
                 })}
-              </ol>
-            </nav>
+                </ol>
+              </nav>
+            </div>
           </div>
 
           {actions && <div className="shrink-0">{actions}</div>}

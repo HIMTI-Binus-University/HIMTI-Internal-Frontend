@@ -131,8 +131,8 @@ const UsersPage = () => {
   return (
     <PageLayout
       icon={Users}
-      title="Users"
-      actions={
+       title="Users"
+       actions={
         <Button size="sm" onClick={handleExport} disabled={exporting}>
           <Download />
           <span className="max-sm:sr-only">
@@ -147,12 +147,20 @@ const UsersPage = () => {
         </p>
       )}
 
-      <Container padding="none" className="overflow-hidden">
-        <div className="border-b border-border p-4">
+       <Container padding="none" className="overflow-hidden">
+         <div className="border-b border-border px-4 pt-4">
+           <h2 className="text-lg font-semibold leading-7 tracking-tight text-foreground">
+             Users
+           </h2>
+           <p className="mt-1 pb-4 text-sm text-muted-foreground">
+             View and manage workspace members.
+           </p>
+         </div>
+         <div className="border-b border-border p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
             <div className="min-w-0 flex-1">
-              <Label className="sr-only" htmlFor="user-search">
-                Search users
+              <Label className="mb-1.5 block text-xs font-medium text-muted-foreground" htmlFor="user-search">
+                Search
               </Label>
               <div className="relative">
                 <Search
@@ -360,8 +368,7 @@ const UsersPage = () => {
               label={`Showing ${pageStart}-${pageEnd} of ${totalRecords} users`}
               page={meta.page}
               totalPages={meta.totalPages}
-              onPrevious={() => updateFilter("page", String(meta.page - 1))}
-              onNext={() => updateFilter("page", String(meta.page + 1))}
+              onPageChange={(nextPage) => updateFilter("page", String(nextPage))}
             />
           </div>
         )}
