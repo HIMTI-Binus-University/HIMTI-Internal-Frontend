@@ -120,8 +120,8 @@ const RbacPermissionsPage = () => {
   return (
     <PageLayout
       icon={KeyRound}
-      title="Permissions"
-      actions={
+       title="Permissions"
+       actions={
         <Button
           size="sm"
           onClick={() => {
@@ -136,7 +136,10 @@ const RbacPermissionsPage = () => {
     >
         {/* Permissions list */}
         <Container>
-          <ContainerHeader>Manage Permissions</ContainerHeader>
+          <ContainerHeader className="mb-1">Permissions</ContainerHeader>
+          <p className="mb-5 text-sm text-muted-foreground">
+            Control access to internal tools and resources.
+          </p>
 
           {isLoading && (
             <p className="text-sm text-muted-foreground">
