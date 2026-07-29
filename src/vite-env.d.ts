@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly VITE_ADMIN_APP_URL: string;
   readonly VITE_LINK_APP_URL: string;
   readonly VITE_OFOG_URL: string;
+  readonly VITE_REGISTRATION_APP_URL: string;
   readonly VITE_LOCAL_LINK_BASE_PATH: string;
 }
 

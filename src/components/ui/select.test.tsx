@@ -1,3 +1,4 @@
+import { useRef } from "react"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
@@ -12,6 +13,22 @@ const Example = ({ onValueChange = vi.fn(), disabled = false }) => (
     </SelectContent>
   </Select>
 )
+
+const ContainedExample = () => {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  return (
+    <div ref={containerRef} data-testid="portal-container">
+      <Select items={{ ALL: "All regions", KMG: "Kemanggisan" }} defaultValue="ALL">
+        <SelectTrigger aria-label="Region"><SelectValue /></SelectTrigger>
+        <SelectContent portalContainer={containerRef}>
+          <SelectItem value="ALL">All regions</SelectItem>
+          <SelectItem value="KMG">Kemanggisan</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
 
 afterEach(cleanup)
 
@@ -44,5 +61,14 @@ describe("Select", () => {
     expect(trigger).toBeDisabled()
     fireEvent.click(trigger)
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument()
+  })
+
+  it("can portal its popup inside a modal container", () => {
+    render(<ContainedExample />)
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Region" }))
+
+    const container = screen.getByTestId("portal-container")
+    expect(container).toContainElement(screen.getByRole("listbox"))
   })
 })

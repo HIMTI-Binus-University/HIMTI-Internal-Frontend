@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { ArrowLeft, ChevronRight, Menu } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { publicRoutes } from "@/config/routes";
+import { gsap, useGSAP } from "@/lib/motion";
 
 import Sidebar from "./Sidebar";
 
@@ -31,12 +32,44 @@ const PageLayout = ({
   const breadcrumbs = customBreadcrumbs ?? getBreadcrumbs(location.pathname, title);
   const parentPath = getBreadcrumbParentPath(location.pathname) ?? backTo;
 
+
+  const layoutRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      const targets = [headerRef.current, contentRef.current].filter(Boolean);
+      const media = gsap.matchMedia();
+
+      media.add("(prefers-reduced-motion: no-preference)", () => {
+        gsap.fromTo(
+          targets,
+          { autoAlpha: 0, y: 10 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.5,
+            ease: "power3.out",
+            stagger: 0.04,
+            clearProps: "transform,opacity,visibility",
+          },
+        );
+      });
+      media.add("(prefers-reduced-motion: reduce)", () => {
+        gsap.set(targets, { clearProps: "transform,opacity,visibility" });
+      });
+
+      return () => media.revert();
+    },
+    { scope: layoutRef },
+  );
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div ref={layoutRef} className="flex min-h-screen w-full bg-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="min-w-0 flex-1 p-4 font-sans sm:p-6">
-        <header className="motion-enter relative mb-6 flex min-h-14 items-center justify-between gap-3 rounded-xl border border-border bg-card/70 px-3 py-2 text-card-foreground sm:px-4">
+        <header ref={headerRef} className="relative mb-6 flex min-h-14 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/70 px-3 py-2 text-card-foreground sm:px-4">
           <div className="flex min-w-0 items-center gap-2">
             <button
               type="button"
@@ -57,8 +90,9 @@ const PageLayout = ({
               <Menu aria-hidden="true" className="h-5 w-5 stroke-[1.75]" />
             </button>
 
-            <nav aria-label="Breadcrumb" className="min-w-0">
-              <ol className="flex min-w-0 items-center gap-1 text-sm leading-5">
+            <div className="min-w-0">
+              <nav aria-label="Breadcrumb">
+                <ol className="flex min-w-0 items-center gap-1 text-sm leading-5">
                 {breadcrumbs.map((crumb, index) => {
                   const isCurrent = index === breadcrumbs.length - 1;
 
@@ -80,14 +114,15 @@ const PageLayout = ({
                     </li>
                   );
                 })}
-              </ol>
-            </nav>
+                </ol>
+              </nav>
+            </div>
           </div>
 
           {actions && <div className="shrink-0">{actions}</div>}
         </header>
 
-        <div className="motion-enter motion-delay-1 flex flex-col gap-6">{children}</div>
+        <div ref={contentRef} className="flex flex-col gap-6">{children}</div>
       </main>
     </div>
   );

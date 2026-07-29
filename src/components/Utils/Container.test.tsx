@@ -12,7 +12,6 @@ describe("Container", () => {
       "border",
       "border-border",
       "bg-card",
-      "motion-enter",
       "p-5",
     );
     expect(screen.getByText("Panel content")).not.toHaveClass("shadow");

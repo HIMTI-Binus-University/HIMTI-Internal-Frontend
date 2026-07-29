@@ -1,37 +1,146 @@
-import { AlertCircle, ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
+import { useRef, useState } from "react";
+import {
+  AlertCircle,
+  ArrowRight,
+  CalendarDays,
+  Link2,
+  Mail,
+  UsersRound,
+} from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 
-import HimtiLogo from "@/components/logos/HimtiLogo";
 import { Button } from "@/components/ui/button";
+import { gsap, useGSAP } from "@/lib/motion";
+import { authClient } from "@/utils/auth-client";
 
+const tools = [
+  {
+    name: "URL Shortener",
+    description: "Create and manage official HIMTI links.",
+    icon: Link2,
+  },
+  {
+    name: "Email Blaster",
+    description: "Prepare and send organized email campaigns.",
+    icon: Mail,
+  },
+  {
+    name: "Event Operations",
+    description: "Manage registrations and event workflows.",
+    icon: CalendarDays,
+  },
+  {
+    name: "Member & Role Access",
+    description: "Control access to internal tools.",
+    icon: UsersRound,
+  },
+];
 function HomePage() {
+  const pageRef = useRef<HTMLElement>(null);
   const [searchParams] = useSearchParams();
+  const { data: session, isPending } = authClient.useSession();
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const showNoPermissionsWarning = searchParams.get("warning") === "no-permissions";
 
+  useGSAP(
+    () => {
+      const appearTargets =
+        pageRef.current?.querySelectorAll<HTMLElement>("[data-page-appear]");
+      const toolCards =
+        pageRef.current?.querySelectorAll<HTMLElement>("[data-tool-card]");
+
+      const mm = gsap.matchMedia();
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        if (appearTargets?.length) {
+          gsap.from(appearTargets, {
+            autoAlpha: 0,
+            y: 10,
+            duration: 0.55,
+            ease: "power3.out",
+            stagger: 0.08,
+            clearProps: "transform,opacity,visibility",
+          });
+        }
+
+        if (toolCards?.length) {
+          gsap.to(toolCards, {
+            y: -2,
+            duration: 2.8,
+            ease: "sine.inOut",
+            stagger: 0.3,
+            repeat: -1,
+            yoyo: true,
+          });
+        }
+      });
+
+      return () => mm.revert();
+    },
+    { scope: pageRef },
+  );
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await authClient.signOut();
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
   return (
-    <main className="min-h-screen overflow-hidden bg-background text-foreground">
+    <main
+      ref={pageRef}
+      className="min-h-screen overflow-hidden bg-background text-foreground"
+    >
       <div className="absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-primary/15 to-transparent" />
       <section className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8">
-        <header className="motion-enter flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-primary-1 text-white shadow-lg shadow-brand-primary-1/15">
-              <HimtiLogo width={30} height={36} />
-            </div>
-            <div>
-              <p className="text-sm font-bold leading-5">HIMTI</p>
-              <p className="text-xs font-medium text-muted-foreground">
+        <header data-page-appear className="flex items-center justify-between gap-4">
+          <Link
+            to="/"
+            className="flex min-w-0 items-center gap-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 sm:gap-3"
+          >
+            <img
+              src="/icon-primary.svg"
+              alt=""
+              className="size-8 shrink-0 object-contain sm:size-10"
+            />
+            <span className="min-w-0 leading-tight">
+              <span className="block whitespace-nowrap text-xs font-bold tracking-tight text-foreground sm:text-sm">
+                HIMTI BINUS
+              </span>
+              <span className="block text-[10px] font-medium text-muted-foreground sm:text-[11px]">
                 Internal Tools
-              </p>
-            </div>
-          </div>
+              </span>
+            </span>
+          </Link>
 
-          <Button asChild variant="secondary" size="sm">
-            <Link to="/login">Sign in</Link>
-          </Button>
+          {isPending ? (
+            <Button variant="secondary" size="sm" disabled>
+              Checking session...
+            </Button>
+          ) : session ? (
+            <Button
+              type="button"
+              variant="delete"
+              size="sm"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+            >
+              {isSigningOut ? "Logging out..." : "Log out"}
+            </Button>
+          ) : (
+            <Button asChild variant="secondary" size="sm">
+              <Link to="/login">Log in</Link>
+            </Button>
+          )}
         </header>
 
         {showNoPermissionsWarning && (
-          <div className="motion-enter mt-8 flex gap-3 rounded-xl border border-semantic-warning-border bg-semantic-warning-background px-4 py-3 text-sm text-semantic-warning">
+          <div
+            data-page-appear
+            className="mt-8 flex gap-3 rounded-xl border border-semantic-warning-border bg-semantic-warning-background px-4 py-3 text-sm text-semantic-warning"
+          >
             <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
               Your account is signed in, but it does not have permission to
@@ -41,53 +150,80 @@ function HomePage() {
           </div>
         )}
 
-        <div className="grid flex-1 items-center gap-10 py-16 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="motion-enter motion-delay-1 max-w-2xl">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-sm font-semibold text-primary">
-              <Sparkles aria-hidden="true" className="h-4 w-4 stroke-[1.75]" />
-              Built for HIMTI operations
-            </div>
-            <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              One workspace for internal tools, links, events, and access.
+        <div className="grid min-w-0 flex-1 items-center gap-10 py-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-12 lg:py-16">
+          <div data-page-appear className="min-w-0 max-w-2xl">
+            <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-5xl">
+              Everything HIMTI
+              <br />
+              {" "}
+              needs to keep moving.
             </h1>
             <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
-              Manage day-to-day operational workflows with a focused dashboard
-              designed for KOMTIG HIMTI members.
+              Access internal tools, manage operational work, and find the
+              resources your team needs. All from one workspace.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-8">
               <Button asChild size="lg">
                 <Link to="/login">
-                  Continue to dashboard
+                  Open workspace
                   <ArrowRight aria-hidden="true" />
                 </Link>
               </Button>
             </div>
           </div>
 
-          <div className="motion-enter motion-delay-2 rounded-[2rem] border border-border bg-card p-5 shadow-xl shadow-brand-primary-1/5">
-            <div className="rounded-[1.5rem] bg-gradient-to-br from-brand-primary-1 to-brand-primary-2 p-6 text-white">
-              <ShieldCheck aria-hidden="true" className="h-10 w-10 stroke-[1.5]" />
-              <h2 className="mt-8 text-2xl font-bold tracking-tight">
-                Secure internal access
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-white/75">
-                Google sign-in, permission-aware navigation, and purpose-built
-                tools keep the workspace clear for each member role.
-              </p>
-              <div className="mt-8 grid gap-3 text-sm sm:grid-cols-2">
-                {[
-                  "URL shortener",
-                  "Event operations",
-                  "Role management",
-                  "Permission control",
-                ].map((item) => (
-                  <div key={item} className="rounded-xl bg-white/10 px-3 py-2">
-                    {item}
-                  </div>
-                ))}
+          <aside
+            aria-label="Available internal tools preview"
+            data-page-appear
+            className="min-w-0 rounded-2xl bg-brand-primary-1 p-4 text-white shadow-xl shadow-brand-primary-1/15 sm:p-5"
+          >
+            <div className="flex min-w-0 items-center justify-between gap-3 border-b border-white/10 pb-4">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold">HIMTI Internal Tools</p>
+              </div>
+              <div
+                aria-hidden="true"
+                className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-2"
+              >
+                <span className="size-1.5 rounded-full bg-white/35" />
+                <span className="size-1.5 rounded-full bg-white/55" />
+                <span className="size-1.5 rounded-full bg-white/75" />
               </div>
             </div>
-          </div>
+
+            <div className="flex min-w-0 gap-4 pt-4">
+              <div
+                aria-hidden="true"
+                className="hidden w-10 shrink-0 flex-col items-center gap-3 rounded-xl bg-white/[0.06] py-3 sm:flex"
+              >
+                <span className="size-5 rounded-md bg-white/20" />
+                <span className="h-px w-5 bg-white/15" />
+                <span className="size-2 rounded-full bg-white/45" />
+                <span className="size-2 rounded-full bg-white/20" />
+                <span className="size-2 rounded-full bg-white/20" />
+              </div>
+
+              <ul className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
+                {tools.map(({ name, description, icon: Icon }) => (
+                  <li
+                    key={name}
+                    data-tool-card
+                    className="min-w-0 rounded-xl border border-white/10 bg-white/10 p-4 will-change-transform"
+                  >
+                    <Icon
+                      aria-hidden="true"
+                      className="size-5 stroke-[1.75] text-white/85"
+                    />
+                    <h2 className="mt-4 text-sm font-bold leading-5">{name}</h2>
+                    <p className="mt-1.5 text-xs leading-5 text-white/70">
+                      {description}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+          </aside>
         </div>
       </section>
     </main>

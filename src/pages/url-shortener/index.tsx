@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -39,6 +40,7 @@ import {
   CalendarDays,
   Check,
   Copy,
+  UserRound,
   Link2,
   Pencil,
   Plus,
@@ -178,6 +180,7 @@ const UrlShortenerPage = () => {
   );
 
   const [showConfirmPopup, setConfirmPopup] = useState(false);
+  const [showCreatePopup, setCreatePopup] = useState(false);
   const [showDeletePopup, setDeletePopup] = useState(false);
   const [showEditPopup, setEditPopup] = useState(false);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
@@ -205,7 +208,11 @@ const UrlShortenerPage = () => {
     return () => window.clearTimeout(timeoutId);
   }, [searchQuery]);
 
-  const { data: urlsData, isLoading: isLoadingUrls, refetch } = useGetUrlList({
+  const {
+    data: urlsData,
+    isLoading: isLoadingUrls,
+    refetch,
+  } = useGetUrlList({
     page: currentPage,
     limit: URLS_PER_PAGE,
     search: debouncedSearchQuery,
@@ -280,6 +287,7 @@ const UrlShortenerPage = () => {
 
         setCreateErrors({});
         setPageError("");
+        setCreatePopup(false);
         setConfirmPopup(true);
         setTargetUrl("");
         setShortCode("");
@@ -292,8 +300,7 @@ const UrlShortenerPage = () => {
         const axiosError = error as AxiosError;
         const zodErrors = (
           axiosError.response?.data as
-            | { errors?: Record<string, { _errors?: string[] }> }
-            | undefined
+            { errors?: Record<string, { _errors?: string[] }> } | undefined
         )?.errors;
         if (zodErrors) {
           const mapped: Record<string, string> = {};
@@ -303,7 +310,9 @@ const UrlShortenerPage = () => {
           }
           setCreateErrors(mapped);
         } else {
-          setPageError("Failed to create short link. Please check the URL and try again.");
+          setPageError(
+            "Failed to create short link. Please check the URL and try again.",
+          );
         }
       },
     });
@@ -336,7 +345,9 @@ const UrlShortenerPage = () => {
       },
       onError: (error) => {
         console.error(error);
-        setPageError("Failed to update link. Please review the link details and try again.");
+        setPageError(
+          "Failed to update link. Please review the link details and try again.",
+        );
       },
     });
   };
@@ -370,373 +381,407 @@ const UrlShortenerPage = () => {
   };
 
   return (
-    <PageLayout icon={Link2} title="URL Shortener">
-        {pageError && (
-          <div className="flex gap-3 rounded-xl border border-semantic-danger-border bg-semantic-danger-background px-4 py-3 text-sm text-semantic-danger">
-            <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>{pageError}</p>
-          </div>
-        )}
-
-        {/* FORM CREATE LINK */}
-        <Container>
-          <ContainerHeader>Create New Link</ContainerHeader>
-
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="targetUrl" className="mb-2">
-                Target Link
-              </Label>
-              <Input
-                id="targetUrl"
-                type="text"
-                placeholder="www.youtube.com"
-                value={targetUrl}
-                onChange={(e) => {
-                  setTargetUrl(e.target.value);
-                  setCreateErrors((prev) => ({ ...prev, originalUrl: "" }));
-                }}
-                className={`${createErrors.originalUrl ? "border-semantic-danger" : ""}`}
-              />
-              {createErrors.originalUrl && (
-                <p className="mt-2 text-sm text-semantic-danger">
-                  {createErrors.originalUrl}
-                </p>
-              )}
-            </div>
-
-            <div className="flex-1">
-              <Label htmlFor="shortCode" className="mb-2">
-                Short Link
-              </Label>
-              <div
-                className={`mt-1 flex overflow-hidden rounded-lg border ${
-                  createErrors.shortCode
-                    ? "border-semantic-danger"
-                    : "border-semantic-border"
-                }`}
-              >
-                <span className="flex min-w-0 max-w-full shrink items-center truncate whitespace-nowrap bg-muted px-3 text-sm font-semibold text-muted-foreground max-md:hidden">
-                  {shortLinkPrefix}
-                </span>
-                <Input
-                  id="shortCode"
-                  type="text"
-                  value={shortCode}
-                  onChange={(e) => {
-                    setShortCode(e.target.value);
-                    setCreateErrors((prev) => ({ ...prev, shortCode: "" }));
-                  }}
-                  className="flex-1 rounded-none border-0 text-sm focus-visible:ring-0"
-                  placeholder="ReallyCoolVideos"
-                />
-              </div>
-              {createErrors.shortCode && (
-                <p className="mt-2 text-sm text-semantic-danger">
-                  {createErrors.shortCode}
-                </p>
-              )}
-            </div>
-
-            <div className="flex justify-end">
-              <Button onClick={handleCreateLink} disabled={createUrl.isPending}>
-                {createUrl.isPending ? (
-                  "Loading..."
-                ) : (
-                  <>
-                    <Plus />
-                    Create Link
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </Container>
-
-        {/* LINK CREATION CONFIRMATION DIALOG */}
-        {createdLink && (
-          <Dialog open={showConfirmPopup} onOpenChange={setConfirmPopup}>
-            <DialogContent className="sm:max-w-[480px]">
-              <DialogHeader>
-                <DialogTitle>Link Created</DialogTitle>
-              </DialogHeader>
-
-              <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/35 p-4">
-                <div className="flex flex-row items-center justify-start gap-4 min-w-0">
-                  <p className="min-w-0 flex-1 break-all text-base font-semibold">
-                    {shortLinkConfig.buildShortUrl(createdLink.shortUrl)}
-                  </p>
-                  <IconButton
-                    label={popupCopied ? "Link copied" : "Copy short link"}
-                    tone="primary"
-                    onClick={() => {
-                      navigator.clipboard.writeText(
-                        shortLinkConfig.buildShortUrl(createdLink.shortUrl),
-                      );
-                      setPopupCopied(true);
-                      setTimeout(() => setPopupCopied(false), 1500);
-                    }}
-                  >
-                    {popupCopied ? <Check /> : <Copy />}
-                  </IconButton>
-                </div>
-
-                <div className="flex min-w-0 items-center gap-2 text-sm">
-                  <ArrowRight className="h-[18px] w-[18px] shrink-0 stroke-[1.75]" />
-                  <span className="break-all min-w-0">
-                    {createdLink.targetUrl}
-                  </span>
-                </div>
-
-                <div className="mt-2 flex items-center gap-6 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <CalendarDays className="h-4 w-4 stroke-[1.75]" />
-                    <CreatedAt value={createdLink.createdAt} />
-                  </div>
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button onClick={() => setConfirmPopup(false)}>Done</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-
-        {/* CARD URLs */}
-        <Container>
-          <ContainerHeader>
-            {debouncedSearchQuery
-              ? `Results for "${debouncedSearchQuery}" (${totalRecords})`
-              : `Existing Links (${totalRecords})`}
-          </ContainerHeader>
-
-          <SearchField
-            id="urlSearch"
-            label="Search links"
-            placeholder="Search by short code or target URL..."
-            value={searchQuery}
-            onChange={(value) => {
-              setSearchQuery(value);
-              setCurrentPage(1);
-            }}
-          />
-
-          {isLoadingUrls ? (
-            <p className="text-sm text-muted-foreground">Loading links...</p>
-          ) : urls.length === 0 ? (
-            <EmptyState
-              icon={Link2}
-              title={
-                debouncedSearchQuery
-                  ? "No links match your search"
-                  : "No links yet"
-              }
-              description={
-                debouncedSearchQuery
-                  ? "Try a different short code or target URL."
-                  : "Create your first short link to make sharing easier."
-              }
-            />
-          ) : (
-            <div>
-              {urls.map((url) => (
-                <article
-                  key={url.id}
-                  className="-mx-5 flex items-start justify-between gap-3 border-t border-border px-5 py-4 transition-colors first:border-t-0 hover:bg-muted/35 max-sm:flex-col max-sm:gap-4"
-                >
-                    <div className="flex flex-col gap-2 min-w-0 flex-1">
-                      <p className="break-all whitespace-normal text-base font-semibold leading-6">
-                        {shortLinkConfig.buildShortUrl(url.shortCode)}
-                      </p>
-
-                      <div className="flex min-w-0 flex-row items-center gap-2 text-sm text-muted-foreground">
-                        <ArrowRight className="h-4 w-4 shrink-0 stroke-[1.75]" />
-                        <span className="min-w-0 flex-1 break-all">{url.originalUrl}</span>
-                      </div>
-
-                      <div className="mt-1 flex flex-row gap-6 text-xs text-muted-foreground max-lg:flex-col max-lg:gap-2">
-                        <div className="flex items-center gap-1">
-                          <CalendarDays className="h-4 w-4 stroke-[1.75]" />
-                          <CreatedAt value={url.createdAt} />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-1">
-                      <IconButton
-                        label={copiedId === url.id ? "Link copied" : "Copy short link"}
-                        tone="primary"
-                        onClick={() => {
-                          navigator.clipboard.writeText(
-                            shortLinkConfig.buildShortUrl(url.shortCode),
-                          );
-                          setCopiedId(url.id);
-                          setTimeout(() => setCopiedId(null), 1500);
-                        }}
-                      >
-                        {copiedId === url.id ? <Check /> : <Copy />}
-                      </IconButton>
-                      <IconButton
-                        label="Generate QR code"
-                        tone="primary"
-                        onClick={() =>
-                          setQrUrl(shortLinkConfig.buildShortUrl(url.shortCode))
-                        }
-                      >
-                        <QrCode />
-                      </IconButton>
-                      <IconButton
-                        label="Edit link"
-                        tone="primary"
-                        onClick={() => {
-                          setSelectedLink(url);
-                          setEditTargetUrl(url.originalUrl);
-                          setEditShortCode(url.shortCode);
-                          setEditExpiryDate(
-                            url.expiresAt ? new Date(url.expiresAt) : undefined,
-                          );
-                          setEditPopup(true);
-                        }}
-                      >
-                        <Pencil />
-                      </IconButton>
-                      <IconButton
-                        label="Delete link"
-                        tone="danger"
-                        onClick={() => {
-                          setSelectedLink(url);
-                          setDeletePopup(true);
-                        }}
-                      >
-                        <Trash2 />
-                      </IconButton>
-                    </div>
-                </article>
-              ))}
-
-              {totalPages > 1 && (
-                <PaginationFooter
-                  label={`Showing ${pageStart}-${pageEnd} of ${totalRecords} links`}
-                  page={paginationMeta?.page ?? currentPage}
-                  totalPages={totalPages}
-                  onPrevious={() =>
-                    setCurrentPage((page) => Math.max(page - 1, 1))
-                  }
-                  onNext={() =>
-                    setCurrentPage((page) => Math.min(page + 1, totalPages))
-                  }
-                />
-              )}
-            </div>
-          )}
-        </Container>
-
-        {/* EDIT DIALOG */}
-        <Dialog
-          open={showEditPopup}
-          onOpenChange={(open) => {
-            if (!open) closeEditPopup();
+    <PageLayout
+      icon={Link2}
+      title="URL Shortener"
+      actions={
+        <Button
+          size="sm"
+          onClick={() => {
+            setCreateErrors({});
+            setCreatePopup(true);
           }}
         >
+          <Plus />
+          <span className="max-sm:sr-only">Create link</span>
+        </Button>
+      }
+    >
+      {pageError && (
+        <div className="flex gap-3 rounded-xl border border-semantic-danger-border bg-semantic-danger-background px-4 py-3 text-sm text-semantic-danger">
+          <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>{pageError}</p>
+        </div>
+      )}
+
+      <Dialog open={showCreatePopup} onOpenChange={setCreatePopup}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Create link</DialogTitle>
+            <DialogDescription>
+              Choose the destination and the short code people will use.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleCreateLink();
+            }}
+          >
+          <div>
+            <Label htmlFor="targetUrl" className="mb-2">
+              Target Link
+            </Label>
+            <Input
+              id="targetUrl"
+              type="text"
+              placeholder="www.youtube.com"
+              value={targetUrl}
+              onChange={(e) => {
+                setTargetUrl(e.target.value);
+                setCreateErrors((prev) => ({ ...prev, originalUrl: "" }));
+              }}
+              className={`${createErrors.originalUrl ? "border-semantic-danger" : ""}`}
+            />
+            {createErrors.originalUrl && (
+              <p className="mt-2 text-sm text-semantic-danger">
+                {createErrors.originalUrl}
+              </p>
+            )}
+          </div>
+
+          <div className="flex-1">
+            <Label htmlFor="shortCode" className="mb-2">
+              Short Link
+            </Label>
+            <div
+              className={`mt-1 flex overflow-hidden rounded-lg border ${
+                createErrors.shortCode
+                  ? "border-semantic-danger"
+                  : "border-semantic-border"
+              }`}
+            >
+              <span className="flex min-w-0 max-w-full shrink items-center truncate whitespace-nowrap bg-muted px-3 text-sm font-semibold text-muted-foreground max-md:hidden">
+                {shortLinkPrefix}
+              </span>
+              <Input
+                id="shortCode"
+                type="text"
+                value={shortCode}
+                onChange={(e) => {
+                  setShortCode(e.target.value);
+                  setCreateErrors((prev) => ({ ...prev, shortCode: "" }));
+                }}
+                className="flex-1 rounded-none border-0 text-sm focus-visible:ring-0"
+                placeholder="ReallyCoolVideos"
+              />
+            </div>
+            {createErrors.shortCode && (
+              <p className="mt-2 text-sm text-semantic-danger">
+                {createErrors.shortCode}
+              </p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setCreatePopup(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={createUrl.isPending}>
+              {createUrl.isPending ? (
+                "Creating..."
+              ) : (
+                <>
+                  <Plus />
+                  Create Link
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* LINK CREATION CONFIRMATION DIALOG */}
+      {createdLink && (
+        <Dialog open={showConfirmPopup} onOpenChange={setConfirmPopup}>
           <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
-              <DialogTitle>Edit Link</DialogTitle>
+              <DialogTitle>Link Created</DialogTitle>
             </DialogHeader>
 
-            <div className="flex flex-col gap-4">
-              <div>
-                <Label htmlFor="editTargetUrl" className="mb-2">
-                  Target Link
-                </Label>
-                <Input
-                  id="editTargetUrl"
-                  type="text"
-                  value={editTargetUrl}
-                  onChange={(e) => setEditTargetUrl(e.target.value)}
-                  className="mt-1"
-                />
+            <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/35 p-4">
+              <div className="flex flex-row items-center justify-start gap-4 min-w-0">
+                <p className="min-w-0 flex-1 break-all text-base font-semibold">
+                  {shortLinkConfig.buildShortUrl(createdLink.shortUrl)}
+                </p>
+                <IconButton
+                  label={popupCopied ? "Link copied" : "Copy short link"}
+                  tone="primary"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      shortLinkConfig.buildShortUrl(createdLink.shortUrl),
+                    );
+                    setPopupCopied(true);
+                    setTimeout(() => setPopupCopied(false), 1500);
+                  }}
+                >
+                  {popupCopied ? <Check /> : <Copy />}
+                </IconButton>
               </div>
 
-              <div>
-                <Label htmlFor="editShortCode" className="mb-2">
-                  Short Link
-                </Label>
-                <div className="mt-1 flex overflow-hidden rounded-lg border border-input">
-                  <span className="flex min-w-0 max-w-full shrink items-center truncate bg-muted px-3 text-sm font-semibold text-muted-foreground max-md:hidden">
-                    {shortLinkPrefix}
-                  </span>
-                  <Input
-                    id="editShortCode"
-                    type="text"
-                    value={editShortCode}
-                    onChange={(e) =>
-                      setEditShortCode(
-                        shortLinkConfig.toEditableShortCode(e.target.value),
-                      )
-                    }
-                    className="flex-1 rounded-none border-0 focus-visible:ring-0"
-                  />
+              <div className="flex min-w-0 items-center gap-2 text-sm">
+                <ArrowRight className="h-[18px] w-[18px] shrink-0 stroke-[1.75]" />
+                <span className="break-all min-w-0">
+                  {createdLink.targetUrl}
+                </span>
+              </div>
+
+              <div className="mt-2 flex items-center gap-6 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <CalendarDays className="h-4 w-4 stroke-[1.75]" />
+                  <CreatedAt value={createdLink.createdAt} />
                 </div>
               </div>
             </div>
 
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={closeEditPopup}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveEditUrl}>
-                <Plus />
-                Save Changes
-              </Button>
+            <DialogFooter>
+              <Button onClick={() => setConfirmPopup(false)}>Done</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      )}
 
-        {/* QR CODE DIALOG, IMPORTANT */}
-        <QRCodeDialog url={qrUrl} onClose={() => setQrUrl(null)} />
+      {/* CARD URLs */}
+      <Container>
+         <ContainerHeader className="mb-1">URL Shortener</ContainerHeader>
+         <p className="mb-5 text-sm text-muted-foreground">
+           Create and manage short links for your workspace.
+         </p>
+         <div className="mb-4 text-base font-semibold">
+           {debouncedSearchQuery
+             ? `Results for "${debouncedSearchQuery}" (${totalRecords})`
+             : `Existing links (${totalRecords})`}
+         </div>
 
-        {/* DELETE ALERT DIALOG */}
-        <AlertDialog
-          open={showDeletePopup}
-          onOpenChange={(open) => {
-            if (!open) {
-              setDeletePopup(false);
-              setSelectedLink(null);
-            }
+         <SearchField
+          id="urlSearch"
+          label="Search links"
+          placeholder="Search by short code or target URL..."
+          value={searchQuery}
+          onChange={(value) => {
+            setSearchQuery(value);
+            setCurrentPage(1);
           }}
-        >
-          <AlertDialogContent className="sm:max-w-[420px]">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="">Delete Link</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this link? This action cannot be
-                undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
+        />
 
-            {selectedLink && (
-              <div className="min-w-0 rounded-lg border border-border bg-muted/35 p-4">
-                <p className="truncate text-sm font-semibold">
-                  {shortLinkConfig.buildShortUrl(selectedLink.shortCode)}
-                </p>
-                <p className="truncate text-sm text-muted-foreground">
-                  {selectedLink.originalUrl}
-                </p>
-              </div>
-            )}
-
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDeleteUrl}
-                variant="delete"
+        {isLoadingUrls ? (
+          <p className="text-sm text-muted-foreground">Loading links...</p>
+        ) : urls.length === 0 ? (
+          <EmptyState
+            icon={Link2}
+            title={
+              debouncedSearchQuery
+                ? "No links match your search"
+                : "No links yet"
+            }
+            description={
+              debouncedSearchQuery
+                ? "Try a different short code or target URL."
+                : "Create your first short link to make sharing easier."
+            }
+          />
+        ) : (
+          <div>
+            {urls.map((url) => (
+              <article
+                key={url.id}
+                className="-mx-5 flex items-start justify-between gap-3 border-t border-border px-5 py-4 transition-colors first:border-t-0 hover:bg-muted/35 max-sm:flex-col max-sm:gap-4"
               >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                <div className="flex flex-col gap-2 min-w-0 flex-1">
+                  <p className="break-all whitespace-normal text-base font-semibold leading-6">
+                    {shortLinkConfig.buildShortUrl(url.shortCode)}
+                  </p>
+
+                  <div className="flex min-w-0 flex-row items-center gap-2 text-sm text-muted-foreground">
+                    <ArrowRight className="h-4 w-4 shrink-0 stroke-[1.75]" />
+                    <span className="min-w-0 flex-1 break-all">
+                      {url.originalUrl}
+                    </span>
+                  </div>
+
+                  <div className="mt-1 flex flex-row gap-6 text-xs text-muted-foreground max-lg:flex-col max-lg:gap-2">
+                    <div className="flex items-center gap-1">
+                      <CalendarDays className="h-4 w-4 stroke-[1.75]" />
+                      <CreatedAt value={url.createdAt} />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <UserRound className="h-4 w-4 stroke-[1.75]" />
+                      <span>Created by {url.creator?.name ?? "Unknown"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-1">
+                  <IconButton
+                    label={
+                      copiedId === url.id ? "Link copied" : "Copy short link"
+                    }
+                    tone="primary"
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        shortLinkConfig.buildShortUrl(url.shortCode),
+                      );
+                      setCopiedId(url.id);
+                      setTimeout(() => setCopiedId(null), 1500);
+                    }}
+                  >
+                    {copiedId === url.id ? <Check /> : <Copy />}
+                  </IconButton>
+                  <IconButton
+                    label="Generate QR code"
+                    tone="primary"
+                    onClick={() =>
+                      setQrUrl(shortLinkConfig.buildShortUrl(url.shortCode))
+                    }
+                  >
+                    <QrCode />
+                  </IconButton>
+                  <IconButton
+                    label="Edit link"
+                    tone="primary"
+                    onClick={() => {
+                      setSelectedLink(url);
+                      setEditTargetUrl(url.originalUrl);
+                      setEditShortCode(url.shortCode);
+                      setEditExpiryDate(
+                        url.expiresAt ? new Date(url.expiresAt) : undefined,
+                      );
+                      setEditPopup(true);
+                    }}
+                  >
+                    <Pencil />
+                  </IconButton>
+                  <IconButton
+                    label="Delete link"
+                    tone="danger"
+                    onClick={() => {
+                      setSelectedLink(url);
+                      setDeletePopup(true);
+                    }}
+                  >
+                    <Trash2 />
+                  </IconButton>
+                </div>
+              </article>
+            ))}
+
+            {totalPages > 1 && (
+              <PaginationFooter
+                label={`Showing ${pageStart}-${pageEnd} of ${totalRecords} links`}
+                page={paginationMeta?.page ?? currentPage}
+                totalPages={totalPages}
+                onPageChange={(page) => setCurrentPage(page)}
+              />
+            )}
+          </div>
+        )}
+      </Container>
+
+      {/* EDIT DIALOG */}
+      <Dialog
+        open={showEditPopup}
+        onOpenChange={(open) => {
+          if (!open) closeEditPopup();
+        }}
+      >
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Edit Link</DialogTitle>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4">
+            <div>
+              <Label htmlFor="editTargetUrl" className="mb-2">
+                Target Link
+              </Label>
+              <Input
+                id="editTargetUrl"
+                type="text"
+                value={editTargetUrl}
+                onChange={(e) => setEditTargetUrl(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="editShortCode" className="mb-2">
+                Short Link
+              </Label>
+              <div className="mt-1 flex overflow-hidden rounded-lg border border-input">
+                <span className="flex min-w-0 max-w-full shrink items-center truncate bg-muted px-3 text-sm font-semibold text-muted-foreground max-md:hidden">
+                  {shortLinkPrefix}
+                </span>
+                <Input
+                  id="editShortCode"
+                  type="text"
+                  value={editShortCode}
+                  onChange={(e) =>
+                    setEditShortCode(
+                      shortLinkConfig.toEditableShortCode(e.target.value),
+                    )
+                  }
+                  className="flex-1 rounded-none border-0 focus-visible:ring-0"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={closeEditPopup}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEditUrl}>
+              <Plus />
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* QR CODE DIALOG, IMPORTANT */}
+      <QRCodeDialog url={qrUrl} onClose={() => setQrUrl(null)} />
+
+      {/* DELETE ALERT DIALOG */}
+      <AlertDialog
+        open={showDeletePopup}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletePopup(false);
+            setSelectedLink(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-[420px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="">Delete Link</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this link? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {selectedLink && (
+            <div className="min-w-0 rounded-lg border border-border bg-muted/35 p-4">
+              <p className="truncate text-sm font-semibold">
+                {shortLinkConfig.buildShortUrl(selectedLink.shortCode)}
+              </p>
+              <p className="truncate text-sm text-muted-foreground">
+                {selectedLink.originalUrl}
+              </p>
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteUrl} variant="delete">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageLayout>
   );
 };

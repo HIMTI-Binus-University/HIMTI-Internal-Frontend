@@ -4,6 +4,7 @@ import { type VariantProps } from "class-variance-authority"
 
 import { buttonVariants } from "@/components/ui/button-variants"
 import { cn } from "@/lib/utils"
+import { usePressMotion } from "@/components/ui/press-motion"
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
@@ -12,12 +13,14 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, disabled, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
+    const elementRef = usePressMotion(ref, disabled)
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
+        ref={elementRef}
+        disabled={disabled}
         {...props}
       />
     )

@@ -3,11 +3,13 @@ import { AxiosError } from "axios";
 
 import { PageLayout, Container, ContainerHeader, EmptyState } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -22,7 +24,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { BadgeCheck, Pencil, Trash2 } from "lucide-react";
+import { BadgeCheck, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { useGetPermissions, useGetRoles } from "@/api/rbac/queries";
 import {
@@ -38,6 +40,7 @@ const RbacRolesPage = () => {
   // Create form state
   const [newRoleName, setNewRoleName] = useState("");
   const [createError, setCreateError] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
 
   // Edit dialog state
   const [editTarget, setEditTarget] = useState<Role | null>(null);
@@ -71,6 +74,7 @@ const RbacRolesPage = () => {
         onSuccess: () => {
           setNewRoleName("");
           setCreateError("");
+          setCreateOpen(false);
         },
         onError: (error) => {
           const axiosError = error as AxiosError<{ message?: string }>;
@@ -161,47 +165,28 @@ const RbacRolesPage = () => {
   );
 
   return (
-    <PageLayout icon={BadgeCheck} title="Roles">
-
-        {/* Create form */}
-        <Container>
-          <ContainerHeader>Add Role</ContainerHeader>
-          <div className="flex flex-col gap-4 w-full">
-            <div>
-              <Label htmlFor="newRoleName" className="mb-2">
-                Role Name
-              </Label>
-              <Input
-                id="newRoleName"
-                type="text"
-                placeholder="Registration Team"
-                value={newRoleName}
-                onChange={(e) => {
-                  setNewRoleName(e.target.value);
-                  setCreateError("");
-                }}
-                className={createError ? "border-semantic-danger" : ""}
-                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-              />
-              {createError && (
-                <p className="mt-2 text-sm text-semantic-danger">
-                  {createError}
-                </p>
-              )}
-            </div>
-            <Button
-              onClick={handleCreate}
-              disabled={createRole.isPending}
-              className="ml-auto w-fit"
-            >
-              {createRole.isPending ? "Adding..." : "Add Role"}
-            </Button>
-          </div>
-        </Container>
-
+    <PageLayout
+      icon={BadgeCheck}
+       title="Roles"
+       actions={
+        <Button
+          size="sm"
+          onClick={() => {
+            setCreateError("");
+            setCreateOpen(true);
+          }}
+        >
+          <Plus />
+          <span className="max-sm:sr-only">Add role</span>
+        </Button>
+      }
+    >
         {/* Roles list */}
         <Container>
-          <ContainerHeader>Manage Roles</ContainerHeader>
+          <ContainerHeader className="mb-1">Roles</ContainerHeader>
+          <p className="mb-5 text-sm text-muted-foreground">
+            Define reusable access groups for workspace members.
+          </p>
 
           {isLoading && (
             <p className="text-sm text-muted-foreground">
@@ -265,6 +250,54 @@ const RbacRolesPage = () => {
           </div>
         </Container>
 
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Add role</DialogTitle>
+            <DialogDescription>
+              Create the role, then assign its permissions from Edit.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleCreate();
+            }}
+          >
+            <div>
+              <Label htmlFor="newRoleName" className="mb-2">
+                Role name
+              </Label>
+              <Input
+                id="newRoleName"
+                type="text"
+                placeholder="Registration Team"
+                value={newRoleName}
+                onChange={(event) => {
+                  setNewRoleName(event.target.value);
+                  setCreateError("");
+                }}
+                className={createError ? "border-semantic-danger" : ""}
+              />
+              {createError && (
+                <p role="alert" className="mt-2 text-sm text-semantic-danger">
+                  {createError}
+                </p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createRole.isPending}>
+                {createRole.isPending ? "Adding..." : "Add role"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit dialog */}
       <Dialog
         open={!!editTarget}
@@ -312,14 +345,12 @@ const RbacRolesPage = () => {
                         key={permission.id}
                         className={`flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted ${isPending ? "opacity-50" : ""}`}
                       >
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={isAssigned}
                           disabled={isPending}
-                          onChange={() =>
+                          onCheckedChange={() =>
                             handlePermissionToggle(permission.id, isAssigned)
                           }
-                          className="w-4 h-4 accent-brand-primary-2 cursor-pointer"
                         />
                         <span className="text-sm text-foreground">
                           {permission.name}

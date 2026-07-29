@@ -3,6 +3,7 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
 import { Check, ChevronRight, Circle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { gsap, useGSAP } from "@/lib/motion"
 
 const DropdownMenu = DropdownMenuPrimitive.Root
 
@@ -41,35 +42,71 @@ DropdownMenuSubTrigger.displayName =
 const DropdownMenuSubContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.SubContent>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
->(({ className, ...props }, ref) => (
-  <DropdownMenuPrimitive.SubContent
-    ref={ref}
-    className={cn(
-      "motion-enter z-50 min-w-[8rem] overflow-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 origin-[--radix-dropdown-menu-content-transform-origin]",
-      className
-    )}
-    {...props}
-  />
-))
+>(({ className, ...props }, ref) => {
+  const contentRef = React.useRef<React.ElementRef<typeof DropdownMenuPrimitive.SubContent>>(null)
+  React.useImperativeHandle(ref, () => contentRef.current as React.ElementRef<typeof DropdownMenuPrimitive.SubContent>)
+  useGSAP(() => {
+    const media = gsap.matchMedia()
+    media.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.from(contentRef.current, {
+        autoAlpha: 0,
+        y: 6,
+        duration: 0.18,
+        ease: "power3.out",
+        clearProps: "transform,opacity,visibility",
+      })
+    })
+    return () => media.revert()
+  }, { scope: contentRef })
+
+  return (
+    <DropdownMenuPrimitive.SubContent
+      ref={contentRef}
+      className={cn(
+        "z-50 min-w-[8rem] origin-[--radix-dropdown-menu-content-transform-origin] overflow-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md",
+        className
+      )}
+      {...props}
+    />
+  )
+})
 DropdownMenuSubContent.displayName =
   DropdownMenuPrimitive.SubContent.displayName
 
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <DropdownMenuPrimitive.Portal>
-    <DropdownMenuPrimitive.Content
-      ref={ref}
-      sideOffset={sideOffset}
-      className={cn(
-        "motion-enter z-50 max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 origin-[--radix-dropdown-menu-content-transform-origin]",
-        className
-      )}
-      {...props}
-    />
-  </DropdownMenuPrimitive.Portal>
-))
+>(({ className, sideOffset = 4, ...props }, ref) => {
+  const contentRef = React.useRef<React.ElementRef<typeof DropdownMenuPrimitive.Content>>(null)
+  React.useImperativeHandle(ref, () => contentRef.current as React.ElementRef<typeof DropdownMenuPrimitive.Content>)
+  useGSAP(() => {
+    const media = gsap.matchMedia()
+    media.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.from(contentRef.current, {
+        autoAlpha: 0,
+        y: 6,
+        duration: 0.18,
+        ease: "power3.out",
+        clearProps: "transform,opacity,visibility",
+      })
+    })
+    return () => media.revert()
+  }, { scope: contentRef })
+
+  return (
+    <DropdownMenuPrimitive.Portal>
+      <DropdownMenuPrimitive.Content
+        ref={contentRef}
+        sideOffset={sideOffset}
+        className={cn(
+          "z-50 max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-[8rem] origin-[--radix-dropdown-menu-content-transform-origin] overflow-y-auto overflow-x-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md",
+          className
+        )}
+        {...props}
+      />
+    </DropdownMenuPrimitive.Portal>
+  )
+})
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName
 
 const DropdownMenuItem = React.forwardRef<
