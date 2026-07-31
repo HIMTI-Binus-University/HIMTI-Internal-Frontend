@@ -10,14 +10,13 @@ import {
 } from "@/api/events/queries";
 import { PageLayout } from "@/components/Utils";
 import { ImagePreview } from "@/components/events/ImagePreview";
+import { MarkdownTextarea } from "@/components/markdown-textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { normalizeHttpUrlInput } from "@/utils/http-url";
 import { normalizeOptionalEventUrl } from "./event-form";
 
-const field =
-  "w-full rounded-lg border border-input bg-card px-3 py-2 text-sm leading-6 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const apiError = (error: unknown) =>
   (error as AxiosError<{ message?: string; msg?: string }>).response?.data
     ?.message ??
@@ -99,13 +98,15 @@ export default function EventEditorPage() {
             </label>
             <label className="block space-y-2">
               <span className="text-sm font-semibold">Public description</span>
-              <textarea
+              <MarkdownTextarea
                 name="description"
                 defaultValue={existing?.publicDescription ?? ""}
                 rows={5}
-                className={field}
                 placeholder="Explain the event in language participants will understand."
               />
+              <span className="block text-xs text-muted-foreground">
+                Supports Markdown and formatted paste from Google Docs.
+              </span>
             </label>
           </CardContent>
         </Card>

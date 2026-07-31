@@ -9,8 +9,10 @@ import {
   useUpdateSubevent,
 } from "@/api/events/queries";
 import { PageLayout } from "@/components/Utils";
+import { ExpandableMarkdown } from "@/components/expandable-markdown";
 import { ImagePreview } from "@/components/events/ImagePreview";
-import { StatusBadge } from "@/components/events/StatusBadge";
+import { MarkdownTextarea } from "@/components/markdown-textarea";
+import { ResourceMarkdown } from "@/components/resource-markdown";
 import { dateTime, titleCase } from "@/components/events/helpers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,8 +75,6 @@ const visibilities: SubeventVisibility[] = [
   "INTERNAL",
   "INVITE_ONLY",
 ];
-const textarea =
-  "w-full rounded-lg border border-input bg-card px-3 py-2 text-sm leading-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const apiError = (error: unknown) =>
   (error as AxiosError<{ message?: string; msg?: string }>).response?.data
     ?.message ??
@@ -124,26 +124,19 @@ export default function SubeventWorkspacePage() {
       <WorkspaceHeader
         eyebrow="Subevent"
         title={subevent.name}
+        media={
+          <ImagePreview
+            src={subevent.posterUrl}
+            alt={subevent.name}
+            className="aspect-[16/5] max-h-80 w-full rounded-none"
+          />
+        }
         description={
           <>
-            <p>
+            <ExpandableMarkdown>
               {subevent.publicDescription ||
                 "No public description configured."}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-5 text-xs font-medium">
-              <span className="inline-flex items-center gap-1.5">
-                <Tags className="h-4 w-4 text-primary" />
-                {titleCase(subevent.type)} · {titleCase(subevent.visibility)}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <CalendarClock className="h-4 w-4 text-primary" />
-                {dateTime(subevent.date)}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <MapPin className="h-4 w-4 text-primary" />
-                {subevent.locationName || "Location pending"}
-              </span>
-            </div>
+            </ExpandableMarkdown>
           </>
         }
         status={subevent.status}
@@ -207,35 +200,58 @@ export default function SubeventWorkspacePage() {
 }
 
 const Overview = ({ subevent }: { subevent: Subevent }) => (
-  <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
-    <ImagePreview
-      src={subevent.posterUrl}
-      alt={subevent.name}
-      className="h-80 w-full rounded-xl border"
-    />
+  <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
     <Card>
       <CardHeader>
-        <CardTitle>Published card content</CardTitle>
+        <CardTitle>Subevent overview</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-5">
-        <div>
-          <StatusBadge status={subevent.status} />
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            {subevent.publicDescription || "No public description configured."}
+      <CardContent className="space-y-6">
+        <section>
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            Public description
           </p>
-        </div>
-        <dl className="grid gap-3 sm:grid-cols-2">
+          <ResourceMarkdown className="mt-2 text-sm leading-6 text-muted-foreground">
+            {subevent.publicDescription || "No public description configured."}
+          </ResourceMarkdown>
+        </section>
+        {subevent.privateDescription && (
+          <section className="border-t pt-5">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              Internal description
+            </p>
+            <ResourceMarkdown className="mt-2 text-sm leading-6 text-muted-foreground">
+              {subevent.privateDescription}
+            </ResourceMarkdown>
+          </section>
+        )}
+      </CardContent>
+    </Card>
+    <Card className="self-start">
+      <CardHeader>
+        <CardTitle>Details</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <dl className="grid gap-3">
           <Info icon={CalendarClock} label="Date">
             {dateTime(subevent.date)}
           </Info>
           <Info icon={MapPin} label="Location">
             {subevent.locationName || "Pending"}
           </Info>
+          <Info icon={Tags} label="Type">
+            {titleCase(subevent.type)}
+          </Info>
           <Info icon={Tags} label="Visibility">
             {titleCase(subevent.visibility)}
           </Info>
           <Info icon={Tags} label="Display position">
             {subevent.position + 1}
+          </Info>
+          <Info icon={Tags} label="Price">
+            {subevent.price > 0 ? subevent.price : "Free"}
+          </Info>
+          <Info icon={Tags} label="Capacity">
+            {subevent.maxParticipants ?? "Unlimited"}
           </Info>
         </dl>
       </CardContent>
@@ -318,9 +334,9 @@ const EditDialog = ({
             "destination",
           ),
           price: Number(values.get("price")) || 0,
+          paid: false,
           maxParticipants: Number(values.get("maxParticipants")) || undefined,
-          maxTicketsPerUser:
-            Number(values.get("maxTicketsPerUser")) || undefined,
+          maxTicketsPerUser: 1,
         },
         { onSuccess: close, onError: (failure) => setError(apiError(failure)) },
       );
@@ -334,7 +350,7 @@ const EditDialog = ({
         <DialogHeader>
           <DialogTitle>Edit subevent content</DialogTitle>
           <DialogDescription>
-            Update persisted event-hub content and required backend fields.
+            Update event details, destination, and ticketing.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -342,25 +358,30 @@ const EditDialog = ({
           onSubmit={save}
           onChange={() => setError("")}
         >
+          <div className="sm:col-span-2 border-b pb-2">
+            <h3 className="text-sm font-bold">Content</h3>
+            <p className="mt-1 text-xs text-muted-foreground">What members will see and what the team should remember.</p>
+          </div>
           <Field label="Subevent name" className="sm:col-span-2">
             <Input name="name" defaultValue={subevent.name} />
           </Field>
           <Field label="Public description">
-            <textarea
+            <MarkdownTextarea
               name="publicDescription"
               defaultValue={subevent.publicDescription ?? ""}
               rows={4}
-              className={textarea}
             />
           </Field>
           <Field label="Private description">
-            <textarea
+            <MarkdownTextarea
               name="privateDescription"
               defaultValue={subevent.privateDescription ?? ""}
               rows={4}
-              className={textarea}
             />
           </Field>
+          <div className="sm:col-span-2 border-b pb-2 pt-2">
+            <h3 className="text-sm font-bold">Schedule and location</h3>
+          </div>
           <Field label="Date">
             <Input
               name="date"
@@ -443,6 +464,10 @@ const EditDialog = ({
             alt="Poster preview"
             className="h-40 w-full rounded-xl border sm:col-span-2"
           />
+          <div className="sm:col-span-2 border-b pb-2 pt-2">
+            <h3 className="text-sm font-bold">Ticketing</h3>
+            <p className="mt-1 text-xs text-muted-foreground">Payment handling is not enabled yet. Price is shown for planning.</p>
+          </div>
           <Field label="Price">
             <Input
               name="price"
@@ -457,14 +482,6 @@ const EditDialog = ({
               type="number"
               min="1"
               defaultValue={subevent.maxParticipants ?? ""}
-            />
-          </Field>
-          <Field label="Maximum tickets per user">
-            <Input
-              name="maxTicketsPerUser"
-              type="number"
-              min="1"
-              defaultValue={subevent.maxTicketsPerUser ?? ""}
             />
           </Field>
           {error && (

@@ -20,6 +20,7 @@ import {
   useUpdateSubevent,
 } from "@/api/events/queries";
 import { PageLayout } from "@/components/Utils";
+import { ExpandableMarkdown } from "@/components/expandable-markdown";
 import { ImagePreview } from "@/components/events/ImagePreview";
 import { StatusBadge } from "@/components/events/StatusBadge";
 import { dateTime, titleCase } from "@/components/events/helpers";
@@ -96,14 +97,13 @@ export default function EventWorkspacePage() {
       backTo="/events"
     >
       <Card className="overflow-hidden">
+        <ImagePreview
+          src={event.coverImageUrl}
+          alt={event.name}
+          className="aspect-[16/5] max-h-80 w-full rounded-none"
+        />
         <CardContent className="p-4 sm:p-5">
-          <div className="grid gap-4 sm:grid-cols-[8rem_minmax(0,1fr)]">
-            <ImagePreview
-              src={event.coverImageUrl}
-              alt={event.name}
-              className="h-28 w-full rounded-xl sm:h-full sm:min-h-32"
-            />
-            <div className="flex min-w-0 flex-col justify-center">
+          <div className="flex min-w-0 flex-col justify-center">
               <p className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
                 Event
               </p>
@@ -111,9 +111,9 @@ export default function EventWorkspacePage() {
                 <h1 className="text-xl font-bold sm:text-2xl">{event.name}</h1>
                 <StatusBadge status={event.status} />
               </div>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+              <ExpandableMarkdown className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
                 {event.publicDescription || "No public description configured."}
-              </p>
+              </ExpandableMarkdown>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button variant="edit" asChild>
                   <Link to={`/events/${event.id}/edit`}>
@@ -147,7 +147,6 @@ export default function EventWorkspacePage() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
           </div>
         </CardContent>
       </Card>
