@@ -10,6 +10,9 @@ const readEnv = (key: keyof ImportMetaEnv) => {
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 
+export const joinUrlPath = (baseUrl: string, path: string) =>
+  `${trimTrailingSlash(baseUrl)}/${path.replace(/^\/+/, "")}`;
+
 const ensureLeadingSlash = (value: string) => {
   if (!value) return "/";
   return value.startsWith("/") ? value : `/${value}`;
@@ -47,8 +50,9 @@ export const runtimeConfig = {
   adminAppUrl: trimTrailingSlash(readEnv("VITE_ADMIN_APP_URL")),
   linkAppUrl: trimTrailingSlash(readEnv("VITE_LINK_APP_URL")),
   ofogUrl: trimTrailingSlash(readEnv("VITE_OFOG_URL")),
-  registrationAppUrl: trimTrailingSlash(
+  registrationAppUrl: joinUrlPath(
     import.meta.env.VITE_REGISTRATION_APP_URL || getDefaultRegistrationAppUrl(),
+    "/register",
   ),
   localLinkBasePath: normalizeBasePath(readEnv("VITE_LOCAL_LINK_BASE_PATH")),
 };
