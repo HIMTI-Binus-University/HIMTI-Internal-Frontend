@@ -167,22 +167,24 @@ export default function EventsPage() {
           )}
         </div>
         <div className="mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_13rem]">
-          <div className="relative">
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground" htmlFor="event-search">
-              Search
-            </label>
-            <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-[calc(50%+0.35rem)] h-[18px] w-[18px] -translate-y-1/2 text-muted-foreground" />
-            <Input
+           <div>
+             <label className="mb-1.5 block text-xs font-medium text-muted-foreground" htmlFor="event-search">
+               Search
+             </label>
+             <div className="relative">
+               <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-muted-foreground" />
+               <Input
               id="event-search"
               type="search"
               className="pl-10"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search event name or description"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground" htmlFor="event-status-filter">
+             />
+               </div>
+             </div>
+           <div>
+             <label className="mb-1.5 block text-xs font-medium text-muted-foreground" htmlFor="event-status-filter">
               Status
             </label>
             <Select

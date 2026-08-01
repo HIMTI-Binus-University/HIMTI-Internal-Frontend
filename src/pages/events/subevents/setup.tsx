@@ -7,6 +7,7 @@ import { useCreateSubevent, useGetEvents } from "@/api/events/queries";
 import { PageLayout } from "@/components/Utils";
 import { ImagePreview } from "@/components/events/ImagePreview";
 import { titleCase } from "@/components/events/helpers";
+import { MarkdownTextarea } from "@/components/markdown-textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,13 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import type { SubeventType, SubeventVisibility } from "@/types/events";
 import { normalizeHttpUrlInput } from "@/utils/http-url";
 import { combineEventDateTime, normalizeOptionalEventUrl } from "../event-form";
 
-const textarea =
-  "w-full rounded-lg border border-input bg-card px-3 py-2 text-sm leading-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const types: SubeventType[] = [
   "MAIN_EVENT",
   "WORKSHOP",
@@ -52,7 +50,6 @@ export default function SubeventSetupPage() {
   const eventsQuery = useGetEvents();
   const event = eventsQuery.data?.data.find((item) => item.id === eventId);
   const createSubevent = useCreateSubevent(eventId);
-  const [paid, setPaid] = useState(false);
   const [poster, setPoster] = useState("");
   const [error, setError] = useState("");
   if (step !== "details")
@@ -87,9 +84,9 @@ export default function SubeventSetupPage() {
           "destination",
         ),
         price: Number(values.get("price")) || 0,
-        paid,
+        paid: false,
         maxParticipants: Number(values.get("maxParticipants")) || undefined,
-        maxTicketsPerUser: Number(values.get("maxTicketsPerUser")) || undefined,
+        maxTicketsPerUser: 1,
         visibility: String(values.get("visibility")) as SubeventVisibility,
       };
       createSubevent.mutate(payload, {
@@ -126,21 +123,13 @@ export default function SubeventSetupPage() {
               label="Public description"
               helper="Shown on the member-facing event card."
             >
-              <textarea
-                name="publicDescription"
-                rows={5}
-                className={textarea}
-              />
+              <MarkdownTextarea name="publicDescription" rows={5} />
             </Field>
             <Field
               label="Private description"
               helper="Only visible to the event management team."
             >
-              <textarea
-                name="privateDescription"
-                rows={5}
-                className={textarea}
-              />
+              <MarkdownTextarea name="privateDescription" rows={5} />
             </Field>
             <Field label="Type">
               <Select name="type" defaultValue="OTHER">
@@ -236,37 +225,14 @@ export default function SubeventSetupPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Required backend settings</CardTitle>
+            <CardTitle>Ticketing</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-5 md:grid-cols-2">
             <Field label="Price">
               <Input name="price" type="number" min="0" defaultValue="0" />
             </Field>
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <span>
-                <span className="block text-sm font-semibold">
-                  Paid subevent
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Enables backend payment handling.
-                </span>
-              </span>
-              <Switch
-                aria-label="Paid subevent"
-                checked={paid}
-                onCheckedChange={setPaid}
-              />
-            </div>
             <Field label="Maximum participants">
               <Input name="maxParticipants" type="number" min="1" />
-            </Field>
-            <Field label="Maximum tickets per user">
-              <Input
-                name="maxTicketsPerUser"
-                type="number"
-                min="1"
-                defaultValue="1"
-              />
             </Field>
           </CardContent>
         </Card>
