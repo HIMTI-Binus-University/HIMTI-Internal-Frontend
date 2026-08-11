@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { AxiosError } from "axios";
 // import { format } from "date-fns";
 
@@ -59,6 +59,9 @@ import { shortLinkConfig } from "@/config/runtime";
 import { formatUrlCreatedAt } from "@/utils/url-shortener";
 import qrcode from "qrcode";
 import qrLogoUrl from "@/components/assets/qrlogo.png";
+import { WorkspaceLinksView } from "./workspace-links-view";
+import { WorkspaceSwitcher } from "./workspace-switcher";
+import { useLinkWorkspaces } from "@/api/link-workspaces/queries";
 
 const URLS_PER_PAGE = 10;
 
@@ -78,7 +81,7 @@ function CreatedAt({ value }: { value?: string | null }) {
 }
 
 // QR Code Dialog
-function QRCodeDialog({
+export function QRCodeDialog({
   url,
   onClose,
 }: {
@@ -167,7 +170,11 @@ function QRCodeDialog({
 }
 
 // Url Shortener Page
-const UrlShortenerPage = () => {
+const PersonalLinksPage = ({
+  workspaceSwitcher,
+}: {
+  workspaceSwitcher: ReactNode;
+}) => {
   const shortLinkPrefix = shortLinkConfig.displayPrefix;
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [popupCopied, setPopupCopied] = useState(false);
@@ -385,16 +392,19 @@ const UrlShortenerPage = () => {
       icon={Link2}
       title="URL Shortener"
       actions={
-        <Button
-          size="sm"
-          onClick={() => {
-            setCreateErrors({});
-            setCreatePopup(true);
-          }}
-        >
-          <Plus />
-          <span className="max-sm:sr-only">Create link</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          {workspaceSwitcher}
+          <Button
+            size="sm"
+            onClick={() => {
+              setCreateErrors({});
+              setCreatePopup(true);
+            }}
+          >
+            <Plus />
+            <span className="max-sm:sr-only">Create link</span>
+          </Button>
+        </div>
       }
     >
       {pageError && (
@@ -420,76 +430,80 @@ const UrlShortenerPage = () => {
               handleCreateLink();
             }}
           >
-          <div>
-            <Label htmlFor="targetUrl" className="mb-2">
-              Target Link
-            </Label>
-            <Input
-              id="targetUrl"
-              type="text"
-              placeholder="www.youtube.com"
-              value={targetUrl}
-              onChange={(e) => {
-                setTargetUrl(e.target.value);
-                setCreateErrors((prev) => ({ ...prev, originalUrl: "" }));
-              }}
-              className={`${createErrors.originalUrl ? "border-semantic-danger" : ""}`}
-            />
-            {createErrors.originalUrl && (
-              <p className="mt-2 text-sm text-semantic-danger">
-                {createErrors.originalUrl}
-              </p>
-            )}
-          </div>
-
-          <div className="flex-1">
-            <Label htmlFor="shortCode" className="mb-2">
-              Short Link
-            </Label>
-            <div
-              className={`mt-1 flex overflow-hidden rounded-lg border ${
-                createErrors.shortCode
-                  ? "border-semantic-danger"
-                  : "border-semantic-border"
-              }`}
-            >
-              <span className="flex min-w-0 max-w-full shrink items-center truncate whitespace-nowrap bg-muted px-3 text-sm font-semibold text-muted-foreground max-md:hidden">
-                {shortLinkPrefix}
-              </span>
+            <div>
+              <Label htmlFor="targetUrl" className="mb-2">
+                Target Link
+              </Label>
               <Input
-                id="shortCode"
+                id="targetUrl"
                 type="text"
-                value={shortCode}
+                placeholder="www.youtube.com"
+                value={targetUrl}
                 onChange={(e) => {
-                  setShortCode(e.target.value);
-                  setCreateErrors((prev) => ({ ...prev, shortCode: "" }));
+                  setTargetUrl(e.target.value);
+                  setCreateErrors((prev) => ({ ...prev, originalUrl: "" }));
                 }}
-                className="flex-1 rounded-none border-0 text-sm focus-visible:ring-0"
-                placeholder="ReallyCoolVideos"
+                className={`${createErrors.originalUrl ? "border-semantic-danger" : ""}`}
               />
-            </div>
-            {createErrors.shortCode && (
-              <p className="mt-2 text-sm text-semantic-danger">
-                {createErrors.shortCode}
-              </p>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setCreatePopup(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={createUrl.isPending}>
-              {createUrl.isPending ? (
-                "Creating..."
-              ) : (
-                <>
-                  <Plus />
-                  Create Link
-                </>
+              {createErrors.originalUrl && (
+                <p className="mt-2 text-sm text-semantic-danger">
+                  {createErrors.originalUrl}
+                </p>
               )}
-            </Button>
-          </DialogFooter>
+            </div>
+
+            <div className="flex-1">
+              <Label htmlFor="shortCode" className="mb-2">
+                Short Link
+              </Label>
+              <div
+                className={`mt-1 flex overflow-hidden rounded-lg border ${
+                  createErrors.shortCode
+                    ? "border-semantic-danger"
+                    : "border-semantic-border"
+                }`}
+              >
+                <span className="flex min-w-0 max-w-full shrink items-center truncate whitespace-nowrap bg-muted px-3 text-sm font-semibold text-muted-foreground max-md:hidden">
+                  {shortLinkPrefix}
+                </span>
+                <Input
+                  id="shortCode"
+                  type="text"
+                  value={shortCode}
+                  onChange={(e) => {
+                    setShortCode(e.target.value);
+                    setCreateErrors((prev) => ({ ...prev, shortCode: "" }));
+                  }}
+                  className="flex-1 rounded-none border-0 text-sm focus-visible:ring-0"
+                  placeholder="ReallyCoolVideos"
+                />
+              </div>
+              {createErrors.shortCode && (
+                <p className="mt-2 text-sm text-semantic-danger">
+                  {createErrors.shortCode}
+                </p>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCreatePopup(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createUrl.isPending}>
+                {createUrl.isPending ? (
+                  "Creating..."
+                ) : (
+                  <>
+                    <Plus />
+                    Create Link
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -546,17 +560,17 @@ const UrlShortenerPage = () => {
 
       {/* CARD URLs */}
       <Container>
-         <ContainerHeader className="mb-1">URL Shortener</ContainerHeader>
-         <p className="mb-5 text-sm text-muted-foreground">
-           Create and manage short links for your workspace.
-         </p>
-         <div className="mb-4 text-base font-semibold">
-           {debouncedSearchQuery
-             ? `Results for "${debouncedSearchQuery}" (${totalRecords})`
-             : `Existing links (${totalRecords})`}
-         </div>
+        <ContainerHeader className="mb-1">URL Shortener</ContainerHeader>
+        <p className="mb-5 text-sm text-muted-foreground">
+          Create and manage links that belong to you.
+        </p>
+        <div className="mb-4 text-base font-semibold">
+          {debouncedSearchQuery
+            ? `Results for "${debouncedSearchQuery}" (${totalRecords})`
+            : `Existing links (${totalRecords})`}
+        </div>
 
-         <SearchField
+        <SearchField
           id="urlSearch"
           label="Search links"
           placeholder="Search by short code or target URL..."
@@ -783,6 +797,41 @@ const UrlShortenerPage = () => {
         </AlertDialogContent>
       </AlertDialog>
     </PageLayout>
+  );
+};
+
+const UrlShortenerPage = () => {
+  const [workspaceId, setWorkspaceId] = useState("personal");
+  const workspaces = useLinkWorkspaces();
+
+  useEffect(() => {
+    if (
+      workspaceId !== "personal" &&
+      workspaces.data &&
+      !workspaces.data.data.some((workspace) => workspace.id === workspaceId)
+    ) {
+      setWorkspaceId("personal");
+    }
+  }, [workspaceId, workspaces.data]);
+
+  const switcher = (
+    <WorkspaceSwitcher
+      value={workspaceId}
+      workspaces={workspaces.data?.data ?? []}
+      isLoading={workspaces.isLoading}
+      onChange={setWorkspaceId}
+    />
+  );
+
+  if (workspaceId === "personal") {
+    return <PersonalLinksPage workspaceSwitcher={switcher} />;
+  }
+
+  return (
+    <WorkspaceLinksView
+      workspaceId={workspaceId}
+      workspaceSwitcher={switcher}
+    />
   );
 };
 

@@ -13,6 +13,17 @@ export const Api = {
   urlResolve: `${API_URL}/api/url/:shortCode`,
   urlLink: `${API_URL}/api/url/link/:shortCode`,
 
+  // Shared link workspace endpoints
+  linkWorkspaces: `${API_URL}/api/link-workspaces`,
+  linkWorkspace: `${API_URL}/api/link-workspaces/:workspaceId`,
+  linkWorkspaceArchive: `${API_URL}/api/link-workspaces/:workspaceId/archive`,
+  linkWorkspaceMembers: `${API_URL}/api/link-workspaces/:workspaceId/members`,
+  linkWorkspaceMember: `${API_URL}/api/link-workspaces/:workspaceId/members/:userId`,
+  linkWorkspaceLinks: `${API_URL}/api/link-workspaces/:workspaceId/links`,
+  linkWorkspaceLink: `${API_URL}/api/link-workspaces/:workspaceId/links/:linkId`,
+  linkWorkspaceLinkDeactivate: `${API_URL}/api/link-workspaces/:workspaceId/links/:linkId/deactivate`,
+  linkWorkspaceAttach: `${API_URL}/api/link-workspaces/:workspaceId/links/attach`,
+
   // Permission endpoints
   permissionList: `${API_URL}/api/permission`,
   permissionCreate: `${API_URL}/api/permission`,

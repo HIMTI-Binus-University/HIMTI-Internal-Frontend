@@ -29,9 +29,9 @@ const PageLayout = ({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const breadcrumbs = customBreadcrumbs ?? getBreadcrumbs(location.pathname, title);
+  const breadcrumbs =
+    customBreadcrumbs ?? getBreadcrumbs(location.pathname, title);
   const parentPath = getBreadcrumbParentPath(location.pathname) ?? backTo;
-
 
   const layoutRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
@@ -65,11 +65,17 @@ const PageLayout = ({
     { scope: layoutRef },
   );
   return (
-    <div ref={layoutRef} className="flex min-h-screen w-full bg-background">
+    <div
+      ref={layoutRef}
+      className="flex min-h-screen w-full min-w-0 max-w-full overflow-x-clip bg-background lg:pl-[272px]"
+    >
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <main className="min-w-0 flex-1 p-4 font-sans sm:p-6">
-        <header ref={headerRef} className="relative mb-6 flex min-h-14 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/70 px-3 py-2 text-card-foreground sm:px-4">
+      <main className="w-full min-w-0 max-w-full flex-1 px-4 py-4 font-sans sm:p-6">
+        <header
+          ref={headerRef}
+          className="relative mb-6 flex min-h-14 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/70 px-3 py-2 text-card-foreground sm:px-4"
+        >
           <div className="flex min-w-0 items-center gap-2">
             <button
               type="button"
@@ -93,27 +99,32 @@ const PageLayout = ({
             <div className="min-w-0">
               <nav aria-label="Breadcrumb">
                 <ol className="flex min-w-0 items-center gap-1 text-sm leading-5">
-                {breadcrumbs.map((crumb, index) => {
-                  const isCurrent = index === breadcrumbs.length - 1;
+                  {breadcrumbs.map((crumb, index) => {
+                    const isCurrent = index === breadcrumbs.length - 1;
 
-                  return (
-                    <li key={`${crumb}-${index}`} className="flex min-w-0 items-center gap-1">
-                      {index > 0 && (
-                        <ChevronRight
-                          aria-hidden="true"
-                          className="h-4 w-4 shrink-0 text-muted-foreground/70 stroke-[1.75]"
-                        />
-                      )}
-                      {isCurrent ? (
-                        <h1 className="min-w-0 truncate text-sm font-semibold text-foreground">
-                          {crumb}
-                        </h1>
-                      ) : (
-                        <span className="min-w-0 truncate text-muted-foreground">{crumb}</span>
-                      )}
-                    </li>
-                  );
-                })}
+                    return (
+                      <li
+                        key={`${crumb}-${index}`}
+                        className="flex min-w-0 items-center gap-1"
+                      >
+                        {index > 0 && (
+                          <ChevronRight
+                            aria-hidden="true"
+                            className="h-4 w-4 shrink-0 text-muted-foreground/70 stroke-[1.75]"
+                          />
+                        )}
+                        {isCurrent ? (
+                          <h1 className="min-w-0 truncate text-sm font-semibold text-foreground">
+                            {crumb}
+                          </h1>
+                        ) : (
+                          <span className="min-w-0 truncate text-muted-foreground">
+                            {crumb}
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ol>
               </nav>
             </div>
@@ -122,7 +133,12 @@ const PageLayout = ({
           {actions && <div className="shrink-0">{actions}</div>}
         </header>
 
-        <div ref={contentRef} className="flex flex-col gap-6">{children}</div>
+        <div
+          ref={contentRef}
+          className="flex min-w-0 max-w-full flex-col gap-6"
+        >
+          {children}
+        </div>
       </main>
     </div>
   );
@@ -133,7 +149,8 @@ const getBreadcrumbs = (pathname: string, title: string) => {
     .filter((route) => route.group)
     .sort((a, b) => b.path.length - a.path.length)
     .find(
-      (route) => pathname === route.path || pathname.startsWith(`${route.path}/`),
+      (route) =>
+        pathname === route.path || pathname.startsWith(`${route.path}/`),
     );
 
   if (!matchedRoute) return [title];
