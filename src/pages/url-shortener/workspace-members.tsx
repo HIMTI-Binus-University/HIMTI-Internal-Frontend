@@ -166,14 +166,15 @@ export function WorkspaceMembers({
                   <Select
                     value={member.role}
                     onValueChange={(next) => {
-                      if (!next || next === member.role) return;
-                      if (next === "OWNER") {
+                      const nextRole = next as WorkspaceRole;
+                      if (!nextRole || nextRole === member.role) return;
+                      if (nextRole === "OWNER") {
                         setOwnershipTarget(member);
                         return;
                       }
                       updateMember.mutate({
                         userId: member.userId,
-                        role: next as WorkspaceRole,
+                        role: nextRole,
                       });
                     }}
                   >
