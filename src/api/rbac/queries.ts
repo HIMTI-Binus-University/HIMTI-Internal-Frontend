@@ -32,7 +32,9 @@ export const useGetPermissions = () => {
     queryKey: ["permissions"],
     queryFn: () =>
       apiClient
-        .get<{ msg: string; data: Permission[]; total: number }>(`${Api.permissionList}?status=ACTIVE`)
+        .get<{ msg: string; data: Permission[]; total: number }>(
+          `${Api.permissionList}?status=ACTIVE`,
+        )
         .then((res) => res.data.data),
     staleTime: 5 * 60 * 1000,
   });
@@ -63,10 +65,7 @@ export const useMutationUpdatePermission = (
   return useMutation({
     mutationFn: ({ id, ...data }: UpdatePermissionPayload) =>
       apiClient
-        .patch<Permission>(
-          Api.permissionUpdate.replace(":id", id),
-          data,
-        )
+        .patch<Permission>(Api.permissionUpdate.replace(":id", id), data)
         .then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["permissions"] });
@@ -141,9 +140,7 @@ export const useMutationCreateRole = (
 
   return useMutation({
     mutationFn: (payload: { roleName: string }) =>
-      apiClient
-        .post<Role>(Api.roleCreate, payload)
-        .then((res) => res.data),
+      apiClient.post<Role>(Api.roleCreate, payload).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roles"] });
     },
@@ -187,15 +184,17 @@ export const useMutationDeleteRole = (
 };
 
 export const useMutationAssignRolePermission = (
-  options?: UseMutationOptions<unknown, AxiosError, AssignRolePermissionPayload>,
+  options?: UseMutationOptions<
+    unknown,
+    AxiosError,
+    AssignRolePermissionPayload
+  >,
 ) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (payload: AssignRolePermissionPayload) =>
-      apiClient
-        .post(Api.roleAssignPermission, payload)
-        .then((res) => res.data),
+      apiClient.post(Api.roleAssignPermission, payload).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roles"] });
     },
@@ -204,7 +203,11 @@ export const useMutationAssignRolePermission = (
 };
 
 export const useMutationRemoveRolePermission = (
-  options?: UseMutationOptions<unknown, AxiosError, AssignRolePermissionPayload>,
+  options?: UseMutationOptions<
+    unknown,
+    AxiosError,
+    AssignRolePermissionPayload
+  >,
 ) => {
   const queryClient = useQueryClient();
 
@@ -222,7 +225,10 @@ export const useMutationRemoveRolePermission = (
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
-export const useGetUsers = (params: RbacUserListParams = {}) => {
+export const useGetUsers = (
+  params: RbacUserListParams = {},
+  enabled: boolean = true,
+) => {
   const cleanParams = cleanUserListParams(params);
 
   return useQuery({
@@ -232,6 +238,7 @@ export const useGetUsers = (params: RbacUserListParams = {}) => {
         .get<RbacUserListResponse>(Api.userList, { params: cleanParams })
         .then((res) => res.data),
     staleTime: 5 * 60 * 1000,
+    enabled,
   });
 };
 
@@ -307,9 +314,7 @@ export const useMutationAssignUserRole = (
 
   return useMutation({
     mutationFn: (payload: AssignUserRolePayload) =>
-      apiClient
-        .post(Api.userAssignRole, payload)
-        .then((res) => res.data),
+      apiClient.post(Api.userAssignRole, payload).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rbac-users"] });
     },
