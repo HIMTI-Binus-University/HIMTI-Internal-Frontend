@@ -278,25 +278,49 @@ export function WorkspaceMembers({
               </div>
             </div>
             <div>
-              <Label htmlFor="member-role" className="mb-2">
+              <Label id="member-role-label" className="mb-2">
                 Role
               </Label>
-              <Select
-                value={role}
-                onValueChange={(next) =>
-                  next && setRole(next as Exclude<WorkspaceRole, "OWNER">)
-                }
+              <div
+                role="radiogroup"
+                aria-labelledby="member-role-label"
+                className="grid gap-2 sm:grid-cols-2"
               >
-                <SelectTrigger id="member-role">
-                  <SelectValue>
-                    {role[0] + role.slice(1).toLowerCase()}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="EDITOR">Editor - manage links</SelectItem>
-                  <SelectItem value="VIEWER">Viewer - read only</SelectItem>
-                </SelectContent>
-              </Select>
+                {(
+                  [
+                    {
+                      value: "EDITOR",
+                      label: "Editor",
+                      description: "Can create and manage links",
+                    },
+                    {
+                      value: "VIEWER",
+                      label: "Viewer",
+                      description: "Can view, copy, and open links",
+                    },
+                  ] as const
+                ).map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={role === option.value}
+                    onClick={() => setRole(option.value)}
+                    className={`rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                      role === option.value
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-input bg-card text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold">
+                      {option.label}
+                    </span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      {option.description}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
             {addMember.isError && (
               <p role="alert" className="text-sm text-semantic-danger">
