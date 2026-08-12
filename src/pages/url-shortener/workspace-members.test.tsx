@@ -90,6 +90,24 @@ describe("WorkspaceMembers", () => {
     );
   });
 
+  it("selects the role for a new member", () => {
+    render(<WorkspaceMembers workspace={workspace} canManage canSearchUsers />);
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(screen.getByRole("button", { name: /Active Member/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /Editor/ }));
+
+    expect(screen.getByRole("radio", { name: /Editor/ })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Add member" }));
+    expect(mutate).toHaveBeenCalledWith(
+      { userId: "active-user", role: "EDITOR" },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
+
   it("does not offer member addition without user-directory permission", () => {
     render(
       <WorkspaceMembers
