@@ -8,11 +8,15 @@ import { needsRegistrationCompletion } from "@/utils/registration-access";
 interface ProtectedRouteProps {
   children: ReactNode;
   requiredPermission?: HimtiPermission;
+  allowedRoles?: string[];
 }
+
+const noAllowedRoles: string[] = [];
 
 export const ProtectedRoute = ({
   children,
   requiredPermission,
+  allowedRoles = noAllowedRoles,
 }: ProtectedRouteProps) => {
   const { data: session, isPending: isSessionPending } =
     authClient.useSession();
@@ -30,12 +34,13 @@ export const ProtectedRoute = ({
       } else if (
         requiredPermission &&
         meData &&
-        !meData.permissions.includes(requiredPermission)
+        !meData.permissions.includes(requiredPermission) &&
+        !allowedRoles.some((role) => meData.roles.includes(role))
       ) {
         navigate("/?warning=no-permissions", { replace: true });
       }
     }
-  }, [session, isPending, navigate, requiredPermission, meData]);
+  }, [session, isPending, navigate, requiredPermission, allowedRoles, meData]);
 
   if (isPending) return <div>Loading...</div>;
 
@@ -44,7 +49,9 @@ export const ProtectedRoute = ({
     session &&
     meData &&
     !needsRegistrationCompletion(meData) &&
-    (!requiredPermission || meData.permissions.includes(requiredPermission));
+    (!requiredPermission ||
+      meData.permissions.includes(requiredPermission) ||
+      allowedRoles.some((role) => meData.roles.includes(role)));
 
   return isAuthorized ? <>{children}</> : null;
 };

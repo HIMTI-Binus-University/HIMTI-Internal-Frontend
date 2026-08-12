@@ -1,4 +1,5 @@
 import { BriefcaseBusiness, Plus, UserRound } from "lucide-react";
+import axios from "axios";
 
 import { useCreateWorkspace } from "@/api/link-workspaces/queries";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,12 @@ import {
 } from "@/components/ui/select";
 import type { LinkWorkspace } from "@/types/link-workspace";
 import { useState } from "react";
+
+const getWorkspaceErrorMessage = (error: unknown, fallback: string) => {
+  if (!axios.isAxiosError(error)) return fallback;
+  const message = error.response?.data?.msg;
+  return typeof message === "string" ? message : fallback;
+};
 
 export function WorkspaceSwitcher({
   value,
@@ -95,7 +102,13 @@ export function WorkspaceSwitcher({
         </Button>
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) createWorkspace.reset();
+        }}
+      >
         <DialogContent className="sm:max-w-[460px]">
           <DialogHeader>
             <DialogTitle>Create workspace</DialogTitle>
@@ -120,7 +133,10 @@ export function WorkspaceSwitcher({
                 required
                 maxLength={255}
                 value={name}
-                onChange={(event) => setName(event.target.value)}
+                onChange={(event) => {
+                  setName(event.target.value);
+                  createWorkspace.reset();
+                }}
                 placeholder="Marketing links"
               />
             </div>
@@ -139,7 +155,10 @@ export function WorkspaceSwitcher({
             </div>
             {createWorkspace.isError && (
               <p role="alert" className="text-sm text-semantic-danger">
-                Could not create the workspace. Try again.
+                {getWorkspaceErrorMessage(
+                  createWorkspace.error,
+                  "Could not create the workspace. Try again.",
+                )}
               </p>
             )}
             <DialogFooter>

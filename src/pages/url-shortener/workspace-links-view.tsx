@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import axios from "axios";
 import {
   AlertCircle,
   ArrowRight,
@@ -68,6 +69,12 @@ import { QRCodeDialog } from ".";
 import { WorkspaceMembers } from "./workspace-members";
 
 const PAGE_SIZE = 10;
+
+const getWorkspaceErrorMessage = (error: unknown, fallback: string) => {
+  if (!axios.isAxiosError(error)) return fallback;
+  const message = error.response?.data?.msg;
+  return typeof message === "string" ? message : fallback;
+};
 
 const normalizeUrl = (value: string) => {
   const candidate = /^https?:\/\//i.test(value.trim())
@@ -468,7 +475,15 @@ function WorkspaceFormDialog({
   }, [open, workspace.description, workspace.name]);
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) {
+          update.reset();
+          onClose();
+        }
+      }}
+    >
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>Edit workspace</DialogTitle>
@@ -495,7 +510,10 @@ function WorkspaceFormDialog({
               required
               maxLength={255}
               value={name}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => {
+                setName(event.target.value);
+                update.reset();
+              }}
             />
           </div>
           <div>
@@ -511,7 +529,10 @@ function WorkspaceFormDialog({
           </div>
           {update.isError && (
             <p role="alert" className="text-sm text-semantic-danger">
-              The workspace could not be updated.
+              {getWorkspaceErrorMessage(
+                update.error,
+                "The workspace could not be updated.",
+              )}
             </p>
           )}
           <DialogFooter>

@@ -31,4 +31,13 @@ describe("internal route access helpers", () => {
     expect(getFirstAccessibleInternalRoute([])).toBeUndefined();
     expect(getFirstAccessibleInternalRoute(["view_dashboard"])).toBeUndefined();
   });
+
+  it("allows Admin users to access URL management without manage_urls", () => {
+    expect(getAccessibleInternalRoutes([], ["Admin"]).map((route) => route.path)).toContain(
+      "/url-shortener",
+    );
+    expect(getFirstAccessibleInternalRoute([], ["Admin"])?.path).toBe(
+      "/url-shortener",
+    );
+  });
 });

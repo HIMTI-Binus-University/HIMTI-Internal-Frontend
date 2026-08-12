@@ -19,6 +19,7 @@ export interface Route {
   isEnabled: boolean;
   isProtected: boolean;
   requiredPermission?: HimtiPermission;
+  allowedRoles?: string[];
   group?: string;
   children?: Route[];
 }

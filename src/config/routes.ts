@@ -54,6 +54,7 @@ export const publicRoutes: Route[] = [
     isEnabled: true,
     isProtected: true,
     requiredPermission: "manage_urls",
+    allowedRoles: ["Admin"],
     group: "Tools",
   },
   {
@@ -234,15 +235,21 @@ export const linkRoutes: Route[] = [
   },
 ];
 
-export const getAccessibleInternalRoutes = (permissions: string[]) =>
+export const getAccessibleInternalRoutes = (
+  permissions: string[],
+  roles: string[] = [],
+) =>
   publicRoutes.filter(
     (route) =>
       route.isEnabled &&
       route.isProtected &&
       route.group &&
       route.requiredPermission &&
-      permissions.includes(route.requiredPermission),
+      (permissions.includes(route.requiredPermission) ||
+        route.allowedRoles?.some((role) => roles.includes(role))),
   );
 
-export const getFirstAccessibleInternalRoute = (permissions: string[]) =>
-  getAccessibleInternalRoutes(permissions)[0];
+export const getFirstAccessibleInternalRoute = (
+  permissions: string[],
+  roles: string[] = [],
+) => getAccessibleInternalRoutes(permissions, roles)[0];
