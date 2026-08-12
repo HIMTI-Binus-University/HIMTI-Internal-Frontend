@@ -62,11 +62,11 @@ export function WorkspaceSwitcher({
 
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 items-center gap-2">
         <Select value={value} onValueChange={(next) => next && onChange(next)}>
           <SelectTrigger
             aria-label="Select link workspace"
-            className="h-9 w-[min(15rem,45vw)] bg-card"
+            className="h-9 min-w-0 flex-1 bg-card sm:w-[min(15rem,45vw)] sm:flex-none"
           >
             <SelectValue>
               {value === "personal"
@@ -92,13 +92,13 @@ export function WorkspaceSwitcher({
         </Select>
         <Button
           type="button"
-          size="icon"
           variant="outline"
+          className="h-9 w-9 shrink-0 px-0 sm:w-auto sm:px-4"
           aria-label="Create workspace"
           disabled={isLoading}
           onClick={() => setOpen(true)}
         >
-          <Plus />
+          <Plus /> <span className="hidden sm:inline">Create Workspace</span>
         </Button>
       </div>
 
