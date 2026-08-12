@@ -548,7 +548,9 @@ function LinkFormDialog({
   useEffect(() => {
     if (open) {
       setOriginalUrl(link?.url.originalUrl ?? "");
-      setShortCode(link?.url.shortCode ?? "");
+      setShortCode(
+        shortLinkConfig.toEditableShortCode(link?.url.shortCode ?? ""),
+      );
     }
   }, [link, open]);
 
@@ -596,16 +598,22 @@ function LinkFormDialog({
             <Label htmlFor="shared-code" className="mb-2">
               Short link
             </Label>
-            <div className="flex overflow-hidden rounded-lg border border-input">
-              <span className="hidden items-center bg-muted px-3 text-sm font-semibold text-muted-foreground sm:flex">
+            <div className="mt-1 flex overflow-hidden rounded-lg border border-input">
+              <span className="flex min-w-0 max-w-full shrink items-center truncate bg-muted px-3 text-sm font-semibold text-muted-foreground max-md:hidden">
                 {shortLinkConfig.displayPrefix}
               </span>
               <Input
                 id="shared-code"
                 required
                 value={shortCode}
-                onChange={(event) => setShortCode(event.target.value)}
-                className="rounded-none border-0 focus-visible:ring-0"
+                onChange={(event) =>
+                  setShortCode(
+                    link
+                      ? shortLinkConfig.toEditableShortCode(event.target.value)
+                      : event.target.value,
+                  )
+                }
+                className="flex-1 rounded-none border-0 focus-visible:ring-0"
                 minLength={3}
                 maxLength={100}
                 pattern="[a-zA-Z0-9]+"
