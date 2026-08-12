@@ -113,7 +113,8 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     .filter(
       (route) =>
         !route.requiredPermission ||
-        meData?.permissions.includes(route.requiredPermission),
+        meData?.permissions.includes(route.requiredPermission) ||
+        route.allowedRoles?.some((role) => meData?.roles.includes(role)),
     );
 
   const groupedRoutes = navRoutes.reduce<Record<string, Route[]>>(

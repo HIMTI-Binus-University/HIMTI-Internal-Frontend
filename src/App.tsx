@@ -16,7 +16,10 @@ function App() {
           // Determine if we should wrap this component
           const Component = route.component;
           const element = route.isProtected ? (
-            <ProtectedRoute requiredPermission={route.requiredPermission}>
+            <ProtectedRoute
+              requiredPermission={route.requiredPermission}
+              allowedRoles={route.allowedRoles}
+            >
               <Component />
             </ProtectedRoute>
           ) : (
