@@ -113,7 +113,8 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     .filter(
       (route) =>
         !route.requiredPermission ||
-        meData?.permissions.includes(route.requiredPermission),
+        meData?.permissions.includes(route.requiredPermission) ||
+        route.allowedRoles?.some((role) => meData?.roles.includes(role)),
     );
 
   const groupedRoutes = navRoutes.reduce<Record<string, Route[]>>(
@@ -138,7 +139,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
       <aside
         ref={panelRef}
-        className="scrollbar-on-dark fixed left-0 top-0 z-40 flex h-screen w-[min(272px,calc(100vw-2rem))] shrink-0 flex-col justify-between overflow-y-auto bg-brand-primary-1 p-5 font-sans text-white lg:sticky lg:top-0 lg:w-[272px]"
+        className="scrollbar-on-dark fixed left-0 top-0 z-40 flex h-screen w-[min(272px,calc(100vw-2rem))] shrink-0 flex-col justify-between overflow-y-auto bg-brand-primary-1 p-5 font-sans text-white lg:w-[272px]"
       >
         <div className="flex flex-col gap-8">
           <div className="flex items-center justify-between">

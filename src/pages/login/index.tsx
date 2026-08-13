@@ -71,7 +71,10 @@ export const LoginPage = () => {
       return;
     }
 
-    const firstRoute = getFirstAccessibleInternalRoute(meData.permissions);
+    const firstRoute = getFirstAccessibleInternalRoute(
+      meData.permissions,
+      meData.roles,
+    );
     navigate(firstRoute?.path ?? "/?warning=no-permissions", { replace: true });
   }, [isMeLoading, meData, navigate, session]);
 

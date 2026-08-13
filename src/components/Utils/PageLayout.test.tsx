@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { CalendarDays } from "lucide-react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,9 +14,10 @@ import PageLayout from "./PageLayout";
 const navigateMock = vi.fn();
 
 vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>(
-    "react-router-dom",
-  );
+  const actual =
+    await vi.importActual<typeof import("react-router-dom")>(
+      "react-router-dom",
+    );
 
   return {
     ...actual,
@@ -56,7 +63,9 @@ describe("PageLayout", () => {
     const breadcrumbs = screen.getByLabelText("Breadcrumb");
     expect(within(breadcrumbs).getByText("Tools")).toBeInTheDocument();
     expect(within(breadcrumbs).getByText("Events")).toBeInTheDocument();
-    expect(within(breadcrumbs).getByText("Subevent A Form")).toBeInTheDocument();
+    expect(
+      within(breadcrumbs).getByText("Subevent A Form"),
+    ).toBeInTheDocument();
   });
 
   it("navigates to the configured breadcrumb parent", () => {
@@ -68,7 +77,10 @@ describe("PageLayout", () => {
   });
 
   it("derives the parent path for nested event breadcrumbs", () => {
-    renderLayout("/events/event-a/subevents/subevent-a/forms/form-a", "Edit form");
+    renderLayout(
+      "/events/event-a/subevents/subevent-a/forms/form-a",
+      "Edit form",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Go back" }));
 
@@ -82,5 +94,22 @@ describe("PageLayout", () => {
 
     expect(screen.getByRole("button", { name: "Go back" })).toBeDisabled();
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("constrains the mobile page and content widths to the viewport", () => {
+    const { container } = renderLayout("/events");
+    const page = container.firstElementChild;
+    const main = page?.querySelector("main");
+
+    expect(page).toHaveClass(
+      "max-w-full",
+      "overflow-x-clip",
+      "lg:pl-[272px]",
+    );
+    expect(main).toHaveClass("w-full", "min-w-0", "max-w-full", "px-4");
+    expect(screen.getByText("Page content").parentElement).toHaveClass(
+      "min-w-0",
+      "max-w-full",
+    );
   });
 });
