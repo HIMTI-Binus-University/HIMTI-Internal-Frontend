@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { publicRoutes, linkRoutes } from "./config/routes";
 import { ProtectedRoute } from "@/components/Utils/ProtectedRoute";
 import { routeMode } from "@/config/runtime";
@@ -7,54 +7,43 @@ import { EventsProvider } from "@/pages/events/store";
 const isLinkSubdomain = routeMode.isLinkHost(window.location.hostname);
 const activeRoutes = isLinkSubdomain ? linkRoutes : publicRoutes;
 
+const router = createBrowserRouter(
+  activeRoutes.map((route) => {
+    const Component = route.component;
+    const element = route.isProtected ? (
+      <ProtectedRoute
+        requiredPermission={route.requiredPermission}
+        allowedRoles={route.allowedRoles}
+      >
+        <Component />
+      </ProtectedRoute>
+    ) : (
+      <Component />
+    );
+    return {
+      path: route.path,
+      element,
+      children: route.children?.map((childRoute) => {
+        const ChildComponent = childRoute.component;
+        return {
+          path: childRoute.path,
+          element: childRoute.isProtected ? (
+            <ProtectedRoute>
+              <ChildComponent />
+            </ProtectedRoute>
+          ) : (
+            <ChildComponent />
+          ),
+        };
+      }),
+    };
+  }),
+);
+
 function App() {
   return (
     <EventsProvider>
-      <BrowserRouter>
-        <Routes>
-        {activeRoutes.map((route) => {
-          // Determine if we should wrap this component
-          const Component = route.component;
-          const element = route.isProtected ? (
-            <ProtectedRoute
-              requiredPermission={route.requiredPermission}
-              allowedRoles={route.allowedRoles}
-            >
-              <Component />
-            </ProtectedRoute>
-          ) : (
-            <Component />
-          );
-
-          if (route.children && route.children.length > 0) {
-            return (
-              <Route path={route.path} element={element} key={route.key}>
-                {route.children.map((childRoute) => {
-                  const ChildComponent = childRoute.component;
-                  const childElement = childRoute.isProtected ? (
-                    <ProtectedRoute>
-                      <ChildComponent />
-                    </ProtectedRoute>
-                  ) : (
-                    <ChildComponent />
-                  );
-
-                  return (
-                    <Route
-                      path={childRoute.path}
-                      element={childElement}
-                      key={childRoute.key}
-                    />
-                  );
-                })}
-              </Route>
-            );
-          }
-
-          return <Route path={route.path} element={element} key={route.key} />;
-        })}
-        </Routes>
-      </BrowserRouter>
+      <RouterProvider router={router} />
     </EventsProvider>
   );
 }

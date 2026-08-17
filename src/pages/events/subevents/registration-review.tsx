@@ -1,34 +1,520 @@
-import { useState, type FormEvent } from "react";
-import { ArrowLeft, ArrowRight, Check, CreditCard, FileText, History, MessageSquare, UserRound, UsersRound, X } from "lucide-react";
-import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
+import type { AxiosError } from "axios";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Ban,
+  Check,
+  FileText,
+  History,
+  LockKeyhole,
+  MessageCircleWarning,
+  UserRound,
+  X,
+} from "lucide-react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
+
+import {
+  type RegistrationDetail,
+  type ReviewAction,
+  useRegistrationDetail,
+  useRegistrationNeighbors,
+  useReviewRegistration,
+} from "@/api/event-registrations/queries";
 import { PageLayout } from "@/components/Utils";
-import { StatusBadge } from "@/components/events/StatusBadge";
 import { dateTime, titleCase } from "@/components/events/helpers";
-import { formatCurrency } from "@/data/events";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Warning, WorkspaceHeader } from "../components";
-import { useEventsStore } from "../store";
-import type { ActivityType, RegistrationStatus } from "@/types/events";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { EmptyState, Warning, WorkspaceHeader } from "../components";
+import { readQueueFilters } from "./registration-queue-filters";
+import { registrationReviewError } from "./registration-review-errors";
+
+type ActionConfig = {
+  action: ReviewAction;
+  label: string;
+  destructive?: boolean;
+};
+const actions: ActionConfig[] = [
+  { action: "approve", label: "Approve" },
+  { action: "request-correction", label: "Request correction" },
+  { action: "reject", label: "Reject", destructive: true },
+  { action: "admin-cancel", label: "Admin cancel", destructive: true },
+];
 
 export default function RegistrationReviewPage() {
-  const { eventId, subeventId, registrationId } = useParams(); const navigate = useNavigate(); const store = useEventsStore(); const { data } = store; const event = data.events.find((item) => item.id === eventId); const subevent = data.subevents.find((item) => item.id === subeventId); const registration = data.registrations.find((item) => item.id === registrationId); const [action, setAction] = useState<{ kind: "registration" | "payment" | "bundle"; status: string; title: string }>(); const [note, setNote] = useState("");
-  if (!event || !subevent || !registration || registration.subeventId !== subevent.id) return <Navigate to={event && subevent ? `/events/${event.id}/subevents/${subevent.id}/registrations` : "/events"} replace />;
-  const backPath = `/events/${event.id}/subevents/${subevent.id}/registrations`; const user = data.users.find((item) => item.id === registration.userId)!; const payment = data.payments.find((item) => item.registrationId === registration.id); const proofs = data.paymentProofs.filter((item) => item.paymentId === payment?.id).sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()); const membership = data.bundleMembers.find((item) => item.registrationId === registration.id); const bundle = data.bundleGroups.find((item) => item.id === membership?.bundleGroupId); const members = data.bundleMembers.filter((item) => item.bundleGroupId === bundle?.id); const submissions = data.formSubmissions.filter((item) => item.registrationId === registration.id); const activities = data.activityLogs.filter((item) => item.registrationId === registration.id).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); const notes = data.registrationNotes.filter((item) => item.registrationId === registration.id); const peers = data.registrations.filter((item) => item.subeventId === subevent.id); const position = peers.findIndex((item) => item.id === registration.id); const previous = peers[position - 1]; const next = peers[position + 1];
-  const confirmAction = (reason: string) => { if (!action) return; const now = new Date().toISOString(); let activity: ActivityType = "REVIEW_REQUESTED"; if (action.kind === "registration") { const status = action.status as RegistrationStatus; store.updateRegistration(registration.id, { status, correctionReason: status === "REQUIRES_CORRECTION" || status === "REJECTED" ? reason : undefined, lastReviewedAt: now }); activity = status === "CONFIRMED" ? "REGISTRATION_APPROVED" : status === "REJECTED" ? "REGISTRATION_REJECTED" : "CORRECTION_REQUESTED"; } else if (action.kind === "payment" && payment) { store.updatePayment(payment.id, { status: action.status as typeof payment.status, rejectionReason: action.status === "REJECTED" ? reason : undefined, reviewedAt: now }); activity = action.status === "APPROVED" ? "PAYMENT_APPROVED" : "PAYMENT_REJECTED"; } else if (action.kind === "bundle" && bundle) { store.updateBundle(bundle.id, { status: action.status as typeof bundle.status, rejectionReason: action.status === "REJECTED" ? reason : undefined }); activity = action.status === "APPROVED" ? "BUNDLE_APPROVED" : "BUNDLE_REJECTED"; } store.addActivity({ id: `activity-${Date.now()}`, registrationId: registration.id, type: activity, description: `${action.title}${reason ? `: ${reason}` : ""}`, actorUserId: "admin-1", createdAt: now }); setAction(undefined); };
-  const submitNote = (eventValue: FormEvent) => { eventValue.preventDefault(); if (!note.trim()) return; const createdAt = new Date().toISOString(); store.addNote({ id: `note-${Date.now()}`, registrationId: registration.id, content: note.trim(), createdBy: "admin-1", createdAt }); store.addActivity({ id: `activity-note-${Date.now()}`, registrationId: registration.id, type: "NOTE_ADDED", description: "Internal note added", actorUserId: "admin-1", createdAt }); setNote(""); };
+  const { eventId = "", subeventId = "", registrationId = "" } = useParams();
+  const [params] = useSearchParams();
+  const [action, setAction] = useState<ActionConfig>();
+  const detail = useRegistrationDetail(registrationId);
+  const queueFilters = readQueueFilters(params);
+  const { page: _page, limit: _limit, ...neighborFilters } = queueFilters;
+  const neighbors = useRegistrationNeighbors(
+    subeventId,
+    registrationId,
+    neighborFilters,
+  );
+  const query = params.toString();
+  const queuePath = `/events/${eventId}/subevents/${subeventId}/registrations${query ? `?${query}` : ""}`;
+  const detailPath = (id: string) =>
+    `/events/${eventId}/subevents/${subeventId}/registrations/${id}${query ? `?${query}` : ""}`;
 
-  return <PageLayout icon={UserRound} title="Registration review" breadcrumbs={["Tools", "Events", event.name, subevent.name, "Registrations", user.name]}><WorkspaceHeader backTo={backPath} eyebrow="Registration review" title={user.name} description={`${registration.ticketNameSnapshot} · submitted ${dateTime(registration.submittedAt)}`} actions={<div className="flex gap-2"><Button size="sm" variant="secondary" disabled={!previous} onClick={() => previous && navigate(`${backPath}/${previous.id}`)}><ArrowLeft />Previous</Button><Button size="sm" variant="secondary" disabled={!next} onClick={() => next && navigate(`${backPath}/${next.id}`)}>Next<ArrowRight /></Button></div>} />
-    <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Card><CardContent className="p-4"><p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Registration</p><div className="mt-2"><StatusBadge status={registration.status} /></div></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Payment</p><div className="mt-2">{payment && <StatusBadge status={payment.status} />}</div></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Bundle</p><div className="mt-2">{bundle ? <StatusBadge status={bundle.status} /> : <span className="text-sm text-muted-foreground">Not applicable</span>}</div></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Last updated</p><p className="mt-2 text-sm font-semibold">{dateTime(registration.updatedAt)}</p></CardContent></Card></div>
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]"><main className="space-y-6"><Card><CardHeader><CardTitle className="flex items-center gap-2"><UserRound className="h-5 w-5 text-primary" />Participant and registration</CardTitle></CardHeader><CardContent><dl className="grid gap-5 text-sm sm:grid-cols-2 lg:grid-cols-3"><Detail label="Participant" value={user.name} secondary={user.email} /><Detail label="Student ID" value={user.nim || "External participant"} secondary={user.phoneNumber} /><Detail label="Event" value={event.name} secondary={subevent.name} /><Detail label="Ticket" value={registration.ticketNameSnapshot} secondary={formatCurrency(registration.priceSnapshot)} /><Detail label="Submitted" value={dateTime(registration.submittedAt)} /><Detail label="Last edited" value={dateTime(registration.lastEditedAt)} /></dl>{registration.correctionReason && <div className="mt-5"><Warning>{registration.correctionReason}</Warning></div>}</CardContent></Card>
-      <Card><CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" />Form submissions</CardTitle></CardHeader><CardContent className="space-y-5">{submissions.length ? submissions.map((submission) => { const assignment = data.subeventForms.find((item) => item.id === submission.subeventFormId); const version = data.formVersions.find((item) => item.id === assignment?.formVersionId); const form = data.forms.find((item) => item.id === version?.formId); const answers = data.formAnswers.filter((item) => item.formSubmissionId === submission.id); const changedAfterReview = Boolean(submission.lastEditedAt && submission.reviewedAt && new Date(submission.lastEditedAt) > new Date(submission.reviewedAt)); return <section key={submission.id} className="rounded-xl border border-border"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/30 p-4"><div><h3 className="font-bold">{form?.name || "Assigned form"}</h3><p className="mt-1 text-xs text-muted-foreground">Last edited {dateTime(submission.lastEditedAt)}</p></div><div className="flex flex-wrap gap-2"><StatusBadge status={submission.status} />{changedAfterReview && <span className="rounded-full bg-semantic-warning-background px-2.5 py-1 text-xs font-semibold text-semantic-warning">Changed after review</span>}</div></div><div className="space-y-4 p-4">{answers.map((answer) => { const question = data.formQuestions.find((item) => item.id === answer.formQuestionId); const options = data.formQuestionOptions.filter((item) => answer.selectedOptionIds?.includes(item.id)); const file = data.files.find((item) => item.id === answer.fileId); return <div key={answer.id} className="border-b border-border pb-4 last:border-0 last:pb-0"><p className="text-xs font-semibold text-muted-foreground">{question?.label}</p><p className="mt-1 text-sm font-medium">{answer.textValue ?? answer.numberValue ?? answer.dateTimeValue ?? options.map((item) => item.label).join(", ") ?? (answer.booleanValue ? "Yes" : "No")}</p>{file && <Button size="sm" variant="secondary" className="mt-2">Open {file.originalName}</Button>}</div>; })}{submission.correctionReason && <Warning>{submission.correctionReason}</Warning>}</div></section>; }) : <p className="text-sm text-muted-foreground">No form submissions have been started.</p>}</CardContent></Card>
-      <Card><CardHeader><CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" />Payment review</CardTitle></CardHeader><CardContent>{payment ? <div className="space-y-5"><div className="grid gap-4 sm:grid-cols-3"><Detail label="Expected amount" value={formatCurrency(payment.expectedAmount)} /><Detail label="Status" value={titleCase(payment.status)} /><Detail label="Reviewed" value={dateTime(payment.reviewedAt)} /></div>{payment.rejectionReason && <Warning>{payment.rejectionReason}</Warning>}<div><h3 className="mb-3 text-sm font-bold">Payment proof history</h3><div className="grid gap-3 sm:grid-cols-2">{proofs.map((proof) => { const file = data.files.find((item) => item.id === proof.fileId); return <Dialog key={proof.id}><DialogTrigger asChild><button className="rounded-xl border border-border p-4 text-left transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><div className="flex items-center justify-between"><span className="font-semibold">{file?.originalName}</span>{proof.isCurrent && <span className="rounded-full bg-semantic-success-background px-2 py-1 text-xs font-semibold text-semantic-success">Current</span>}</div><p className="mt-2 text-xs text-muted-foreground">Uploaded {dateTime(proof.uploadedAt)}</p></button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>{file?.originalName}</DialogTitle><DialogDescription>Uploaded {dateTime(proof.uploadedAt)}</DialogDescription></DialogHeader><div className="flex aspect-video items-center justify-center rounded-xl bg-muted"><img src={file?.publicUrl || "/himti-icon.svg"} alt={`Payment proof from ${user.name}`} className="max-h-full max-w-full object-contain p-8" /></div></DialogContent></Dialog>; })}</div></div><div className="flex gap-2"><Button size="sm" onClick={() => setAction({ kind: "payment", status: "APPROVED", title: "Payment approved" })}><Check />Approve payment</Button><Button size="sm" variant="secondary" onClick={() => setAction({ kind: "payment", status: "REJECTED", title: "Payment rejected" })}><X />Reject payment</Button></div></div> : <p className="text-sm text-muted-foreground">No payment record is attached.</p>}</CardContent></Card>
-      {bundle && <Card><CardHeader><CardTitle className="flex items-center gap-2"><UsersRound className="h-5 w-5 text-primary" />Bundle information</CardTitle></CardHeader><CardContent><div className="grid gap-4 sm:grid-cols-3"><Detail label="Reference" value={bundle.referenceCode} /><Detail label="Members" value={`${members.length} of ${bundle.requiredMemberCount}`} /><Detail label="Bundle total" value={formatCurrency(bundle.totalPriceSnapshot)} /></div>{members.length < bundle.requiredMemberCount && <div className="mt-4"><Warning>{bundle.requiredMemberCount - members.length} member still needs to join before validation.</Warning></div>}<div className="mt-5 space-y-2">{members.map((member) => { const memberRegistration = data.registrations.find((item) => item.id === member.registrationId)!; const memberUser = data.users.find((item) => item.id === memberRegistration.userId); const memberPayment = data.payments.find((item) => item.registrationId === memberRegistration.id); return <Link key={member.registrationId} to={`${backPath}/${member.registrationId}`} className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 hover:border-primary/40"><span><span className="block text-sm font-semibold">{memberUser?.name}</span><span className="text-xs text-muted-foreground">{member.role}</span></span><span className="flex gap-2"><StatusBadge status={memberRegistration.status} />{memberPayment && <StatusBadge status={memberPayment.status} />}</span></Link>; })}</div><div className="mt-4 flex gap-2"><Button size="sm" disabled={members.length < bundle.requiredMemberCount} onClick={() => setAction({ kind: "bundle", status: "APPROVED", title: "Bundle approved" })}><Check />Approve bundle</Button><Button size="sm" variant="secondary" onClick={() => setAction({ kind: "bundle", status: "REJECTED", title: "Bundle rejected" })}><X />Reject bundle</Button></div></CardContent></Card>}
-    </main><aside className="space-y-5"><Card><CardHeader><CardTitle className="text-base">Review actions</CardTitle></CardHeader><CardContent className="space-y-2"><Button className="w-full" onClick={() => setAction({ kind: "registration", status: "CONFIRMED", title: "Registration approved" })}><Check />Approve registration</Button><Button className="w-full" variant="secondary" onClick={() => setAction({ kind: "registration", status: "REQUIRES_CORRECTION", title: "Correction requested" })}>Request correction</Button><Button className="w-full" variant="secondary" onClick={() => setAction({ kind: "registration", status: "REJECTED", title: "Registration rejected" })}><X />Reject registration</Button></CardContent></Card><Card><CardHeader><CardTitle className="flex items-center gap-2 text-base"><MessageSquare className="h-4 w-4" />Internal notes</CardTitle></CardHeader><CardContent><div className="space-y-3">{notes.map((item) => <div key={item.id} className="rounded-lg bg-muted p-3 text-sm"><p>{item.content}</p><p className="mt-1 text-xs text-muted-foreground">{dateTime(item.createdAt)}</p></div>)}</div><form className="mt-3 space-y-2" onSubmit={submitNote}><label className="sr-only" htmlFor="internal-note">Internal note</label><textarea id="internal-note" value={note} onChange={(event) => setNote(event.target.value)} rows={3} className="w-full rounded-lg border border-input bg-card p-2 text-sm" placeholder="Add context for other reviewers" /><Button size="sm" className="w-full">Add note</Button></form></CardContent></Card><Card><CardHeader><CardTitle className="flex items-center gap-2 text-base"><History className="h-4 w-4" />Activity history</CardTitle></CardHeader><CardContent className="space-y-4">{activities.map((activity) => <div key={activity.id} className="relative border-l-2 border-border pl-4"><span className="absolute -left-[5px] top-1 h-2 w-2 rounded-full bg-primary" /><p className="text-sm font-medium">{activity.description}</p><p className="mt-1 text-xs text-muted-foreground">{dateTime(activity.createdAt)}</p></div>)}</CardContent></Card></aside></div>
-    <ActionDialog action={action} close={() => setAction(undefined)} confirm={confirmAction} />
-  </PageLayout>;
+  if (detail.isError)
+    return (
+      <PageLayout icon={UserRound} title="Registration review">
+        <EmptyState
+          title="Registration unavailable"
+          description={registrationReviewError(detail.error)}
+          action={
+            <Button asChild>
+              <Link to={queuePath}>Back to queue</Link>
+            </Button>
+          }
+        />
+      </PageLayout>
+    );
+  if (!detail.data)
+    return (
+      <PageLayout icon={UserRound} title="Registration review">
+        <p className="py-14 text-center text-sm text-muted-foreground">
+          Loading registration...
+        </p>
+      </PageLayout>
+    );
+
+  const registration = detail.data;
+  return (
+    <PageLayout
+      icon={UserRound}
+      title="Registration review"
+      breadcrumbs={[
+        "Tools",
+        "Events",
+        registration.subEvent.name,
+        "Registrations",
+        registration.participant.name,
+      ]}
+      backTo={queuePath}
+    >
+      <WorkspaceHeader
+        backTo={queuePath}
+        eyebrow={`Order ${registration.orderNumber}`}
+        title={registration.participant.name}
+        description={`Submitted ${dateTime(registration.submittedAt ?? undefined)} - revision ${registration.revision}`}
+        actions={
+          <>
+            <Button
+              size="sm"
+              variant="secondary"
+              asChild={Boolean(neighbors.data?.previous)}
+              disabled={!neighbors.data?.previous}
+            >
+              {neighbors.data?.previous ? (
+                <Link to={detailPath(neighbors.data.previous.id)}>
+                  <ArrowLeft />
+                  Previous
+                </Link>
+              ) : (
+                <>
+                  <ArrowLeft />
+                  Previous
+                </>
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              asChild={Boolean(neighbors.data?.next)}
+              disabled={!neighbors.data?.next}
+            >
+              {neighbors.data?.next ? (
+                <Link to={detailPath(neighbors.data.next.id)}>
+                  Next
+                  <ArrowRight />
+                </Link>
+              ) : (
+                <>
+                  Next
+                  <ArrowRight />
+                </>
+              )}
+            </Button>
+          </>
+        }
+      />
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <main className="space-y-5">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserRound className="h-5 w-5 text-primary" />
+                Participant and registration
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                <Detail
+                  label="Participant"
+                  value={registration.participant.name}
+                  secondary={registration.participant.email}
+                />
+                <Detail
+                  label="NIM"
+                  value={registration.participant.nim ?? "Not provided"}
+                />
+                <Detail
+                  label="Package"
+                  value="Free registration"
+                  secondary={`${registration.seatCount} seat${registration.seatCount === 1 ? "" : "s"}`}
+                />
+                <Detail
+                  label="Registration"
+                  value={titleCase(registration.status)}
+                />
+                <Detail
+                  label="Aggregate response"
+                  value={
+                    registration.responseStatus
+                      ? titleCase(registration.responseStatus)
+                      : "No response"
+                  }
+                />
+                <Detail
+                  label="Payment"
+                  value={
+                    registration.paymentStatus
+                      ? titleCase(registration.paymentStatus)
+                      : "Not available"
+                  }
+                />
+              </dl>
+            </CardContent>
+          </Card>
+
+          <Answers registration={registration} />
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-5 w-5 text-primary" />
+                Status history
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {registration.history.length ? (
+                <ol className="space-y-5">
+                  {registration.history.map((entry) => (
+                    <li
+                      key={entry.id}
+                      className="relative border-l-2 border-border pb-1 pl-5"
+                    >
+                      <span className="absolute -left-[5px] top-1 h-2 w-2 rounded-full bg-primary" />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <strong className="text-sm">
+                          {titleCase(entry.toStatus)}
+                        </strong>
+                        {entry.fromStatus && (
+                          <span className="text-xs text-muted-foreground">
+                            from {titleCase(entry.fromStatus)}
+                          </span>
+                        )}
+                      </div>
+                      {entry.reason && (
+                        <p className="mt-2 rounded-lg bg-muted p-3 text-sm">
+                          {entry.reason}
+                        </p>
+                      )}
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {entry.actor?.name ?? "System"} -{" "}
+                        {dateTime(entry.createdAt)}
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No status changes have been recorded.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </main>
+
+        <aside className="space-y-4">
+          <Card className="sticky top-4">
+            <CardHeader>
+              <CardTitle className="text-base">Review decision</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {actions.map((item) => (
+                <Button
+                  key={item.action}
+                  className="w-full justify-start"
+                  variant={
+                    item.destructive
+                      ? "secondary"
+                      : item.action === "approve"
+                        ? "default"
+                        : "secondary"
+                  }
+                  onClick={() => setAction(item)}
+                >
+                  {item.action === "approve" ? (
+                    <Check />
+                  ) : item.action === "admin-cancel" ? (
+                    <Ban />
+                  ) : item.action === "reject" ? (
+                    <X />
+                  ) : (
+                    <MessageCircleWarning />
+                  )}
+                  {item.label}
+                </Button>
+              ))}
+              <p className="pt-2 text-xs leading-5 text-muted-foreground">
+                Every decision is checked against revision{" "}
+                {registration.revision}. Backend permissions and event scope
+                remain authoritative.
+              </p>
+            </CardContent>
+          </Card>
+        </aside>
+      </div>
+      <ReviewDialog
+        config={action}
+        registration={registration}
+        close={() => setAction(undefined)}
+        reload={() => detail.refetch()}
+      />
+    </PageLayout>
+  );
 }
 
-const Detail = ({ label, value, secondary }: { label: string; value: string; secondary?: string }) => <div><dt className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</dt><dd className="mt-1 font-semibold">{value}</dd>{secondary && <dd className="mt-0.5 text-xs text-muted-foreground">{secondary}</dd>}</div>;
-const ActionDialog = ({ action, close, confirm }: { action?: { title: string; status: string }; close: () => void; confirm: (reason: string) => void }) => { const [reason, setReason] = useState(""); const requiresReason = action?.status === "REJECTED" || action?.status === "REQUIRES_CORRECTION"; return <Dialog open={Boolean(action)} onOpenChange={(open) => !open && close()}><DialogContent><DialogHeader><DialogTitle>{action?.title}</DialogTitle><DialogDescription>{requiresReason ? "A clear reason is required so the participant knows what to correct." : "Confirm this manual review decision."}</DialogDescription></DialogHeader><label className="space-y-2"><span className="text-sm font-semibold">Reason {requiresReason ? "*" : "(optional)"}</span><textarea rows={4} value={reason} onChange={(event) => setReason(event.target.value)} className="w-full rounded-lg border border-input bg-card p-2 text-sm" /></label><div className="flex justify-end gap-2"><Button variant="secondary" onClick={close}>Cancel</Button><Button disabled={requiresReason && !reason.trim()} onClick={() => { confirm(reason.trim()); setReason(""); }}>Confirm</Button></div></DialogContent></Dialog>; };
+export const Answers = ({
+  registration,
+}: {
+  registration: RegistrationDetail;
+}) => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <FileText className="h-5 w-5 text-primary" />
+        Registration answers
+      </CardTitle>
+    </CardHeader>
+    <CardContent>
+      {!registration.answersVisible ? (
+        <div className="flex gap-3 rounded-xl border border-border bg-muted/40 p-4">
+          <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+          <div>
+            <p className="text-sm font-semibold">Answers are restricted</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              You can review registration status, identity, and history, but
+              your account does not have the `view_event_answers` permission.
+            </p>
+          </div>
+        </div>
+      ) : registration.sections.length ? (
+        <div className="space-y-4">
+          {[...registration.sections]
+            .sort((a, b) => a.orderIndex - b.orderIndex)
+            .map((section) => (
+              <section
+                key={section.id}
+                className="overflow-hidden rounded-xl border"
+              >
+                <div className="border-b bg-muted/30 px-4 py-3">
+                  <h3 className="font-semibold">{section.title}</h3>
+                </div>
+                <dl className="divide-y">
+                  {section.answers.map(({ question, answer }) => (
+                    <div key={question.id} className="p-4">
+                      <dt className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                        {question.label}
+                      </dt>
+                      <dd className="mt-2 text-sm leading-6">
+                        <AnswerValue
+                          fieldType={question.fieldType}
+                          answer={answer}
+                        />
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          No answers were submitted for this registration.
+        </p>
+      )}
+    </CardContent>
+  </Card>
+);
+
+const AnswerValue = ({
+  fieldType,
+  answer,
+}: {
+  fieldType: string;
+  answer: RegistrationDetail["sections"][number]["answers"][number]["answer"];
+}) => {
+  if (fieldType === "FILE" || answer.type === "FILE")
+    return (
+      <span className="inline-flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-muted-foreground">
+        <FileText className="h-4 w-4" />
+        {answer.fileAvailable
+          ? "File submitted - preview unavailable in this phase"
+          : "File unavailable"}
+      </span>
+    );
+  if (Array.isArray(answer.value))
+    return answer.value.length ? (
+      <ul className="flex flex-wrap gap-2">
+        {answer.value.map((value) => (
+          <li key={value}>
+            <Badge variant="neutral">{value}</Badge>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <span className="text-muted-foreground">No answer</span>
+    );
+  if (answer.value === null || answer.value === "")
+    return <span className="text-muted-foreground">No answer</span>;
+  return (
+    <span className="whitespace-pre-wrap break-words">
+      {String(answer.value)}
+    </span>
+  );
+};
+
+const Detail = ({
+  label,
+  value,
+  secondary,
+}: {
+  label: string;
+  value: string;
+  secondary?: string;
+}) => (
+  <div>
+    <dt className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+      {label}
+    </dt>
+    <dd className="mt-1 font-semibold">{value}</dd>
+    {secondary && (
+      <dd className="mt-0.5 break-all text-xs text-muted-foreground">
+        {secondary}
+      </dd>
+    )}
+  </div>
+);
+
+const ReviewDialog = ({
+  config,
+  registration,
+  close,
+  reload,
+}: {
+  config?: ActionConfig;
+  registration: RegistrationDetail;
+  close: () => void;
+  reload: () => void;
+}) => {
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState("");
+  const mutation = useReviewRegistration(config?.action ?? "approve");
+  const requiresReason = config?.action !== "approve";
+  const confirm = () => {
+    if (!config) return;
+    mutation.mutate(
+      {
+        registrationId: registration.id,
+        revision: registration.revision,
+        reason: reason.trim() || undefined,
+      },
+      {
+        onSuccess: () => {
+          setReason("");
+          setError("");
+          close();
+        },
+        onError: (failure) => {
+          setError(registrationReviewError(failure));
+          if ((failure as AxiosError).response?.status === 409) reload();
+        },
+      },
+    );
+  };
+  const dismiss = () => {
+    setReason("");
+    setError("");
+    close();
+  };
+  return (
+    <Dialog open={Boolean(config)} onOpenChange={(open) => !open && dismiss()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{config?.label} registration?</DialogTitle>
+          <DialogDescription>
+            {requiresReason
+              ? "Provide a clear reason. It becomes part of the registration history."
+              : "Confirm this participant's free one-seat registration."}
+          </DialogDescription>
+        </DialogHeader>
+        {registration.status === "CANCELLED" && (
+          <Warning>
+            This registration is already cancelled. The backend will reject
+            invalid lifecycle transitions.
+          </Warning>
+        )}
+        <label className="space-y-2">
+          <span className="text-sm font-semibold">
+            Reason {requiresReason ? "*" : "(optional)"}
+          </span>
+          <textarea
+            aria-label="Reason"
+            rows={4}
+            maxLength={1000}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            className="w-full rounded-lg border border-input bg-card p-3 text-sm"
+            placeholder="Explain the review decision"
+          />
+        </label>
+        {error && (
+          <p
+            role="alert"
+            className="rounded-lg bg-semantic-danger-background p-3 text-sm text-semantic-danger"
+          >
+            {error}
+          </p>
+        )}
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={dismiss}>
+            Keep reviewing
+          </Button>
+          <Button
+            variant={config?.destructive ? "destructive" : "default"}
+            disabled={mutation.isPending || (requiresReason && !reason.trim())}
+            onClick={confirm}
+          >
+            {mutation.isPending
+              ? "Saving..."
+              : `Confirm ${config?.label.toLowerCase() ?? "action"}`}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};

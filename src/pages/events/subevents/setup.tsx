@@ -18,9 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { SubeventType, SubeventVisibility } from "@/types/events";
+import type {
+  RegistrationMode,
+  SubeventType,
+  SubeventVisibility,
+} from "@/types/events";
 import { normalizeHttpUrlInput } from "@/utils/http-url";
-import { combineEventDateTime, normalizeOptionalEventUrl } from "../event-form";
+import { buildSubeventCreatePayload } from "./setup-payload";
 
 const types: SubeventType[] = [
   "MAIN_EVENT",
@@ -52,6 +56,8 @@ export default function SubeventSetupPage() {
   const createSubevent = useCreateSubevent(eventId);
   const [poster, setPoster] = useState("");
   const [error, setError] = useState("");
+  const [registrationMode, setRegistrationMode] =
+    useState<RegistrationMode>("INTERNAL");
   if (step !== "details")
     return <Navigate to={`/events/${eventId}/subevents/new/details`} replace />;
   if (!eventsQuery.isLoading && !event)
@@ -61,37 +67,13 @@ export default function SubeventSetupPage() {
   const submit = (formEvent: FormEvent<HTMLFormElement>) => {
     formEvent.preventDefault();
     const values = new FormData(formEvent.currentTarget);
-    const name = String(values.get("name") ?? "").trim();
-    if (!name) return setError("Subevent name is required.");
     try {
-      const payload = {
-        eventId,
-        name,
-        publicDescription: String(values.get("publicDescription") ?? "").trim(),
-        privateDescription: String(
-          values.get("privateDescription") ?? "",
-        ).trim(),
-        date: combineEventDateTime(values.get("date"), values.get("time")),
-        type: String(values.get("type")) as SubeventType,
-        locationName: String(values.get("locationName") ?? "").trim(),
-        locationUrl: normalizeOptionalEventUrl(
-          values.get("locationUrl"),
-          "location",
-        ),
-        posterUrl: normalizeOptionalEventUrl(values.get("posterUrl"), "poster"),
-        destinationUrl: normalizeOptionalEventUrl(
-          values.get("destinationUrl"),
-          "destination",
-        ),
-        price: Number(values.get("price")) || 0,
-        paid: false,
-        maxParticipants: Number(values.get("maxParticipants")) || undefined,
-        maxTicketsPerUser: 1,
-        visibility: String(values.get("visibility")) as SubeventVisibility,
-      };
+      const payload = buildSubeventCreatePayload(values, eventId);
       createSubevent.mutate(payload, {
         onSuccess: (saved) =>
-          navigate(`/events/${eventId}/subevents/${saved.id}/overview`),
+          navigate(
+            `/events/${eventId}/subevents/${saved.id}/registration-setup`,
+          ),
         onError: (failure) => setError(apiError(failure)),
       });
     } catch (failure) {
@@ -185,17 +167,6 @@ export default function SubeventSetupPage() {
                 placeholder="maps.google.com/..."
               />
             </Field>
-            <Field
-              label="Destination URL"
-              helper="Optional action link opened from the event hub."
-            >
-              <Input
-                name="destinationUrl"
-                type="text"
-                inputMode="url"
-                placeholder="registration.example.com"
-              />
-            </Field>
             <Field label="Poster URL" className="md:col-span-2">
               <Input
                 name="posterUrl"
@@ -225,15 +196,74 @@ export default function SubeventSetupPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Ticketing</CardTitle>
+            <CardTitle>Registration</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-5 md:grid-cols-2">
-            <Field label="Price">
-              <Input name="price" type="number" min="0" defaultValue="0" />
+            <Field
+              label="Registration mode"
+              helper="Visibility controls eligibility; mode controls where registration happens."
+            >
+              <Select
+                name="registrationMode"
+                value={registrationMode}
+                onValueChange={(value) =>
+                  setRegistrationMode(value as RegistrationMode)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="INTERNAL">
+                    Internal - register on this site
+                  </SelectItem>
+                  <SelectItem value="EXTERNAL">
+                    External - leave this site
+                  </SelectItem>
+                  <SelectItem value="DISABLED">
+                    Disabled - no registration
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
+            {registrationMode === "INTERNAL" && (
+              <Field
+                label="Approval mode"
+                helper="Phase 5 provisions a free, one-seat native package."
+              >
+                <Select name="approvalMode" defaultValue="AUTO_APPROVE">
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="AUTO_APPROVE">Auto approve</SelectItem>
+                    <SelectItem value="MANUAL_REVIEW">Manual review</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
+            {registrationMode === "EXTERNAL" && (
+              <Field
+                label="External destination *"
+                helper="Participants leave this site to complete registration."
+              >
+                <Input
+                  name="destinationUrl"
+                  type="text"
+                  inputMode="url"
+                  placeholder="https://registration.example.com"
+                  required
+                />
+              </Field>
+            )}
             <Field label="Maximum participants">
               <Input name="maxParticipants" type="number" min="1" />
             </Field>
+            <p className="text-sm text-muted-foreground md:col-span-2">
+              The subevent is created as DRAFT with registration closed. Next,
+              Registration Setup lets you change status to OPEN and enable
+              registration.
+            </p>
           </CardContent>
         </Card>
         {error && (

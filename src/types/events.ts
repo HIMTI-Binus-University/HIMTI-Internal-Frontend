@@ -1,3 +1,5 @@
+import type { components } from "@/generated/openapi";
+
 export type LifecycleStatus =
   "DRAFT" | "UPCOMING" | "OPEN" | "CLOSED" | "ARCHIVED";
 export type EventStatus = "DRAFT" | "PUBLISHED" | "CLOSED" | "CANCELLED";
@@ -112,6 +114,12 @@ export interface EventListSubevent {
 export interface EventListItem extends Event {
   subevents: EventListSubevent[];
 }
+type SubeventContract = components["schemas"]["SubEventDetailResponse"]["data"];
+type UpdateSubeventContract = components["schemas"]["UpdateSubEventRequest"];
+
+export type RegistrationMode = SubeventContract["registrationMode"];
+export type ApprovalMode = SubeventContract["approvalMode"];
+
 export interface Subevent {
   id: string;
   eventId: string;
@@ -130,6 +138,11 @@ export interface Subevent {
   visibility: SubeventVisibility;
   status: SubeventStatus;
   isRegistrationOpen: boolean;
+  registrationMode: RegistrationMode;
+  approvalMode: ApprovalMode;
+  registrationOpensAt: string | null;
+  registrationClosesAt: string | null;
+  cancellationClosesAt: string | null;
   autoAcceptRegistration: boolean;
   maxParticipants: number | null;
   maxTicketsPerUser: number | null;
@@ -144,7 +157,7 @@ export interface EventPayload {
   publicDescription: string;
   coverImageUrl: string | null;
 }
-export interface SubeventPayload {
+export interface SubeventPayload extends UpdateSubeventContract {
   eventId: string;
   name: string;
   publicDescription?: string;
@@ -157,8 +170,8 @@ export interface SubeventPayload {
   destinationUrl?: string | null;
   price: number;
   paid: boolean;
-  maxParticipants?: number;
-  maxTicketsPerUser?: number;
+  maxParticipants?: number | null;
+  maxTicketsPerUser?: number | null;
   visibility: SubeventVisibility;
 }
 export interface PaginatedResponse<T> {
