@@ -75,6 +75,7 @@ import {
   type EditorDraft,
   formStages,
 } from "./form-draft";
+import { localDateTime } from "./registration-settings";
 import { FormStatusBadge } from "./forms-list";
 
 const fieldTypes: FieldType[] = [
@@ -674,9 +675,6 @@ export default function FormEditorPage() {
   );
 }
 
-const localDateTimeValue = (value: string | null) =>
-  value ? new Date(value).toISOString().slice(0, 16) : "";
-
 function AssignmentEditor({
   assignment,
   index,
@@ -771,14 +769,14 @@ function AssignmentEditor({
       <Field label="Opens">
         <Input
           type="datetime-local"
-          value={localDateTimeValue(assignment.opensAt)}
+          value={localDateTime(assignment.opensAt)}
           onChange={(event) => setWindow("opensAt", event.target.value)}
         />
       </Field>
       <Field label="Closes">
         <Input
           type="datetime-local"
-          value={localDateTimeValue(assignment.closesAt)}
+          value={localDateTime(assignment.closesAt)}
           onChange={(event) => setWindow("closesAt", event.target.value)}
         />
       </Field>

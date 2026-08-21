@@ -63,5 +63,9 @@ export function registrationSettingsPayload(
   };
 }
 
-export const localDateTime = (value: string | null) =>
-  value ? new Date(value).toISOString().slice(0, 16) : "";
+export const localDateTime = (value: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  const part = (number: number) => String(number).padStart(2, "0");
+  return `${date.getFullYear()}-${part(date.getMonth() + 1)}-${part(date.getDate())}T${part(date.getHours())}:${part(date.getMinutes())}`;
+};
