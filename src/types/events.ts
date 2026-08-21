@@ -169,7 +169,7 @@ export interface SubeventPayload extends UpdateSubeventContract {
   posterUrl?: string | null;
   destinationUrl?: string | null;
   price: number;
-  paid: boolean;
+  paid?: boolean;
   maxParticipants?: number | null;
   maxTicketsPerUser?: number | null;
   visibility: SubeventVisibility;

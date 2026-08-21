@@ -18,7 +18,6 @@ describe("buildSubeventCreatePayload", () => {
       approvalMode: "AUTO_APPROVE",
       isRegistrationOpen: false,
       price: 0,
-      paid: false,
       maxTicketsPerUser: 1,
     });
   });

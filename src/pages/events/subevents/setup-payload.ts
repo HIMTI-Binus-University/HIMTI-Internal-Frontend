@@ -39,7 +39,6 @@ export function buildSubeventCreatePayload(
     posterUrl: normalizeOptionalEventUrl(values.get("posterUrl"), "poster"),
     destinationUrl: registrationMode === "EXTERNAL" ? destinationUrl : null,
     price: 0,
-    paid: false,
     maxParticipants: capacity ? Number(capacity) : null,
     maxTicketsPerUser: 1,
     visibility: String(values.get("visibility")) as SubeventVisibility,

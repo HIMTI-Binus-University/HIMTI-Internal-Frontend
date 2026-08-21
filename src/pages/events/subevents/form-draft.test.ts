@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   canCreateForm,
+  formStages,
   moveItem,
   newEditorDraft,
   nextOptionValue,
@@ -39,6 +40,35 @@ const validDraft = (): EditorDraft => ({
 });
 
 describe("form draft helpers", () => {
+  it("offers only the approved two stages", () => {
+    expect(formStages).toEqual(["REGISTRATION", "POST_REGISTRATION"]);
+  });
+
+  it("validates assignment routing and windows", () => {
+    const draft = validDraft();
+    draft.assignments = [];
+    expect(validateDraftLocally(draft)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "ASSIGNMENTS_REQUIRED" }),
+      ]),
+    );
+    draft.assignments = [
+      {
+        ...newEditorDraft().assignments[0],
+        blocksCheckIn: true,
+        isRequired: false,
+        opensAt: "2026-08-22T10:00:00.000Z",
+        closesAt: "2026-08-22T09:00:00.000Z",
+      },
+    ];
+    expect(validateDraftLocally(draft).map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        "CHECK_IN_STAGE_INVALID",
+        "CHECK_IN_REQUIRES_REQUIRED",
+        "ASSIGNMENT_WINDOW_INVALID",
+      ]),
+    );
+  });
   it("serializes a complete draft and retains new section client keys", () => {
     const sections: DraftSection[] = [
       {
@@ -63,6 +93,7 @@ describe("form draft helpers", () => {
         description: " ",
         revision: 3,
         stage: "REGISTRATION",
+        assignments: [newEditorDraft().assignments[0]],
         sections,
       }),
     ).toEqual({
@@ -70,6 +101,7 @@ describe("form draft helpers", () => {
       description: null,
       revision: 3,
       stage: "REGISTRATION",
+      assignments: [newEditorDraft().assignments[0]],
       sections: [
         {
           clientKey: "section-new",
@@ -123,12 +155,66 @@ describe("form draft helpers", () => {
       "option_2",
     );
     expect(
-      validationForType({ minLength: 2, maxLength: 8 }, "TEXTAREA"),
-    ).toEqual({ minLength: 2, maxLength: 8 });
+      validationForType(
+        {
+          minLength: 2,
+          maxLength: 8,
+          pattern: "[A-Z]{2}",
+          patternMessage: "Use two uppercase letters",
+        },
+        "TEXTAREA",
+      ),
+    ).toEqual({
+      minLength: 2,
+      maxLength: 8,
+      pattern: "[A-Z]{2}",
+      patternMessage: "Use two uppercase letters",
+    });
     expect(validationForType({ minLength: 2, max: 10 }, "NUMBER")).toEqual({
       min: undefined,
       max: 10,
     });
+  });
+
+  it("serializes patterns without executing admin regex locally", () => {
+    const draft = validDraft();
+    draft.sections[0].questions[0] = {
+      clientKey: "text-question",
+      fieldType: "TEXT",
+      isRequired: true,
+      label: "Code",
+      options: [],
+      validation: {
+        pattern: "([a-z]+)+$",
+        patternMessage: "Enter a valid code",
+      },
+    };
+
+    expect(validateDraftLocally(draft)).toEqual([]);
+    expect(toPayload(draft).sections[0].questions[0].validation).toEqual({
+      pattern: "([a-z]+)+$",
+      patternMessage: "Enter a valid code",
+    });
+    expect(
+      validationForType(draft.sections[0].questions[0].validation, "NUMBER"),
+    ).toEqual({ min: undefined, max: undefined });
+  });
+
+  it("only checks pattern metadata presence and bounds locally", () => {
+    const draft = validDraft();
+    draft.sections[0].questions[0] = {
+      clientKey: "text-question",
+      fieldType: "TEXTAREA",
+      isRequired: false,
+      label: "Reference",
+      options: [],
+      validation: { patternMessage: "Use the required format" },
+    };
+    expect(validateDraftLocally(draft)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "PATTERN_REQUIRED" }),
+      ]),
+    );
   });
 
   it("never serializes non-finite numeric validation values", () => {
@@ -136,6 +222,7 @@ describe("form draft helpers", () => {
       name: "Form",
       revision: 1,
       stage: "REGISTRATION",
+      assignments: [newEditorDraft().assignments[0]],
       sections: [
         {
           clientKey: "section",
@@ -207,6 +294,7 @@ describe("form draft helpers", () => {
       description: null,
       stage: "REGISTRATION",
       subEventId: "sub-1",
+      assignments: [newEditorDraft().assignments[0]],
     });
     expect(save).toHaveBeenCalledWith(
       "form-created",

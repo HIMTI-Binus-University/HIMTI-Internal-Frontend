@@ -56,6 +56,8 @@ import {
   registrationSettingsPayload,
 } from "./registration-settings";
 import { RegistrationQueue } from "./registration-queue";
+import { PaymentWorkspace } from "./payment-workspace";
+import { PostRegistrationWorkspace } from "./post-registration-workspace";
 
 const sections: WorkspaceSection[] = [
   "overview",
@@ -63,6 +65,7 @@ const sections: WorkspaceSection[] = [
   "forms",
   "payment",
   "registrations",
+  "post-registration",
 ];
 const statuses: SubeventStatus[] = ["DRAFT", "OPEN", "CLOSED", "CANCELLED"];
 const types: SubeventType[] = [
@@ -197,8 +200,12 @@ export default function SubeventWorkspacePage() {
         <RegistrationSetup subevent={subevent} />
       ) : active === "forms" ? (
         <FormsList eventId={eventId} subeventId={subeventId} />
+      ) : active === "payment" ? (
+        <PaymentWorkspace subeventId={subeventId} />
       ) : active === "registrations" ? (
         <RegistrationQueue eventId={eventId} subeventId={subeventId} />
+      ) : active === "post-registration" ? (
+        <PostRegistrationWorkspace subeventId={subeventId} />
       ) : (
         <PrototypeNotice section={active} />
       )}
@@ -547,7 +554,6 @@ const EditDialog = ({
             "destination",
           ),
           price: Number(values.get("price")) || 0,
-          paid: false,
           maxParticipants: Number(values.get("maxParticipants")) || undefined,
           maxTicketsPerUser: 1,
         },

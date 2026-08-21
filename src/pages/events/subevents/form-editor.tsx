@@ -58,6 +58,7 @@ import {
   clientKey,
   moveItem,
   newEditorDraft,
+  newAssignment,
   newQuestion,
   nextOptionValue,
   persistNewDraft,
@@ -67,10 +68,12 @@ import {
   validateDraftLocally,
   validationForType,
   type BuilderForm,
+  type DraftAssignment,
   type DraftQuestion,
   type DraftSection,
   type FieldType,
   type EditorDraft,
+  formStages,
 } from "./form-draft";
 import { FormStatusBadge } from "./forms-list";
 
@@ -511,6 +514,12 @@ export default function FormEditorPage() {
                       edit((current) => ({
                         ...current,
                         stage: stage as EditorDraft["stage"],
+                        assignments: current.assignments.map((assignment) => ({
+                          ...assignment,
+                          blocksCheckIn:
+                            stage === "POST_REGISTRATION" &&
+                            assignment.blocksCheckIn,
+                        })),
                       }))
                     }
                   >
@@ -518,16 +527,87 @@ export default function FormEditorPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {["REGISTRATION", "POST_SUBMISSION", "POST_APPROVAL"].map(
-                        (stage) => (
-                          <SelectItem key={stage} value={stage}>
-                            {titleCase(stage)}
-                          </SelectItem>
-                        ),
-                      )}
+                      {formStages.map((stage) => (
+                        <SelectItem key={stage} value={stage}>
+                          {stage === "REGISTRATION"
+                            ? "Registration"
+                            : "Post-registration"}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </Field>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  {draft.stage === "REGISTRATION"
+                    ? "Collected during checkout. Registration assignments never block check-in."
+                    : "Collected after registration for follow-up requirements and check-in readiness."}
+                </p>
+                <div className="border-t pt-4">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold">
+                        Routing assignments
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Package-neutral V1 applies to every package.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        edit((current) => ({
+                          ...current,
+                          assignments: [
+                            ...current.assignments,
+                            newAssignment(current.assignments.length),
+                          ],
+                        }))
+                      }
+                    >
+                      <Plus /> Add
+                    </Button>
+                  </div>
+                  <div className="space-y-3">
+                    {draft.assignments.map((assignment, index) => (
+                      <AssignmentEditor
+                        key={assignment.id ?? `assignment-${index}`}
+                        assignment={assignment}
+                        index={index}
+                        total={draft.assignments.length}
+                        stage={draft.stage}
+                        update={(next) =>
+                          edit((current) => ({
+                            ...current,
+                            assignments: current.assignments.map(
+                              (item, itemIndex) =>
+                                itemIndex === index ? next : item,
+                            ),
+                          }))
+                        }
+                        remove={() =>
+                          edit((current) => ({
+                            ...current,
+                            assignments: current.assignments.filter(
+                              (_, itemIndex) => itemIndex !== index,
+                            ),
+                          }))
+                        }
+                        move={(direction) =>
+                          edit((current) => ({
+                            ...current,
+                            assignments: moveItem(
+                              current.assignments,
+                              index,
+                              direction,
+                            ),
+                          }))
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Saving sends the entire ordered draft. Revision{" "}
                   {draft.revision} protects against concurrent edits.
@@ -591,6 +671,121 @@ export default function FormEditorPage() {
         </DialogContent>
       </Dialog>
     </PageLayout>
+  );
+}
+
+const localDateTimeValue = (value: string | null) =>
+  value ? new Date(value).toISOString().slice(0, 16) : "";
+
+function AssignmentEditor({
+  assignment,
+  index,
+  total,
+  stage,
+  update,
+  remove,
+  move,
+}: {
+  assignment: DraftAssignment;
+  index: number;
+  total: number;
+  stage: EditorDraft["stage"];
+  update: (assignment: DraftAssignment) => void;
+  remove: () => void;
+  move: (direction: number) => void;
+}) {
+  const setWindow = (key: "opensAt" | "closesAt", value: string) =>
+    update({
+      ...assignment,
+      [key]: value ? new Date(value).toISOString() : null,
+    });
+  return (
+    <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
+      <div className="flex items-center justify-between">
+        <strong className="text-xs uppercase tracking-wide">
+          Route {index + 1}
+        </strong>
+        <div className="flex">
+          <IconButton
+            label={`Move route ${index + 1} up`}
+            disabled={index === 0}
+            onClick={() => move(-1)}
+          >
+            <ArrowUp />
+          </IconButton>
+          <IconButton
+            label={`Move route ${index + 1} down`}
+            disabled={index === total - 1}
+            onClick={() => move(1)}
+          >
+            <ArrowDown />
+          </IconButton>
+          <IconButton label={`Delete route ${index + 1}`} onClick={remove}>
+            <Trash2 />
+          </IconButton>
+        </div>
+      </div>
+      <Field label="Audience">
+        <Select
+          value={assignment.audience}
+          onValueChange={(audience) =>
+            update({
+              ...assignment,
+              audience: audience as DraftAssignment["audience"],
+            })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="BUYER">Buyer only</SelectItem>
+            <SelectItem value="EACH_ATTENDEE">Each attendee</SelectItem>
+            <SelectItem value="ALL_ORDER_MEMBERS">All order members</SelectItem>
+          </SelectContent>
+        </Select>
+      </Field>
+      <label className="flex items-center gap-2 text-sm">
+        <Checkbox
+          checked={assignment.isRequired}
+          onCheckedChange={(checked) =>
+            update({
+              ...assignment,
+              isRequired: checked === true,
+              blocksCheckIn: checked === true && assignment.blocksCheckIn,
+            })
+          }
+        />
+        Required
+      </label>
+      <label className="flex items-center gap-2 text-sm">
+        <Checkbox
+          checked={assignment.blocksCheckIn}
+          disabled={stage === "REGISTRATION" || !assignment.isRequired}
+          onCheckedChange={(checked) =>
+            update({ ...assignment, blocksCheckIn: checked === true })
+          }
+        />
+        Blocks check-in
+      </label>
+      <Field label="Opens">
+        <Input
+          type="datetime-local"
+          value={localDateTimeValue(assignment.opensAt)}
+          onChange={(event) => setWindow("opensAt", event.target.value)}
+        />
+      </Field>
+      <Field label="Closes">
+        <Input
+          type="datetime-local"
+          value={localDateTimeValue(assignment.closesAt)}
+          onChange={(event) => setWindow("closesAt", event.target.value)}
+        />
+      </Field>
+      <p className="text-xs text-muted-foreground">
+        Order {index + 1} · All packages
+      </p>
+    </div>
   );
 }
 
@@ -855,6 +1050,46 @@ function QuestionEditor({
               min={1}
               onChange={(value) => numberValidation("maxLength", value)}
             />
+            <Field
+              label="Pattern"
+              helper="Matched against the complete answer. Use bounded safe syntax such as literals, character classes, groups, alternation, and bounded quantifiers. The server compiles and validates it."
+              className="sm:col-span-2"
+            >
+              <Input
+                value={validation.pattern ?? ""}
+                maxLength={256}
+                placeholder="e.g. [A-Z]{2}[0-9]{4}"
+                onChange={(event) =>
+                  update({
+                    ...question,
+                    validation: {
+                      ...validation,
+                      pattern: event.target.value || undefined,
+                    },
+                  })
+                }
+              />
+            </Field>
+            <Field
+              label="Participant error message"
+              helper="Shown when the server determines that the complete answer does not match."
+              className="sm:col-span-2"
+            >
+              <Input
+                value={validation.patternMessage ?? ""}
+                maxLength={200}
+                placeholder="Explain the expected format"
+                onChange={(event) =>
+                  update({
+                    ...question,
+                    validation: {
+                      ...validation,
+                      patternMessage: event.target.value || undefined,
+                    },
+                  })
+                }
+              />
+            </Field>
           </>
         )}
         {question.fieldType === "NUMBER" && (
@@ -1191,6 +1426,15 @@ function PreviewQuestion({ question }: { question: DraftQuestion }) {
           maxLength={question.validation.maxLength}
         />
       )}
+      {(question.fieldType === "TEXT" || question.fieldType === "TEXTAREA") &&
+        question.validation.pattern && (
+          <span className="block text-xs text-muted-foreground">
+            Complete-answer format required
+            {question.validation.patternMessage
+              ? `: ${question.validation.patternMessage}`
+              : "."}
+          </span>
+        )}
     </label>
   );
 }
@@ -1198,13 +1442,15 @@ function PreviewQuestion({ question }: { question: DraftQuestion }) {
 const Field = ({
   label,
   helper,
+  className,
   children,
 }: {
   label: string;
   helper?: string;
+  className?: string;
   children: React.ReactNode;
 }) => (
-  <label className="block space-y-2">
+  <label className={`block space-y-2 ${className ?? ""}`}>
     <span className="block text-sm font-semibold">{label}</span>
     {helper && (
       <span className="block text-xs text-muted-foreground">{helper}</span>

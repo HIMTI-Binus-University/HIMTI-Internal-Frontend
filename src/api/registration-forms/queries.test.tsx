@@ -61,6 +61,7 @@ describe("registration form V1 hooks", () => {
           name: "Form",
           revision: 1,
           stage: "REGISTRATION",
+          assignments: [],
           sections: [],
         },
       }),

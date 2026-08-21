@@ -5,21 +5,28 @@ export type DraftPayload = components["schemas"]["RegistrationFormDraftV1"];
 export type PreviewPayload = components["schemas"]["RegistrationFormPreviewV1"];
 type ApiSection = DraftPayload["sections"][number];
 type ApiQuestion = ApiSection["questions"][number];
+type ApiAssignment = DraftPayload["assignments"][number];
 export type DraftSection = Omit<ApiSection, "clientKey" | "questions"> & {
   clientKey: string;
   questions: DraftQuestion[];
 };
 export type DraftQuestion = ApiQuestion & { clientKey: string };
 export type FieldType = DraftQuestion["fieldType"];
-export type EditorDraft = Omit<DraftPayload, "sections"> & {
+export type EditorDraft = Omit<DraftPayload, "sections" | "assignments"> & {
   sections: DraftSection[];
+  assignments: DraftAssignment[];
 };
+export type DraftAssignment = ApiAssignment & { id?: string };
 export type DraftValidationIssue = {
   code: string;
   path: string;
   message: string;
 };
 export type CreatedFormIdentity = { id: string; revision: number };
+export const formStages: EditorDraft["stage"][] = [
+  "REGISTRATION",
+  "POST_REGISTRATION",
+];
 
 let sequence = 0;
 export const clientKey = (prefix: string) =>
@@ -30,14 +37,50 @@ export const newEditorDraft = (): EditorDraft => ({
   description: null,
   revision: 1,
   stage: "REGISTRATION",
+  assignments: [newAssignment()],
   sections: [],
 });
+
+export function newAssignment(orderIndex = 0): DraftAssignment {
+  return {
+    audience: "EACH_ATTENDEE",
+    blocksCheckIn: false,
+    closesAt: null,
+    isRequired: true,
+    opensAt: null,
+    orderIndex,
+    ticketPackageId: null,
+  };
+}
 
 export const builderToDraft = (form: BuilderForm): EditorDraft => ({
   name: form.name,
   description: form.description,
   revision: form.revision,
   stage: form.stage,
+  assignments: [...form.assignments]
+    .sort((a, b) => a.orderIndex - b.orderIndex)
+    .map(
+      ({
+        id,
+        audience,
+        blocksCheckIn,
+        closesAt,
+        isRequired,
+        opensAt,
+        orderIndex,
+        ticketPackageId,
+      }) => ({
+        id,
+        audience,
+        blocksCheckIn,
+        closesAt,
+        isRequired,
+        opensAt,
+        orderIndex,
+        ticketPackageId,
+      }),
+    ),
   sections: [...form.sections]
     .sort((a, b) => a.orderIndex - b.orderIndex)
     .map((section) => ({
@@ -68,6 +111,14 @@ export const toPayload = (draft: EditorDraft): DraftPayload => ({
   description: draft.description?.trim() || null,
   revision: draft.revision,
   stage: draft.stage,
+  assignments: draft.assignments.map(
+    ({ id: _id, ...assignment }, orderIndex) => ({
+      ...assignment,
+      blocksCheckIn:
+        draft.stage === "POST_REGISTRATION" && assignment.blocksCheckIn,
+      orderIndex,
+    }),
+  ),
   sections: draft.sections.map((section) => ({
     ...(section.id ? { id: section.id } : { clientKey: section.clientKey }),
     title: section.title.trim(),
@@ -138,6 +189,38 @@ export const validateDraftLocally = (
   boundedText(draft.description, "description", "Description", 5000);
   if (!Number.isInteger(draft.revision) || draft.revision < 1)
     add("INVALID_REVISION", "revision", "Revision must be a positive integer");
+  if (!draft.assignments.length)
+    add(
+      "ASSIGNMENTS_REQUIRED",
+      "assignments",
+      "A form must have at least one assignment",
+    );
+  draft.assignments.forEach((assignment, index) => {
+    const path = `assignments.${index}`;
+    if (assignment.blocksCheckIn && draft.stage !== "POST_REGISTRATION")
+      add(
+        "CHECK_IN_STAGE_INVALID",
+        `${path}.blocksCheckIn`,
+        "Only post-registration assignments can block check-in",
+      );
+    if (assignment.blocksCheckIn && !assignment.isRequired)
+      add(
+        "CHECK_IN_REQUIRES_REQUIRED",
+        `${path}.blocksCheckIn`,
+        "A check-in blocking assignment must be required",
+      );
+    if (
+      assignment.opensAt &&
+      assignment.closesAt &&
+      new Date(assignment.opensAt).getTime() >=
+        new Date(assignment.closesAt).getTime()
+    )
+      add(
+        "ASSIGNMENT_WINDOW_INVALID",
+        `${path}.closesAt`,
+        "Closing time must be after opening time",
+      );
+  });
   if (!draft.sections.length)
     add("FORM_EMPTY", "sections", "A form must contain at least one section");
   if (draft.sections.length > 50)
@@ -258,7 +341,12 @@ export const validateDraftLocally = (
                 ? new Set(["minDate", "maxDate"])
                 : question.fieldType === "TEXT" ||
                     question.fieldType === "TEXTAREA"
-                  ? new Set(["minLength", "maxLength"])
+                  ? new Set([
+                      "minLength",
+                      "maxLength",
+                      "pattern",
+                      "patternMessage",
+                    ])
                   : new Set<string>();
       Object.entries(validation).forEach(([key, value]) => {
         if (value !== undefined && !allowed.has(key))
@@ -318,6 +406,24 @@ export const validateDraftLocally = (
         "minSelections",
       );
       compare(validation.minDate, validation.maxDate, "minDate");
+      boundedText(
+        validation.pattern,
+        `${path}.validation.pattern`,
+        "Pattern",
+        256,
+      );
+      boundedText(
+        validation.patternMessage,
+        `${path}.validation.patternMessage`,
+        "Pattern message",
+        200,
+      );
+      if (validation.patternMessage?.trim() && !validation.pattern?.trim())
+        add(
+          "PATTERN_REQUIRED",
+          `${path}.validation.patternMessage`,
+          "Pattern message requires a pattern",
+        );
       (["minDate", "maxDate"] as const).forEach((key) => {
         const value = validation[key];
         if (value !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(value))
@@ -361,6 +467,7 @@ type PersistNewDraftOptions<TCreated extends CreatedFormIdentity, TSaved> = {
     description: string | null;
     stage: EditorDraft["stage"];
     subEventId: string;
+    assignments: DraftPayload["assignments"];
   }) => Promise<TCreated>;
   save: (id: string, draft: DraftPayload) => Promise<TSaved>;
 };
@@ -393,6 +500,7 @@ export const persistNewDraft = async <
         description: draft.description?.trim() || null,
         stage: draft.stage,
         subEventId,
+        assignments: toPayload(draft).assignments,
       });
     } catch (error) {
       return { status: "create-failed", error };
@@ -424,6 +532,8 @@ export const validationForType = (
     return {
       minLength: validation.minLength,
       maxLength: validation.maxLength,
+      pattern: validation.pattern,
+      patternMessage: validation.patternMessage,
     };
   if (type === "NUMBER") return { min: validation.min, max: validation.max };
   if (type === "DATE")

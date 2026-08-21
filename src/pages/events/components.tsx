@@ -199,7 +199,12 @@ export const WorkspaceHeader = ({
 );
 
 export type WorkspaceSection =
-  "overview" | "registration-setup" | "forms" | "payment" | "registrations";
+  | "overview"
+  | "registration-setup"
+  | "forms"
+  | "payment"
+  | "registrations"
+  | "post-registration";
 export const WorkspaceTabs = ({
   basePath,
   active,
@@ -211,7 +216,9 @@ export const WorkspaceTabs = ({
     { value: "overview", label: "Overview" },
     { value: "registration-setup", label: "Registration" },
     { value: "forms", label: "Forms" },
+    { value: "payment", label: "Payment" },
     { value: "registrations", label: "Registrations" },
+    { value: "post-registration", label: "Post-registration" },
   ];
   return (
     <nav
