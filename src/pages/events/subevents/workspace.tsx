@@ -58,10 +58,12 @@ import {
 import { RegistrationQueue } from "./registration-queue";
 import { PaymentWorkspace } from "./payment-workspace";
 import { PostRegistrationWorkspace } from "./post-registration-workspace";
+import { PackagesWorkspace } from "./packages-workspace";
 
 const sections: WorkspaceSection[] = [
   "overview",
   "registration-setup",
+  "packages",
   "forms",
   "payment",
   "registrations",
@@ -198,6 +200,8 @@ export default function SubeventWorkspacePage() {
         <Overview subevent={subevent} />
       ) : active === "registration-setup" ? (
         <RegistrationSetup subevent={subevent} />
+      ) : active === "packages" ? (
+        <PackagesWorkspace subEventId={subeventId} />
       ) : active === "forms" ? (
         <FormsList eventId={eventId} subeventId={subeventId} />
       ) : active === "payment" ? (
@@ -496,7 +500,8 @@ export const RegistrationSetup = ({ subevent }: { subevent: Subevent }) => {
           <p className="text-muted-foreground">
             Visibility answers who is eligible. Registration flow answers
             whether they register on this site, on another site, or not at all.
-            Built-in registration currently supports a free, one-seat package.
+            Built-in registration uses fixed-seat packages with one whole-order
+            total. Configure package availability in the Packages tab.
           </p>
         </CardContent>
       </Card>

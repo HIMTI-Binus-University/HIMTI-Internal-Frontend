@@ -91,9 +91,7 @@ const PaymentSettings = ({ subeventId }: { subeventId: string }) => {
         : Number(values.get("maxProofMb"));
       const payload: PaymentSettingsPayload = {
         amountMinor,
-        currency: String(values.get("currency") ?? "IDR")
-          .trim()
-          .toUpperCase(),
+        currency: "IDR",
         bankName: isFree ? null : String(values.get("bankName") ?? "").trim(),
         accountHolder: isFree
           ? null
@@ -177,8 +175,10 @@ const PaymentSettings = ({ subeventId }: { subeventId: string }) => {
           <div>
             <CardTitle>Production payment settings</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
-              Saving also updates the default one-seat package price and
-              currency.
+              Packages remain the authority for package terms. Saving only
+              synchronizes price and currency to an unreferenced one-seat
+              DEFAULT-INDIVIDUAL package; it never changes referenced, team,
+              or other package terms.
             </p>
           </div>
           <Badge variant={isFree ? "success" : "warning"}>
@@ -194,8 +194,8 @@ const PaymentSettings = ({ subeventId }: { subeventId: string }) => {
           className="grid gap-4 sm:grid-cols-2"
         >
           <Field
-            label="Amount (IDR)"
-            helper="Whole rupiah. Enter 0 explicitly for a free package."
+            label="Default individual whole-order total IDR"
+            helper="Whole rupiah for the one-seat default individual order. Enter 0 explicitly for free payment settings."
           >
             <Input
               name="amountMajor"
@@ -210,13 +210,11 @@ const PaymentSettings = ({ subeventId }: { subeventId: string }) => {
           </Field>
           <Field
             label="Currency"
-            helper="Three-letter ISO currency; IDR uses whole rupiah minor units."
+            helper="This workspace only supports IDR."
           >
             <Input
               name="currency"
-              defaultValue={settings.currency}
-              minLength={3}
-              maxLength={3}
+              value="IDR"
               readOnly
               required
             />
@@ -312,10 +310,11 @@ const PaymentSettings = ({ subeventId }: { subeventId: string }) => {
             />
           </Field>
           <div className="sm:col-span-2 rounded-lg border bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">
-            Package implication: an amount above zero marks the subevent paid
-            and uses these details for new payment snapshots. Zero makes the
-            default package free; existing payment records retain their
-            snapshots.
+            Payment implication: an amount above zero enables paid payment
+            settings and these details are used for new payment snapshots.
+            Zero disables payment requirements. Existing payment snapshots
+            and package terms remain unchanged, except for the limited
+            unreferenced default-individual price sync described above.
           </div>
           {error && (
             <p

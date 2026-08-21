@@ -5,7 +5,7 @@ import {
 } from "./registration-settings";
 
 describe("registrationSettingsPayload", () => {
-  it("builds internal free one-seat registration settings", () => {
+  it("builds internal registration settings", () => {
     const form = new FormData();
     form.set("registrationMode", "INTERNAL");
     form.set("approvalMode", "MANUAL_REVIEW");

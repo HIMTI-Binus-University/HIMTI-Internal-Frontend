@@ -36,6 +36,7 @@ import {
 import { EmptyState, Warning, WorkspaceHeader } from "../components";
 import { readQueueFilters } from "./registration-queue-filters";
 import { registrationReviewError } from "./registration-review-errors";
+import { formatMinor } from "./payment-utils";
 
 type ActionConfig = {
   action: ReviewAction;
@@ -156,13 +157,13 @@ export default function RegistrationReviewPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserRound className="h-5 w-5 text-primary" />
-                Participant and registration
+                Buyer and order
               </CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 <Detail
-                  label="Participant"
+                  label="Buyer"
                   value={registration.participant.name}
                   secondary={registration.participant.email}
                 />
@@ -172,8 +173,8 @@ export default function RegistrationReviewPage() {
                 />
                 <Detail
                   label="Package"
-                  value="Free registration"
-                  secondary={`${registration.seatCount} seat${registration.seatCount === 1 ? "" : "s"}`}
+                  value={`${registration.package.name} (${registration.package.code})`}
+                  secondary={`${registration.package.seatCount} fixed seat${registration.package.seatCount === 1 ? "" : "s"} · ${formatMinor(registration.package.priceMinor, registration.package.currency)} whole-order total`}
                 />
                 <Detail
                   label="Registration"
@@ -200,6 +201,8 @@ export default function RegistrationReviewPage() {
           </Card>
 
           <Answers registration={registration} />
+
+          <RosterReadiness registration={registration} />
 
           <Card>
             <CardHeader>
@@ -361,6 +364,61 @@ export const Answers = ({
   </Card>
 );
 
+export const RosterReadiness = ({
+  registration,
+}: {
+  registration: RegistrationDetail;
+}) => {
+  const roster = registration.rosterSummary;
+  const readiness = registration.readiness;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <UserRound className="h-5 w-5 text-primary" />
+          Roster readiness
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <dl className="grid gap-4 sm:grid-cols-4">
+          <Detail label="Fixed seats" value={String(registration.seatCount)} />
+          <Detail
+            label="Seats claimed"
+            value={`${readiness.claimedSeatCount}/${registration.seatCount}`}
+          />
+          <Detail
+            label="Pending invitations"
+            value={String(roster.pendingInvitationCount)}
+          />
+          <Detail label="Open slots" value={String(roster.pendingSlotCount)} />
+        </dl>
+        <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+          <p className="font-semibold">
+            Response readiness: {readiness.completedResponseCount}/
+            {readiness.requiredResponseCount} required responses complete
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            {readiness.responsesComplete
+              ? "All required responses are complete."
+              : "Required responses are still incomplete."}{" "}
+            {readiness.submittable
+              ? "The order is ready to submit."
+              : "The order is not ready to submit."}
+          </p>
+          {readiness.blockerCodes.length > 0 && (
+            <p className="mt-2 text-semantic-danger">
+              Blockers: {readiness.blockerCodes.map(titleCase).join(", ")}
+            </p>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Active-member aggregate: {roster.activeMemberCount}. Invitation identities are intentionally not exposed.
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
+
 const AnswerValue = ({
   fieldType,
   answer,
@@ -469,7 +527,7 @@ const ReviewDialog = ({
           <DialogDescription>
             {requiresReason
               ? "Provide a clear reason. It becomes part of the registration history."
-              : "Confirm this participant's free one-seat registration."}
+              : `Confirm this buyer's whole order for ${registration.package.name} (${registration.seatCount} fixed seats).`}
           </DialogDescription>
         </DialogHeader>
         {registration.status === "CANCELLED" && (

@@ -201,6 +201,7 @@ export const WorkspaceHeader = ({
 export type WorkspaceSection =
   | "overview"
   | "registration-setup"
+  | "packages"
   | "forms"
   | "payment"
   | "registrations"
@@ -215,6 +216,7 @@ export const WorkspaceTabs = ({
   const tabs: { value: WorkspaceSection; label: string }[] = [
     { value: "overview", label: "Overview" },
     { value: "registration-setup", label: "Registration" },
+    { value: "packages", label: "Packages" },
     { value: "forms", label: "Forms" },
     { value: "payment", label: "Payment" },
     { value: "registrations", label: "Registrations" },

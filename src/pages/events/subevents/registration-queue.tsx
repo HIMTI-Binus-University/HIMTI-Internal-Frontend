@@ -133,21 +133,21 @@ export const RegistrationQueue = ({
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Occupied seats"
-          value={capacity.data?.occupied ?? "-"}
+          label="Live held seats"
+          value={capacity.data?.liveHeldSeats ?? "-"}
           detail={
             capacity.data?.maxParticipants
-              ? `of ${capacity.data.maxParticipants} seats`
+              ? `temporarily held of ${capacity.data.maxParticipants}`
               : "No capacity limit"
           }
           icon={Users}
         />
         <StatCard
-          label="Remaining"
-          value={capacity.data?.remaining ?? "Unlimited"}
-          detail="Available confirmed capacity"
+          label="Reserved seats"
+          value={capacity.data?.reserved ?? "-"}
+          detail="Capacity reserved by confirmed orders"
           icon={TicketCheck}
-          tone={capacity.data?.remaining === 0 ? "danger" : "success"}
+          tone="success"
         />
         <StatCard
           label="Pending approval"
@@ -157,11 +157,11 @@ export const RegistrationQueue = ({
           tone="warning"
         />
         <StatCard
-          label="Approved"
-          value={capacity.data?.byStatus.APPROVED ?? 0}
-          detail="Seats currently occupied"
+          label="Remaining capacity"
+          value={capacity.data?.remaining ?? "Unlimited"}
+          detail="After live holds and reservations"
           icon={Check}
-          tone="success"
+          tone={capacity.data?.remaining === 0 ? "danger" : "success"}
         />
       </div>
 
@@ -260,7 +260,7 @@ export const RegistrationQueue = ({
       ) : (
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[880px] text-left text-sm">
+            <table className="w-full min-w-[1120px] text-left text-sm">
               <thead className="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="w-12 p-4">
@@ -276,8 +276,10 @@ export const RegistrationQueue = ({
                       onCheckedChange={toggleAll}
                     />
                   </th>
-                  <th className="p-4">Participant</th>
+                  <th className="p-4">Buyer</th>
                   <th className="p-4">Order</th>
+                  <th className="p-4">Package</th>
+                  <th className="p-4">Seats claimed</th>
                   <th className="p-4">Registration</th>
                   <th className="p-4">Responses</th>
                   <th className="p-4">Payment</th>
@@ -437,10 +439,40 @@ const QueueRow = ({
     </td>
     <td className="p-4 font-mono text-xs">{row.orderNumber}</td>
     <td className="p-4">
+      <p className="font-semibold">{row.package.name}</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        {row.package.seatCount} fixed seat
+        {row.package.seatCount === 1 ? "" : "s"}
+      </p>
+    </td>
+    <td className="p-4 text-xs">
+      <p className="font-semibold">
+        {row.readiness.claimedSeatCount}/{row.seatCount} seats claimed
+      </p>
+      <p className="mt-0.5 text-muted-foreground">
+        {row.rosterSummary.pendingInvitationCount} invited ·{" "}
+        {row.rosterSummary.pendingSlotCount} open
+      </p>
+      <p className="mt-1 text-muted-foreground">
+        {row.readiness.submittable ? "Order ready to submit" : "Order blocked"}
+      </p>
+    </td>
+    <td className="p-4">
       <QueueBadge status={row.status} />
     </td>
     <td className="p-4">
-      <QueueBadge status={row.responseStatus} />
+      <p className="text-xs font-semibold">
+        {row.readiness.completedResponseCount}/
+        {row.readiness.requiredResponseCount} required complete
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {row.readiness.responsesComplete ? "Responses ready" : "Responses incomplete"}
+      </p>
+      {row.readiness.blockerCodes.length > 0 && (
+        <p className="mt-1 max-w-48 text-xs text-semantic-danger">
+          {row.readiness.blockerCodes.map(titleCase).join(", ")}
+        </p>
+      )}
     </td>
     <td className="p-4">
       <QueueBadge status={row.paymentStatus} />

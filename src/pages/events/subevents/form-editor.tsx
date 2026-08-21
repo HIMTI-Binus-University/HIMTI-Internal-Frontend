@@ -21,6 +21,10 @@ import {
   useSaveRegistrationFormDraft,
   useValidateRegistrationForm,
 } from "@/api/registration-forms/queries";
+import {
+  type EventPackage,
+  useEventPackages,
+} from "@/api/event-packages/queries";
 import { useGetEvents, useGetSubevent } from "@/api/events/queries";
 import { PageLayout } from "@/components/Utils";
 import { titleCase } from "@/components/events/helpers";
@@ -77,6 +81,7 @@ import {
 } from "./form-draft";
 import { localDateTime } from "./registration-settings";
 import { FormStatusBadge } from "./forms-list";
+import { packageOptionLabel } from "./package-utils";
 
 const fieldTypes: FieldType[] = [
   "TEXT",
@@ -105,6 +110,7 @@ export default function FormEditorPage() {
   const events = useGetEvents();
   const subevent = useGetSubevent(subeventId);
   const formQuery = useRegistrationForm(formId);
+  const packagesQuery = useEventPackages(subeventId);
   const create = useCreateRegistrationForm({ updateCache: false });
   const saveMutation = useSaveRegistrationFormDraft();
   const clone = useCloneRegistrationForm();
@@ -550,7 +556,7 @@ export default function FormEditorPage() {
                         Routing assignments
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Package-neutral V1 applies to every package.
+                        Route to one package or keep the all-packages fallback.
                       </p>
                     </div>
                     <Button
@@ -578,6 +584,7 @@ export default function FormEditorPage() {
                         index={index}
                         total={draft.assignments.length}
                         stage={draft.stage}
+                        packages={packagesQuery.data ?? []}
                         update={(next) =>
                           edit((current) => ({
                             ...current,
@@ -680,6 +687,7 @@ function AssignmentEditor({
   index,
   total,
   stage,
+  packages,
   update,
   remove,
   move,
@@ -688,6 +696,7 @@ function AssignmentEditor({
   index: number;
   total: number;
   stage: EditorDraft["stage"];
+  packages: EventPackage[];
   update: (assignment: DraftAssignment) => void;
   remove: () => void;
   move: (direction: number) => void;
@@ -743,6 +752,35 @@ function AssignmentEditor({
           </SelectContent>
         </Select>
       </Field>
+      <Field label="Ticket package">
+        <select
+          aria-label={`Ticket package for route ${index + 1}`}
+          value={assignment.ticketPackageId ?? "ALL"}
+          onChange={(event) =>
+            update({
+              ...assignment,
+              ticketPackageId:
+                event.target.value === "ALL" ? null : event.target.value,
+            })
+          }
+          className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm"
+        >
+          <option value="ALL">All packages (fallback)</option>
+          {packages.map((item) => (
+            <option key={item.id} value={item.id}>
+              {packageOptionLabel(item)}
+            </option>
+          ))}
+          {assignment.ticketPackageId &&
+            !packages.some(
+              (item) => item.id === assignment.ticketPackageId,
+            ) && (
+              <option value={assignment.ticketPackageId}>
+                Historical package (inactive or unavailable)
+              </option>
+            )}
+        </select>
+      </Field>
       <label className="flex items-center gap-2 text-sm">
         <Checkbox
           checked={assignment.isRequired}
@@ -781,7 +819,10 @@ function AssignmentEditor({
         />
       </Field>
       <p className="text-xs text-muted-foreground">
-        Order {index + 1} · All packages
+        Order {index + 1} ·{" "}
+        {assignment.ticketPackageId
+          ? "Package-specific"
+          : "All packages fallback"}
       </p>
     </div>
   );

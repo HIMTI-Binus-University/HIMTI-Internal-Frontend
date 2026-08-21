@@ -23,5 +23,9 @@ describe("WorkspaceTabs", () => {
       "href",
       "/events/event-1/subevents/subevent-1/registrations",
     );
+    expect(screen.getByRole("link", { name: "Packages" })).toHaveAttribute(
+      "href",
+      "/events/event-1/subevents/subevent-1/packages",
+    );
   });
 });

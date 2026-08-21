@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import type { RegistrationDetail } from "@/api/event-registrations/queries";
-import { Answers } from "./registration-review";
+import { Answers, RosterReadiness } from "./registration-review";
 
 const registration = {
   answersVisible: true,
@@ -60,5 +60,39 @@ describe("registration answers", () => {
     expect(screen.getByText("Answers are restricted")).toBeInTheDocument();
     expect(screen.getByText(/view_event_answers/)).toBeInTheDocument();
     expect(screen.queryByText("Learn and contribute")).not.toBeInTheDocument();
+  });
+});
+
+describe("registration readiness", () => {
+  it("labels claimed seats separately from authoritative response readiness", () => {
+    render(
+      <RosterReadiness
+        registration={
+          {
+            seatCount: 4,
+            rosterSummary: {
+              activeMemberCount: 3,
+              pendingInvitationCount: 1,
+              pendingSlotCount: 0,
+            },
+            readiness: {
+              claimedSeatCount: 4,
+              completedResponseCount: 2,
+              requiredResponseCount: 4,
+              responsesComplete: false,
+              submittable: false,
+              blockerCodes: ["REQUIRED_RESPONSES_INCOMPLETE"],
+            },
+          } as RegistrationDetail
+        }
+      />,
+    );
+    expect(screen.getByText("Seats claimed")).toBeInTheDocument();
+    expect(screen.getByText("4/4")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Response readiness: 2\/4 required responses complete/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Required Responses Incomplete/)).toBeInTheDocument();
+    expect(screen.queryByText(/3\/4 members ready/)).not.toBeInTheDocument();
   });
 });

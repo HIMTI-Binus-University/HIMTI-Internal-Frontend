@@ -12,7 +12,7 @@ const validForm = () => {
 };
 
 describe("buildSubeventCreatePayload", () => {
-  it("defaults to closed internal free one-seat registration", () => {
+  it("defaults to closed internal registration with the legacy setup limit", () => {
     expect(buildSubeventCreatePayload(validForm(), "event-1")).toMatchObject({
       registrationMode: "INTERNAL",
       approvalMode: "AUTO_APPROVE",

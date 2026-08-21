@@ -229,7 +229,7 @@ export default function SubeventSetupPage() {
             {registrationMode === "INTERNAL" && (
               <Field
                 label="Approval mode"
-                helper="Phase 5 provisions a free, one-seat native package."
+                helper="Native registration starts with a default package; configure fixed seats, total price, and sales windows in the package workspace."
               >
                 <Select name="approvalMode" defaultValue="AUTO_APPROVE">
                   <SelectTrigger>
