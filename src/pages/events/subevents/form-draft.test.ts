@@ -7,6 +7,7 @@ import {
   newEditorDraft,
   nextOptionValue,
   persistNewDraft,
+  settingsForStage,
   toPayload,
   usesOptions,
   validateDraftLocally,
@@ -44,28 +45,41 @@ describe("form draft helpers", () => {
     expect(formStages).toEqual(["REGISTRATION", "POST_REGISTRATION"]);
   });
 
-  it("validates assignment routing and windows", () => {
-    const draft = validDraft();
-    draft.assignments = [];
-    expect(validateDraftLocally(draft)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ code: "ASSIGNMENTS_REQUIRED" }),
-      ]),
+  it("resets settings that do not apply when the completion stage changes", () => {
+    const postRegistration = {
+      ...validDraft(),
+      stage: "POST_REGISTRATION" as const,
+      audience: "EACH_ATTENDEE" as const,
+      isRequired: false,
+      opensAt: "2026-08-22T08:00:00.000Z",
+      closesAt: "2026-08-23T08:00:00.000Z",
+      blocksCheckIn: true,
+    };
+
+    expect(settingsForStage(postRegistration, "REGISTRATION")).toEqual(
+      expect.objectContaining({
+        stage: "REGISTRATION",
+        audience: "BUYER",
+        isRequired: true,
+        opensAt: null,
+        closesAt: null,
+        blocksCheckIn: false,
+        orderIndex: 0,
+      }),
     );
-    draft.assignments = [
-      {
-        ...newEditorDraft().assignments[0],
-        blocksCheckIn: true,
-        isRequired: false,
-        opensAt: "2026-08-22T10:00:00.000Z",
-        closesAt: "2026-08-22T09:00:00.000Z",
-      },
-    ];
+  });
+
+  it("validates completion settings and dates", () => {
+    const draft = validDraft();
+    draft.blocksCheckIn = true;
+    draft.isRequired = false;
+    draft.opensAt = "2026-08-22T10:00:00.000Z";
+    draft.closesAt = "2026-08-22T09:00:00.000Z";
     expect(validateDraftLocally(draft).map((issue) => issue.code)).toEqual(
       expect.arrayContaining([
         "CHECK_IN_STAGE_INVALID",
         "CHECK_IN_REQUIRES_REQUIRED",
-        "ASSIGNMENT_WINDOW_INVALID",
+        "AVAILABILITY_WINDOW_INVALID",
       ]),
     );
   });
@@ -93,7 +107,12 @@ describe("form draft helpers", () => {
         description: " ",
         revision: 3,
         stage: "REGISTRATION",
-        assignments: [newEditorDraft().assignments[0]],
+        audience: "BUYER",
+      isRequired: true,
+      opensAt: null,
+      closesAt: null,
+      blocksCheckIn: false,
+      orderIndex: 0,
         sections,
       }),
     ).toEqual({
@@ -101,7 +120,12 @@ describe("form draft helpers", () => {
       description: null,
       revision: 3,
       stage: "REGISTRATION",
-      assignments: [newEditorDraft().assignments[0]],
+      audience: "BUYER",
+      isRequired: true,
+      opensAt: null,
+      closesAt: null,
+      blocksCheckIn: false,
+      orderIndex: 0,
       sections: [
         {
           clientKey: "section-new",
@@ -222,7 +246,12 @@ describe("form draft helpers", () => {
       name: "Form",
       revision: 1,
       stage: "REGISTRATION",
-      assignments: [newEditorDraft().assignments[0]],
+      audience: "BUYER",
+      isRequired: true,
+      opensAt: null,
+      closesAt: null,
+      blocksCheckIn: false,
+      orderIndex: 0,
       sections: [
         {
           clientKey: "section",
@@ -294,7 +323,12 @@ describe("form draft helpers", () => {
       description: null,
       stage: "REGISTRATION",
       subEventId: "sub-1",
-      assignments: [newEditorDraft().assignments[0]],
+      audience: "BUYER",
+      isRequired: true,
+      opensAt: null,
+      closesAt: null,
+      blocksCheckIn: false,
+      orderIndex: 0,
     });
     expect(save).toHaveBeenCalledWith(
       "form-created",

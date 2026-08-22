@@ -5,18 +5,15 @@ export type DraftPayload = components["schemas"]["RegistrationFormDraftV1"];
 export type PreviewPayload = components["schemas"]["RegistrationFormPreviewV1"];
 type ApiSection = DraftPayload["sections"][number];
 type ApiQuestion = ApiSection["questions"][number];
-type ApiAssignment = DraftPayload["assignments"][number];
 export type DraftSection = Omit<ApiSection, "clientKey" | "questions"> & {
   clientKey: string;
   questions: DraftQuestion[];
 };
 export type DraftQuestion = ApiQuestion & { clientKey: string };
 export type FieldType = DraftQuestion["fieldType"];
-export type EditorDraft = Omit<DraftPayload, "sections" | "assignments"> & {
+export type EditorDraft = Omit<DraftPayload, "sections"> & {
   sections: DraftSection[];
-  assignments: DraftAssignment[];
 };
-export type DraftAssignment = ApiAssignment & { id?: string };
 export type DraftValidationIssue = {
   code: string;
   path: string;
@@ -37,50 +34,52 @@ export const newEditorDraft = (): EditorDraft => ({
   description: null,
   revision: 1,
   stage: "REGISTRATION",
-  assignments: [newAssignment()],
+  audience: "BUYER",
+  isRequired: true,
+  opensAt: null,
+  closesAt: null,
+  blocksCheckIn: false,
+  orderIndex: 0,
   sections: [],
 });
 
-export function newAssignment(orderIndex = 0): DraftAssignment {
-  return {
-    audience: "EACH_ATTENDEE",
-    blocksCheckIn: false,
-    closesAt: null,
-    isRequired: true,
-    opensAt: null,
-    orderIndex,
-    ticketPackageId: null,
-  };
-}
+export const settingsForStage = (
+  draft: EditorDraft,
+  stage: EditorDraft["stage"],
+): EditorDraft =>
+  stage === "REGISTRATION"
+    ? {
+        ...draft,
+        stage,
+        audience: "BUYER",
+        isRequired: true,
+        opensAt: null,
+        closesAt: null,
+        blocksCheckIn: false,
+        orderIndex: 0,
+      }
+    : {
+        ...draft,
+        stage,
+        audience: "BUYER",
+        isRequired: true,
+        opensAt: null,
+        closesAt: null,
+        blocksCheckIn: false,
+        orderIndex: 0,
+      };
 
 export const builderToDraft = (form: BuilderForm): EditorDraft => ({
   name: form.name,
   description: form.description,
   revision: form.revision,
   stage: form.stage,
-  assignments: [...form.assignments]
-    .sort((a, b) => a.orderIndex - b.orderIndex)
-    .map(
-      ({
-        id,
-        audience,
-        blocksCheckIn,
-        closesAt,
-        isRequired,
-        opensAt,
-        orderIndex,
-        ticketPackageId,
-      }) => ({
-        id,
-        audience,
-        blocksCheckIn,
-        closesAt,
-        isRequired,
-        opensAt,
-        orderIndex,
-        ticketPackageId,
-      }),
-    ),
+  audience: form.audience,
+  blocksCheckIn: form.blocksCheckIn,
+  closesAt: form.closesAt,
+  isRequired: form.isRequired,
+  opensAt: form.opensAt,
+  orderIndex: form.orderIndex,
   sections: [...form.sections]
     .sort((a, b) => a.orderIndex - b.orderIndex)
     .map((section) => ({
@@ -111,14 +110,15 @@ export const toPayload = (draft: EditorDraft): DraftPayload => ({
   description: draft.description?.trim() || null,
   revision: draft.revision,
   stage: draft.stage,
-  assignments: draft.assignments.map(
-    ({ id: _id, ...assignment }, orderIndex) => ({
-      ...assignment,
-      blocksCheckIn:
-        draft.stage === "POST_REGISTRATION" && assignment.blocksCheckIn,
-      orderIndex,
-    }),
-  ),
+  audience: draft.stage === "REGISTRATION" ? "BUYER" : draft.audience,
+  isRequired: draft.stage === "REGISTRATION" ? true : draft.isRequired,
+  opensAt: draft.stage === "REGISTRATION" ? null : draft.opensAt,
+  closesAt: draft.stage === "REGISTRATION" ? null : draft.closesAt,
+  blocksCheckIn:
+    draft.stage === "POST_REGISTRATION" &&
+    draft.isRequired &&
+    draft.blocksCheckIn,
+  orderIndex: 0,
   sections: draft.sections.map((section) => ({
     ...(section.id ? { id: section.id } : { clientKey: section.clientKey }),
     title: section.title.trim(),
@@ -189,38 +189,28 @@ export const validateDraftLocally = (
   boundedText(draft.description, "description", "Description", 5000);
   if (!Number.isInteger(draft.revision) || draft.revision < 1)
     add("INVALID_REVISION", "revision", "Revision must be a positive integer");
-  if (!draft.assignments.length)
-    add(
-      "ASSIGNMENTS_REQUIRED",
-      "assignments",
-      "A form must have at least one assignment",
-    );
-  draft.assignments.forEach((assignment, index) => {
-    const path = `assignments.${index}`;
-    if (assignment.blocksCheckIn && draft.stage !== "POST_REGISTRATION")
+  if (draft.blocksCheckIn && draft.stage !== "POST_REGISTRATION")
       add(
         "CHECK_IN_STAGE_INVALID",
-        `${path}.blocksCheckIn`,
-        "Only post-registration assignments can block check-in",
+        "blocksCheckIn",
+        "Only forms completed after approval can prevent check-in",
       );
-    if (assignment.blocksCheckIn && !assignment.isRequired)
+  if (draft.blocksCheckIn && !draft.isRequired)
       add(
         "CHECK_IN_REQUIRES_REQUIRED",
-        `${path}.blocksCheckIn`,
-        "A check-in blocking assignment must be required",
+        "blocksCheckIn",
+        "Only a required form can prevent check-in",
       );
-    if (
-      assignment.opensAt &&
-      assignment.closesAt &&
-      new Date(assignment.opensAt).getTime() >=
-        new Date(assignment.closesAt).getTime()
-    )
+  if (
+      draft.opensAt &&
+      draft.closesAt &&
+      new Date(draft.opensAt).getTime() >= new Date(draft.closesAt).getTime()
+  )
       add(
-        "ASSIGNMENT_WINDOW_INVALID",
-        `${path}.closesAt`,
-        "Closing time must be after opening time",
+        "AVAILABILITY_WINDOW_INVALID",
+        "closesAt",
+        "Due date must be after the available-from date",
       );
-  });
   if (!draft.sections.length)
     add("FORM_EMPTY", "sections", "A form must contain at least one section");
   if (draft.sections.length > 50)
@@ -467,7 +457,12 @@ type PersistNewDraftOptions<TCreated extends CreatedFormIdentity, TSaved> = {
     description: string | null;
     stage: EditorDraft["stage"];
     subEventId: string;
-    assignments: DraftPayload["assignments"];
+    audience: DraftPayload["audience"];
+    isRequired: boolean;
+    opensAt: string | null;
+    closesAt: string | null;
+    blocksCheckIn: boolean;
+    orderIndex: number;
   }) => Promise<TCreated>;
   save: (id: string, draft: DraftPayload) => Promise<TSaved>;
 };
@@ -500,7 +495,12 @@ export const persistNewDraft = async <
         description: draft.description?.trim() || null,
         stage: draft.stage,
         subEventId,
-        assignments: toPayload(draft).assignments,
+        audience: toPayload(draft).audience,
+        isRequired: toPayload(draft).isRequired,
+        opensAt: toPayload(draft).opensAt,
+        closesAt: toPayload(draft).closesAt,
+        blocksCheckIn: toPayload(draft).blocksCheckIn,
+        orderIndex: toPayload(draft).orderIndex,
       });
     } catch (error) {
       return { status: "create-failed", error };

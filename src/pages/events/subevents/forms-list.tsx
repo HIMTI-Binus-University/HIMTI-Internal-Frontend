@@ -67,6 +67,10 @@ export function FormsList({
     id: string;
     name: string;
     revision: number;
+    stage?: "REGISTRATION" | "POST_REGISTRATION";
+    audience?: "BUYER" | "EACH_ATTENDEE";
+    isRequired?: boolean;
+    blocksCheckIn?: boolean;
   } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{
     id: string;
@@ -197,6 +201,10 @@ export function FormsList({
                           id: form.id,
                           name: form.name,
                           revision: form.revision,
+                          stage: form.stage,
+                          audience: form.audience,
+                          isRequired: form.isRequired,
+                          blocksCheckIn: form.blocksCheckIn,
                         })
                       }
                     >
@@ -259,7 +267,10 @@ export function FormsList({
               {lifecycleTarget?.action === "publish" ? (
                 <>
                   {lifecycleTarget.name} will become available to participants
-                  and become read-only.
+                  and can no longer be edited. It applies to every ticket
+                  package. {lifecycleTarget.stage === "REGISTRATION"
+                    ? "The registration leader completes one required form during registration; it does not affect check-in."
+                    : `${lifecycleTarget.audience === "BUYER" ? "The registration leader submits one response" : "Each attendee submits a separate response"}. ${lifecycleTarget.isRequired ? "Completion is required" : "Completion is optional"}${lifecycleTarget.blocksCheckIn ? " and check-in is unavailable until it is completed" : " and it does not prevent check-in"}.`}
                 </>
               ) : (
                 <>

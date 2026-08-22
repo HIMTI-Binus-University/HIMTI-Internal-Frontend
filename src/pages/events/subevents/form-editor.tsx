@@ -21,10 +21,6 @@ import {
   useSaveRegistrationFormDraft,
   useValidateRegistrationForm,
 } from "@/api/registration-forms/queries";
-import {
-  type EventPackage,
-  useEventPackages,
-} from "@/api/event-packages/queries";
 import { useGetEvents, useGetSubevent } from "@/api/events/queries";
 import { PageLayout } from "@/components/Utils";
 import { titleCase } from "@/components/events/helpers";
@@ -62,7 +58,6 @@ import {
   clientKey,
   moveItem,
   newEditorDraft,
-  newAssignment,
   newQuestion,
   nextOptionValue,
   persistNewDraft,
@@ -71,8 +66,8 @@ import {
   usesOptions,
   validateDraftLocally,
   validationForType,
+  settingsForStage,
   type BuilderForm,
-  type DraftAssignment,
   type DraftQuestion,
   type DraftSection,
   type FieldType,
@@ -81,7 +76,6 @@ import {
 } from "./form-draft";
 import { localDateTime } from "./registration-settings";
 import { FormStatusBadge } from "./forms-list";
-import { packageOptionLabel } from "./package-utils";
 
 const fieldTypes: FieldType[] = [
   "TEXT",
@@ -97,7 +91,7 @@ type ApiErrorBody = { code?: string; message?: string; msg?: string };
 const apiError = (error: unknown) => {
   const response = (error as AxiosError<ApiErrorBody>).response;
   if (response?.data.code === "REVISION_CONFLICT")
-    return "This draft changed on the server. Your local edits are preserved. Open the forms list in another tab to review the latest revision before saving again.";
+    return "This form changed after you opened it. Your edits are still here. Open the forms list in another tab to review the latest saved version before trying again.";
   return (
     response?.data.message ?? response?.data.msg ?? "The form operation failed."
   );
@@ -110,7 +104,6 @@ export default function FormEditorPage() {
   const events = useGetEvents();
   const subevent = useGetSubevent(subeventId);
   const formQuery = useRegistrationForm(formId);
-  const packagesQuery = useEventPackages(subeventId);
   const create = useCreateRegistrationForm({ updateCache: false });
   const saveMutation = useSaveRegistrationFormDraft();
   const clone = useCloneRegistrationForm();
@@ -250,7 +243,7 @@ export default function FormEditorPage() {
       setDraft(builderToDraft(saved));
       setLoadedRevision(saved.revision);
       setDirty(false);
-      setNotice(`Saved revision ${saved.revision}.`);
+      setNotice("Your changes are saved.");
     } catch (failure) {
       setError(apiError(failure));
     }
@@ -392,9 +385,8 @@ export default function FormEditorPage() {
         </header>
         {locked && (
           <p className="mb-4 rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
-            This {displayStatus.toLowerCase()} form is read-only to preserve the
-            exact participant contract and submission history. Duplicate it to
-            create a separate editable draft.
+            This form can no longer be edited because participants may already
+            have used it. Duplicate it to make a new editable copy.
           </p>
         )}
         {error && (
@@ -513,20 +505,13 @@ export default function FormEditorPage() {
                     }
                   />
                 </Field>
-                <Field label="Stage">
+                <Field label="When participants complete this form">
                   <Select
                     value={draft.stage}
                     onValueChange={(stage) =>
-                      edit((current) => ({
-                        ...current,
-                        stage: stage as EditorDraft["stage"],
-                        assignments: current.assignments.map((assignment) => ({
-                          ...assignment,
-                          blocksCheckIn:
-                            stage === "POST_REGISTRATION" &&
-                            assignment.blocksCheckIn,
-                        })),
-                      }))
+                      edit((current) =>
+                        settingsForStage(current, stage as EditorDraft["stage"]),
+                      )
                     }
                   >
                     <SelectTrigger>
@@ -537,7 +522,7 @@ export default function FormEditorPage() {
                         <SelectItem key={stage} value={stage}>
                           {stage === "REGISTRATION"
                             ? "Registration"
-                            : "Post-registration"}
+                            : "After approval"}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -545,79 +530,14 @@ export default function FormEditorPage() {
                 </Field>
                 <p className="text-xs leading-5 text-muted-foreground">
                   {draft.stage === "REGISTRATION"
-                    ? "Collected during checkout. Registration assignments never block check-in."
-                    : "Collected after registration for follow-up requirements and check-in readiness."}
+                    ? "The registration leader or buyer completes one required form while registering. It applies to every ticket package and never affects check-in."
+                    : "Participants complete this after their registration is approved. It applies to every ticket package."}
                 </p>
-                <div className="border-t pt-4">
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-semibold">
-                        Routing assignments
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Route to one package or keep the all-packages fallback.
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() =>
-                        edit((current) => ({
-                          ...current,
-                          assignments: [
-                            ...current.assignments,
-                            newAssignment(current.assignments.length),
-                          ],
-                        }))
-                      }
-                    >
-                      <Plus /> Add
-                    </Button>
-                  </div>
-                  <div className="space-y-3">
-                    {draft.assignments.map((assignment, index) => (
-                      <AssignmentEditor
-                        key={assignment.id ?? `assignment-${index}`}
-                        assignment={assignment}
-                        index={index}
-                        total={draft.assignments.length}
-                        stage={draft.stage}
-                        packages={packagesQuery.data ?? []}
-                        update={(next) =>
-                          edit((current) => ({
-                            ...current,
-                            assignments: current.assignments.map(
-                              (item, itemIndex) =>
-                                itemIndex === index ? next : item,
-                            ),
-                          }))
-                        }
-                        remove={() =>
-                          edit((current) => ({
-                            ...current,
-                            assignments: current.assignments.filter(
-                              (_, itemIndex) => itemIndex !== index,
-                            ),
-                          }))
-                        }
-                        move={(direction) =>
-                          edit((current) => ({
-                            ...current,
-                            assignments: moveItem(
-                              current.assignments,
-                              index,
-                              direction,
-                            ),
-                          }))
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
+                {draft.stage === "POST_REGISTRATION" && (
+                  <CompletionSettings draft={draft} edit={edit} />
+                )}
                 <p className="text-xs text-muted-foreground">
-                  Saving sends the entire ordered draft. Revision{" "}
-                  {draft.revision} protects against concurrent edits.
+                  These settings apply to every ticket package.
                 </p>
               </CardContent>
             </Card>
@@ -636,7 +556,7 @@ export default function FormEditorPage() {
           </DialogHeader>
           {!isNew && preview.isPending && (
             <p className="py-10 text-center text-sm text-muted-foreground">
-              Building server preview...
+              Preparing preview...
             </p>
           )}
           {!isNew && preview.isError && (
@@ -651,15 +571,15 @@ export default function FormEditorPage() {
           )}
           {!isNew && preview.data && !preview.data.validation.valid && (
             <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-              Preview has {preview.data.validation.issues.length} validation
-              issue(s). The local preview remains available.
+              Fix {preview.data.validation.issues.length} form issue(s) before
+              publishing. You can still review the questions here.
             </p>
           )}
           {isNew && localPreviewIssues.length > 0 && (
             <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
               <p>
-                Preview has {localPreviewIssues.length} validation issue(s). The
-                local preview remains available.
+                Fix {localPreviewIssues.length} form issue(s) before saving. You
+                can still review the questions here.
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 {localPreviewIssues.map((issue, index) => (
@@ -681,147 +601,57 @@ export default function FormEditorPage() {
   );
 }
 
-function AssignmentEditor({
-  assignment,
-  index,
-  total,
-  stage,
-  packages,
-  update,
-  remove,
-  move,
-}: {
-  assignment: DraftAssignment;
-  index: number;
-  total: number;
-  stage: EditorDraft["stage"];
-  packages: EventPackage[];
-  update: (assignment: DraftAssignment) => void;
-  remove: () => void;
-  move: (direction: number) => void;
-}) {
+function CompletionSettings({ draft, edit }: { draft: EditorDraft; edit: (recipe: (current: EditorDraft) => EditorDraft) => void }) {
   const setWindow = (key: "opensAt" | "closesAt", value: string) =>
-    update({
-      ...assignment,
-      [key]: value ? new Date(value).toISOString() : null,
-    });
+    edit((current) => ({ ...current, [key]: value ? new Date(value).toISOString() : null }));
   return (
-    <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
-      <div className="flex items-center justify-between">
-        <strong className="text-xs uppercase tracking-wide">
-          Route {index + 1}
-        </strong>
-        <div className="flex">
-          <IconButton
-            label={`Move route ${index + 1} up`}
-            disabled={index === 0}
-            onClick={() => move(-1)}
-          >
-            <ArrowUp />
-          </IconButton>
-          <IconButton
-            label={`Move route ${index + 1} down`}
-            disabled={index === total - 1}
-            onClick={() => move(1)}
-          >
-            <ArrowDown />
-          </IconButton>
-          <IconButton label={`Delete route ${index + 1}`} onClick={remove}>
-            <Trash2 />
-          </IconButton>
-        </div>
-      </div>
-      <Field label="Audience">
+    <div className="space-y-4 border-t pt-4">
+      <Field label="Who completes it">
         <Select
-          value={assignment.audience}
+          value={draft.audience}
           onValueChange={(audience) =>
-            update({
-              ...assignment,
-              audience: audience as DraftAssignment["audience"],
-            })
+            edit((current) => ({ ...current, audience: audience as EditorDraft["audience"] }))
           }
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="BUYER">Buyer only</SelectItem>
-            <SelectItem value="EACH_ATTENDEE">Each attendee</SelectItem>
-            <SelectItem value="ALL_ORDER_MEMBERS">All order members</SelectItem>
+            <SelectItem value="BUYER">One response from the registration leader</SelectItem>
+            <SelectItem value="EACH_ATTENDEE">A separate response from each attendee</SelectItem>
           </SelectContent>
         </Select>
       </Field>
-      <Field label="Ticket package">
-        <select
-          aria-label={`Ticket package for route ${index + 1}`}
-          value={assignment.ticketPackageId ?? "ALL"}
-          onChange={(event) =>
-            update({
-              ...assignment,
-              ticketPackageId:
-                event.target.value === "ALL" ? null : event.target.value,
-            })
-          }
-          className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm"
-        >
-          <option value="ALL">All packages (fallback)</option>
-          {packages.map((item) => (
-            <option key={item.id} value={item.id}>
-              {packageOptionLabel(item)}
-            </option>
-          ))}
-          {assignment.ticketPackageId &&
-            !packages.some(
-              (item) => item.id === assignment.ticketPackageId,
-            ) && (
-              <option value={assignment.ticketPackageId}>
-                Historical package (inactive or unavailable)
-              </option>
-            )}
-        </select>
-      </Field>
       <label className="flex items-center gap-2 text-sm">
         <Checkbox
-          checked={assignment.isRequired}
+          checked={draft.isRequired}
           onCheckedChange={(checked) =>
-            update({
-              ...assignment,
+            edit((current) => ({
+              ...current,
               isRequired: checked === true,
-              blocksCheckIn: checked === true && assignment.blocksCheckIn,
-            })
+              blocksCheckIn: checked === true && current.blocksCheckIn,
+            }))
           }
         />
-        Required
+        Participants must complete this form
       </label>
-      <label className="flex items-center gap-2 text-sm">
-        <Checkbox
-          checked={assignment.blocksCheckIn}
-          disabled={stage === "REGISTRATION" || !assignment.isRequired}
-          onCheckedChange={(checked) =>
-            update({ ...assignment, blocksCheckIn: checked === true })
-          }
-        />
-        Blocks check-in
-      </label>
-      <Field label="Opens">
+      <Field label="Available from">
         <Input
           type="datetime-local"
-          value={localDateTime(assignment.opensAt)}
+          value={localDateTime(draft.opensAt)}
           onChange={(event) => setWindow("opensAt", event.target.value)}
         />
       </Field>
-      <Field label="Closes">
+      <Field label="Due date">
         <Input
           type="datetime-local"
-          value={localDateTime(assignment.closesAt)}
+          value={localDateTime(draft.closesAt)}
           onChange={(event) => setWindow("closesAt", event.target.value)}
         />
       </Field>
-      <p className="text-xs text-muted-foreground">
-        Order {index + 1} ·{" "}
-        {assignment.ticketPackageId
-          ? "Package-specific"
-          : "All packages fallback"}
+      {draft.isRequired && <label className="flex items-center gap-2 text-sm"><Checkbox checked={draft.blocksCheckIn} onCheckedChange={(checked) => edit((current) => ({ ...current, blocksCheckIn: checked === true }))} />Prevent check-in until completed</label>}
+      <p className="rounded-lg bg-muted/40 p-3 text-xs leading-5 text-muted-foreground">
+        {draft.audience === "BUYER" ? "The registration leader submits one response for the whole registration." : "Each attendee submits their own response."} {draft.isRequired ? draft.blocksCheckIn ? "It is required, and check-in stays unavailable until it is completed." : "It is required but does not prevent check-in." : "It is optional and does not prevent check-in."} This applies to all ticket packages.
       </p>
     </div>
   );
