@@ -205,7 +205,8 @@ export type WorkspaceSection =
   | "forms"
   | "payment"
   | "registrations"
-  | "post-registration";
+  | "post-registration"
+  | "attendance";
 export const WorkspaceTabs = ({
   basePath,
   active,
@@ -221,6 +222,7 @@ export const WorkspaceTabs = ({
     { value: "payment", label: "Payment" },
     { value: "registrations", label: "Registrations" },
     { value: "post-registration", label: "Post-registration" },
+    { value: "attendance", label: "Attendance" },
   ];
   return (
     <nav

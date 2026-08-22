@@ -59,6 +59,7 @@ import { RegistrationQueue } from "./registration-queue";
 import { PaymentWorkspace } from "./payment-workspace";
 import { PostRegistrationWorkspace } from "./post-registration-workspace";
 import { PackagesWorkspace } from "./packages-workspace";
+import { AttendanceWorkspace } from "./attendance-workspace";
 
 const sections: WorkspaceSection[] = [
   "overview",
@@ -68,6 +69,7 @@ const sections: WorkspaceSection[] = [
   "payment",
   "registrations",
   "post-registration",
+  "attendance",
 ];
 const statuses: SubeventStatus[] = ["DRAFT", "OPEN", "CLOSED", "CANCELLED"];
 const types: SubeventType[] = [
@@ -210,6 +212,11 @@ export default function SubeventWorkspacePage() {
         <RegistrationQueue eventId={eventId} subeventId={subeventId} />
       ) : active === "post-registration" ? (
         <PostRegistrationWorkspace subeventId={subeventId} />
+      ) : active === "attendance" ? (
+        <AttendanceWorkspace
+          subeventId={subeventId}
+          checkoutEnabled={subevent.attendanceCheckoutEnabled}
+        />
       ) : (
         <PrototypeNotice section={active} />
       )}

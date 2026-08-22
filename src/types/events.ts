@@ -148,6 +148,7 @@ export interface Subevent {
   maxTicketsPerUser: number | null;
   participantCount: number;
   submittedResponseCount: number;
+  attendanceCheckoutEnabled: boolean;
   registrationForms: { id: string; status: string; questionCount: number }[];
   createdAt?: string;
   updatedAt?: string | null;
