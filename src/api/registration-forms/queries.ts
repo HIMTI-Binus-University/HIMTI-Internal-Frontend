@@ -12,6 +12,7 @@ type CreatePayload = components["schemas"]["CreateRegistrationFormV1"];
 type ClonePayload = components["schemas"]["CloneRegistrationFormV1"];
 type LifecyclePayload =
   components["schemas"]["RegistrationFormLifecycleRequestV1"];
+type DeletePayload = components["schemas"]["DeleteRegistrationFormRequestV1"];
 export type RegistrationFormDraft =
   components["schemas"]["RegistrationFormDraftV1"];
 export type RegistrationFormPreview =
@@ -98,6 +99,24 @@ export const useCloneRegistrationForm = () =>
         .post<BuilderResponse>(formPath(id, "clone"), payload ?? {})
         .then((response) => response.data.data),
   );
+
+export const useDeleteRegistrationForm = () => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, revision }: { id: string; revision: number }) =>
+      apiClient
+        .delete<BuilderResponse>(formPath(id), {
+          data: { revision } satisfies DeletePayload,
+        })
+        .then((response) => response.data.data),
+    onSuccess: (form) => {
+      client.removeQueries({ queryKey: registrationFormKeys.detail(form.id) });
+      client.invalidateQueries({
+        queryKey: registrationFormKeys.list(form.subEventId),
+      });
+    },
+  });
+};
 
 export const usePublishRegistrationForm = () =>
   useBuilderMutation(({ id, revision }: { id: string; revision: number }) =>

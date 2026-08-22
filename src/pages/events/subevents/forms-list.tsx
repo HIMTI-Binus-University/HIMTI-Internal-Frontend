@@ -1,11 +1,12 @@
 import { useState } from "react";
 import type { AxiosError } from "axios";
-import { Copy, FilePlus2, LockKeyhole, Send, XCircle } from "lucide-react";
+import { Copy, FilePlus2, LockKeyhole, Send, Trash2, XCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import {
   useCloneRegistrationForm,
   useCloseRegistrationForm,
+  useDeleteRegistrationForm,
   usePublishRegistrationForm,
   useRegistrationForms,
 } from "@/api/registration-forms/queries";
@@ -60,25 +61,31 @@ export function FormsList({
   const clone = useCloneRegistrationForm();
   const publish = usePublishRegistrationForm();
   const close = useCloseRegistrationForm();
+  const remove = useDeleteRegistrationForm();
   const [lifecycleTarget, setLifecycleTarget] = useState<{
     action: "publish" | "close";
     id: string;
     name: string;
-    version: number;
+    revision: number;
+  } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
     revision: number;
   } | null>(null);
   const base = `/events/${eventId}/subevents/${subeventId}/forms`;
-  const pendingError = clone.error ?? publish.error ?? close.error;
+  const pendingError = clone.error ?? publish.error ?? close.error ?? remove.error;
   const resetLifecycle = () => {
     clone.reset();
     publish.reset();
     close.reset();
+    remove.reset();
   };
 
   if (query.isLoading)
     return (
       <p className="py-12 text-center text-sm text-muted-foreground">
-        Loading form versions...
+        Loading forms...
       </p>
     );
   if (query.isError)
@@ -105,17 +112,9 @@ export function FormsList({
       />
     );
 
-  const groups = Object.values(
-    query.data.reduce<Record<string, typeof query.data>>((result, form) => {
-      const key = form.logicalKey ?? form.id;
-      (result[key] ??= []).push(form);
-      return result;
-    }, {}),
-  )
-    .map((versions) => [...versions].sort((a, b) => b.version - a.version))
-    .sort((a, b) =>
-      a[0].name.localeCompare(b[0].name, undefined, { sensitivity: "base" }),
-    );
+  const forms = [...query.data].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+  );
 
   return (
     <div className="space-y-5">
@@ -123,7 +122,7 @@ export function FormsList({
         <div>
           <h2 className="text-xl font-bold">Registration forms</h2>
           <p className="text-sm text-muted-foreground">
-            Draft, publish, and retain an auditable version history.
+            Create independent forms, edit drafts, and preserve published responses.
           </p>
         </div>
         <Button asChild>
@@ -138,20 +137,18 @@ export function FormsList({
           {errorMessage(pendingError)}
         </p>
       )}
-      {groups.map((versions) => (
-        <Card key={versions[0].logicalKey ?? versions[0].id}>
+      {forms.map((form) => (
+        <Card key={form.id}>
           <CardHeader>
-            <CardTitle>{versions[0].name}</CardTitle>
+            <CardTitle>{form.name}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {versions.map((form) => (
               <article
                 key={form.id}
                 className="flex flex-col gap-4 rounded-xl border bg-muted/20 p-4 md:flex-row md:items-center"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-bold">Version {form.version}</span>
                     <FormStatusBadge status={form.status} />
                     <span className="text-xs text-muted-foreground">
                       {titleCase(form.stage)}
@@ -171,8 +168,7 @@ export function FormsList({
                       {form.status === "DRAFT" ? "Edit" : "View"}
                     </Link>
                   </Button>
-                  {form.status !== "DRAFT" && (
-                    <Button
+                  <Button
                       variant="secondary"
                       disabled={clone.isPending}
                       onClick={() => {
@@ -189,10 +185,10 @@ export function FormsList({
                       }}
                     >
                       <Copy />
-                      {clone.isPending ? "Cloning..." : "Clone draft"}
+                      {clone.isPending ? "Duplicating..." : "Duplicate form"}
                     </Button>
-                  )}
                   {form.status === "DRAFT" && (
+                    <>
                     <Button
                       disabled={publish.isPending}
                       onClick={() =>
@@ -200,7 +196,6 @@ export function FormsList({
                           action: "publish",
                           id: form.id,
                           name: form.name,
-                          version: form.version,
                           revision: form.revision,
                         })
                       }
@@ -208,6 +203,19 @@ export function FormsList({
                       <Send />
                       Publish
                     </Button>
+                    <Button
+                      variant="secondary"
+                      disabled={remove.isPending}
+                      onClick={() => setDeleteTarget({
+                        id: form.id,
+                        name: form.name,
+                        revision: form.revision,
+                      })}
+                    >
+                      <Trash2 />
+                      Delete
+                    </Button>
+                    </>
                   )}
                   {form.status === "PUBLISHED" && (
                     <Button
@@ -218,7 +226,6 @@ export function FormsList({
                           action: "close",
                           id: form.id,
                           name: form.name,
-                          version: form.version,
                           revision: form.revision,
                         })
                       }
@@ -229,14 +236,13 @@ export function FormsList({
                   )}
                 </div>
               </article>
-            ))}
           </CardContent>
         </Card>
       ))}
       <p className="flex items-center gap-2 text-xs text-muted-foreground">
         <LockKeyhole className="h-4 w-4" />
-        Published and closed versions are immutable. Clone one to create the
-        next editable draft.
+        Published and closed forms are immutable. Duplicate one to create a
+        separate editable draft.
       </p>
       <AlertDialog
         open={lifecycleTarget !== null}
@@ -246,20 +252,18 @@ export function FormsList({
           <AlertDialogHeader>
             <AlertDialogTitle>
               {lifecycleTarget?.action === "publish"
-                ? "Publish this form version?"
+                ? "Publish this form?"
                 : "Close this published form?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {lifecycleTarget?.action === "publish" ? (
                 <>
-                  Version {lifecycleTarget.version} of {lifecycleTarget.name}{" "}
-                  will become the active participant form, replace any currently
-                  published version, and become read-only.
+                  {lifecycleTarget.name} will become available to participants
+                  and become read-only.
                 </>
               ) : (
                 <>
-                  Version {lifecycleTarget?.version} of {lifecycleTarget?.name}{" "}
-                  will no longer be available to participants. Its saved
+                  {lifecycleTarget?.name} will no longer be available to participants. Its saved
                   responses and history will remain available.
                 </>
               )}
@@ -284,6 +288,34 @@ export function FormsList({
               }}
             >
               {lifecycleTarget?.action === "publish" ? "Publish" : "Close form"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this draft?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.name} will be removed from normal form administration.
+              The backend retains it as a soft-deleted audit record.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep draft</AlertDialogCancel>
+            <AlertDialogAction
+              variant="delete"
+              onClick={() => {
+                if (!deleteTarget) return;
+                remove.mutate(deleteTarget, {
+                  onSuccess: () => setDeleteTarget(null),
+                });
+              }}
+            >
+              Delete draft
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

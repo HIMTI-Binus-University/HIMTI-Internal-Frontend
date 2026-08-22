@@ -296,7 +296,6 @@ export default function FormEditorPage() {
     );
   const form = formQuery.data;
   const displayStatus = form?.status ?? "DRAFT";
-  const displayVersion = form?.version ?? 1;
   const savePending = create.isPending || saveMutation.isPending;
   const localPreviewIssues = isNew ? validateDraftLocally(draft) : [];
 
@@ -354,7 +353,7 @@ export default function FormEditorPage() {
               <FormStatusBadge status={displayStatus} />
             </div>
             <p className="mt-1 text-sm text-primary-foreground/75">
-              Version {displayVersion} · {questionCount} questions across{" "}
+               {questionCount} questions across{" "}
               {draft.sections.length} sections {dirty && "· Unsaved changes"}
             </p>
           </div>
@@ -378,7 +377,7 @@ export default function FormEditorPage() {
                 }
               >
                 <Copy />
-                {clone.isPending ? "Cloning..." : "Clone new draft"}
+                 {clone.isPending ? "Duplicating..." : "Duplicate as draft"}
               </Button>
             ) : (
               <Button
@@ -393,9 +392,9 @@ export default function FormEditorPage() {
         </header>
         {locked && (
           <p className="mb-4 rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
-            This {displayStatus.toLowerCase()} version is read-only to preserve
-            the exact participant contract and submission history. Clone it to
-            create editable version {displayVersion + 1}.
+            This {displayStatus.toLowerCase()} form is read-only to preserve the
+            exact participant contract and submission history. Duplicate it to
+            create a separate editable draft.
           </p>
         )}
         {error && (
