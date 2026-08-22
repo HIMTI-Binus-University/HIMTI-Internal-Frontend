@@ -179,11 +179,11 @@ export function PostRegistrationWorkspace({
             <table className="w-full min-w-[980px] text-left text-sm">
               <thead className="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
-                  <th className="p-4">Participant / order</th>
+                  <th className="p-4">Participant</th>
                   <th className="p-4">Form</th>
                   <th className="p-4">Window</th>
                   <th className="p-4">Completion</th>
-                  <th className="p-4">Routing</th>
+                  <th className="p-4">Assignment</th>
                   <th className="p-4">
                     <span className="sr-only">Actions</span>
                   </th>
@@ -193,11 +193,9 @@ export function PostRegistrationWorkspace({
                 {rows.map((row) => (
                   <tr key={row.id} className="hover:bg-muted/20">
                     <td className="p-4">
-                      <strong>
-                        {row.memberId ? `Member ${row.memberId}` : "Buyer"}
-                      </strong>
+                      <strong>{row.participant.name}</strong>
                       <span className="block text-xs text-muted-foreground">
-                        Registration {row.registrationId}
+                        {row.participant.email} · {audienceLabel(row.audience)}
                       </span>
                     </td>
                     <td className="p-4">
@@ -223,7 +221,7 @@ export function PostRegistrationWorkspace({
                       </span>
                     </td>
                     <td className="p-4 text-xs">
-                      {titleCase(row.audience)}
+                      {audienceLabel(row.audience)}
                       <span className="block text-muted-foreground">
                         {row.isRequired ? "Required" : "Optional"}
                         {row.blocksCheckIn ? " · Blocks check-in" : ""}
@@ -360,8 +358,15 @@ function AssignmentDialog({
         ) : assignment ? (
           <div className="space-y-4">
             <div className="grid gap-3 rounded-xl border bg-muted/20 p-4 sm:grid-cols-3">
-              <Detail label="Registration" value={assignment.registrationId} />
-              <Detail label="Audience" value={titleCase(assignment.audience)} />
+              <Detail
+                label="Participant"
+                value={assignment.participant.name}
+                secondary={assignment.participant.email}
+              />
+              <Detail
+                label="Assigned to"
+                value={audienceLabel(assignment.audience)}
+              />
               <Detail
                 label="Window"
                 value={`${dateTime(assignment.opensAt ?? undefined)} - ${dateTime(assignment.closesAt ?? undefined)}`}
@@ -433,7 +438,11 @@ function AssignmentDialog({
   );
 }
 
-function Answers({ assignment }: { assignment: PostRegistrationAssignment }) {
+export function Answers({
+  assignment,
+}: {
+  assignment: PostRegistrationAssignment;
+}) {
   if (!assignment.response)
     return (
       <div className="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground">
@@ -452,10 +461,7 @@ function Answers({ assignment }: { assignment: PostRegistrationAssignment }) {
       </div>
     );
   const answers = new Map(
-    assignment.response.answers.map((answer) => [
-      answer.questionId,
-      answer.value,
-    ]),
+    assignment.response.answers.map((answer) => [answer.questionId, answer]),
   );
   return (
     <div className="space-y-3">
@@ -478,7 +484,7 @@ function Answers({ assignment }: { assignment: PostRegistrationAssignment }) {
                       {question.label}
                     </dt>
                     <dd className="mt-2 break-words text-sm">
-                      {formatAnswer(answers.get(question.id))}
+                      <AnswerValue answer={answers.get(question.id)} />
                     </dd>
                   </div>
                 ))}
@@ -489,20 +495,61 @@ function Answers({ assignment }: { assignment: PostRegistrationAssignment }) {
   );
 }
 
-const formatAnswer = (value: unknown) =>
-  value === undefined || value === null || value === ""
-    ? "No answer"
-    : Array.isArray(value)
-      ? value.join(", ")
-      : typeof value === "object"
-        ? JSON.stringify(value)
-        : String(value);
-const Detail = ({ label, value }: { label: string; value: string }) => (
+const AnswerValue = ({
+  answer,
+}: {
+  answer?: NonNullable<
+    PostRegistrationAssignment["response"]
+  >["answers"][number];
+}) => {
+  const values = answer?.selectedOptions.length
+    ? answer.selectedOptions.map((option) => option.label)
+    : answer?.value;
+  if (Array.isArray(values))
+    return values.length ? (
+      <ul className="flex flex-wrap gap-2">
+        {values.map((value) => (
+          <li key={value}>
+            <Badge variant="neutral">{value}</Badge>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <span className="text-muted-foreground">No answer</span>
+    );
+  if (values === undefined || values === null || values === "")
+    return <span className="text-muted-foreground">No answer</span>;
+  return (
+    <span className="whitespace-pre-wrap break-words">{String(values)}</span>
+  );
+};
+
+const audienceLabel = (audience: PostRegistrationAssignment["audience"]) =>
+  audience === "BUYER"
+    ? "Registration buyer"
+    : audience === "EACH_ATTENDEE"
+      ? "This participant"
+      : "All registered participants";
+
+const Detail = ({
+  label,
+  value,
+  secondary,
+}: {
+  label: string;
+  value: string;
+  secondary?: string;
+}) => (
   <div>
     <dt className="text-xs font-bold uppercase text-muted-foreground">
       {label}
     </dt>
     <dd className="mt-1 break-all text-sm">{value}</dd>
+    {secondary && (
+      <dd className="mt-0.5 break-all text-xs text-muted-foreground">
+        {secondary}
+      </dd>
+    )}
   </div>
 );
 
