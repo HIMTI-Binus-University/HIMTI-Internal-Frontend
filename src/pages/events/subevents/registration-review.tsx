@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { AxiosError } from "axios";
 import {
   ArrowLeft,
   ArrowRight,
@@ -35,7 +34,10 @@ import {
 } from "@/components/ui/dialog";
 import { EmptyState, Warning, WorkspaceHeader } from "../components";
 import { readQueueFilters } from "./registration-queue-filters";
-import { registrationReviewError } from "./registration-review-errors";
+import {
+  registrationReviewConflict,
+  registrationReviewError,
+} from "./registration-review-errors";
 import { formatMinor } from "./payment-utils";
 
 type ActionConfig = {
@@ -257,7 +259,11 @@ export default function RegistrationReviewPage() {
               <CardTitle className="text-base">Review decision</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {actions.map((item) => (
+              {actions
+                .filter((item) =>
+                  registration.reviewCapabilities.includes(item.action),
+                )
+                .map((item) => (
                 <Button
                   key={item.action}
                   className="w-full justify-start"
@@ -281,7 +287,12 @@ export default function RegistrationReviewPage() {
                   )}
                   {item.label}
                 </Button>
-              ))}
+                ))}
+              {!registration.reviewCapabilities.length && (
+                <p className="text-sm text-muted-foreground">
+                  No review actions are available for this status.
+                </p>
+              )}
               <p className="pt-2 text-xs leading-5 text-muted-foreground">
                 Every decision is checked against revision{" "}
                 {registration.revision}. Backend permissions and event scope
@@ -295,7 +306,7 @@ export default function RegistrationReviewPage() {
         config={action}
         registration={registration}
         close={() => setAction(undefined)}
-        reload={() => detail.refetch()}
+         reload={() => detail.refetch()}
       />
     </PageLayout>
   );
@@ -487,10 +498,11 @@ const ReviewDialog = ({
   config?: ActionConfig;
   registration: RegistrationDetail;
   close: () => void;
-  reload: () => void;
+  reload: () => Promise<unknown>;
 }) => {
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
   const mutation = useReviewRegistration(config?.action ?? "approve");
   const requiresReason = config?.action !== "approve";
   const confirm = () => {
@@ -507,9 +519,16 @@ const ReviewDialog = ({
           setError("");
           close();
         },
-        onError: (failure) => {
+        onError: async (failure) => {
           setError(registrationReviewError(failure));
-          if ((failure as AxiosError).response?.status === 409) reload();
+          if (registrationReviewConflict(failure) === "revision") {
+            setRefreshing(true);
+            await reload();
+            setRefreshing(false);
+            setError(
+              "Latest details loaded. Review the updated registration before trying again.",
+            );
+          }
         },
       },
     );
@@ -564,10 +583,14 @@ const ReviewDialog = ({
           </Button>
           <Button
             variant={config?.destructive ? "destructive" : "default"}
-            disabled={mutation.isPending || (requiresReason && !reason.trim())}
+            disabled={
+              mutation.isPending || refreshing || (requiresReason && !reason.trim())
+            }
             onClick={confirm}
           >
-            {mutation.isPending
+            {refreshing
+              ? "Loading latest details..."
+              : mutation.isPending
               ? "Saving..."
               : `Confirm ${config?.label.toLowerCase() ?? "action"}`}
           </Button>
