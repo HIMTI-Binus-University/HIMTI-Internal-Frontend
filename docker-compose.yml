@@ -1,10 +1,19 @@
 services:
-  app: 
-    image: ghcr.io/himti-binus-university/himti-internal-frontend:${IMAGE_TAG}
-    
-    container_name: himti_frontend_${IMAGE_TAG} 
-    restart: always
-    
+  app:
+    build:
+      context: .
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+        VITE_ADMIN_APP_URL: ${VITE_ADMIN_APP_URL:-http://localhost:3000}
+        VITE_LINK_APP_URL: ${VITE_LINK_APP_URL:-http://localhost:3000}
+        VITE_OFOG_URL: ${VITE_OFOG_URL:-https://ofog.himtibinus.or.id}
+        VITE_REGISTRATION_APP_URL: ${VITE_REGISTRATION_APP_URL:-http://localhost:3001}
+        VITE_LOCAL_LINK_BASE_PATH: ${VITE_LOCAL_LINK_BASE_PATH:-/link}
+    image: himti-internal-frontend:local
     ports:
-      - "${FRONTEND_PORT}:80" # Mapping port dinamis (Dev:3000, Prod:80)
-
+      - "${FRONTEND_PORT:-3000}:80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
