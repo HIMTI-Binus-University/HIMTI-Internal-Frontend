@@ -526,13 +526,15 @@ function Overview({
             <dt className="font-medium text-muted-foreground">Voting ends</dt>
             <dd>{formatDate(endsAt)}</dd>
           </div>
-          <div className="space-y-2">
+          <div>
             <dt className="font-medium text-muted-foreground">
               Candidate debate
             </dt>
             <dd>{formatDate(debateAt)}</dd>
             {(status === "DRAFT" || status === "OPEN") && (
-              <DebateScheduleDialog electionId={id} debateAt={debateAt} />
+              <div className="mt-2">
+                <DebateScheduleDialog electionId={id} debateAt={debateAt} />
+              </div>
             )}
           </div>
         </dl>
