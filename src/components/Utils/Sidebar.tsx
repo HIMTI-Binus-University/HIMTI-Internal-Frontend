@@ -14,6 +14,7 @@ import { authClient } from "@/utils/auth-client";
 import {
   BadgeCheck,
   CalendarDays,
+  Vote,
   ChevronDown,
   ChevronLeft,
   CircleUserRound,
@@ -34,6 +35,7 @@ type SidebarProps = {
 const routeIconMap: Record<string, LucideIcon> = {
   "router-url-shortener": Link2,
   "router-events": CalendarDays,
+  "router-elections": Vote,
   "router-batches": Layers3,
   "router-rbac-permissions": KeyRound,
   "router-rbac-roles": BadgeCheck,
@@ -108,7 +110,10 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const navRoutes = publicRoutes
     .filter(
       (route) =>
-        route.isEnabled && route.isProtected && route.group && route.requiredPermission,
+        route.isEnabled &&
+        route.isProtected &&
+        route.group &&
+        route.requiredPermission,
     )
     .filter(
       (route) =>
@@ -152,7 +157,9 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 className="h-[46px] w-10 shrink-0 object-contain brightness-0 invert"
               />
               <div className="flex flex-col">
-                <span className="text-base font-bold leading-5">HIMTI BINUS</span>
+                <span className="text-base font-bold leading-5">
+                  HIMTI BINUS
+                </span>
                 <span className="text-sm font-medium leading-5 text-white/70">
                   Internal Tools
                 </span>
@@ -182,7 +189,10 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                       icon={Icon}
                       label={route.title}
                       path={route.path}
-                      active={location.pathname === route.path || location.pathname.startsWith(`${route.path}/`)}
+                      active={
+                        location.pathname === route.path ||
+                        location.pathname.startsWith(`${route.path}/`)
+                      }
                       onClick={onClose}
                     />
                   );
@@ -209,8 +219,14 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 <div className="min-w-0 flex-1">
                   {isPending ? (
                     <div className="flex flex-col gap-1">
-                      <Skeleton aria-hidden="true" className="h-3 w-16 rounded bg-brand-primary-1/20" />
-                      <Skeleton aria-hidden="true" className="h-4 w-24 rounded bg-brand-primary-1/20" />
+                      <Skeleton
+                        aria-hidden="true"
+                        className="h-3 w-16 rounded bg-brand-primary-1/20"
+                      />
+                      <Skeleton
+                        aria-hidden="true"
+                        className="h-4 w-24 rounded bg-brand-primary-1/20"
+                      />
                     </div>
                   ) : (
                     <>
@@ -232,7 +248,11 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="top" align="start" className="min-w-[220px]">
+            <DropdownMenuContent
+              side="top"
+              align="start"
+              className="min-w-[220px]"
+            >
               <DropdownMenuItem
                 onClick={handleSignOut}
                 className="cursor-pointer gap-3 text-semantic-danger focus:bg-semantic-danger-background focus:text-semantic-danger"
@@ -270,44 +290,53 @@ const MenuItem = ({
   const linkRef = useRef<HTMLAnchorElement>(null);
   const iconRef = useRef<SVGSVGElement>(null);
 
-  useGSAP(() => {
-    const link = linkRef.current;
-    const icon = iconRef.current;
-    if (!link || !icon) return;
+  useGSAP(
+    () => {
+      const link = linkRef.current;
+      const icon = iconRef.current;
+      if (!link || !icon) return;
 
-    gsap.set(icon, { opacity: active ? 1 : 0.75 });
-    if (active) return;
+      gsap.set(icon, { opacity: active ? 1 : 0.75 });
+      if (active) return;
 
-    const media = gsap.matchMedia();
-    media.add(
-      {
-        reduceMotion: "(prefers-reduced-motion: reduce)",
-        allowMotion: "(prefers-reduced-motion: no-preference)",
-      },
-      ({ conditions }) => {
-        const setOpacity = (opacity: number) => {
-          if (conditions?.reduceMotion) gsap.set(icon, { opacity });
-          else gsap.to(icon, { opacity, duration: 0.15, ease: "power2.out", overwrite: "auto" });
-        };
-        const show = () => setOpacity(1);
-        const hide = () => setOpacity(0.75);
-        const blur = (event: FocusEvent) => {
-          if (!link.contains(event.relatedTarget as Node | null)) hide();
-        };
-        link.addEventListener("pointerenter", show);
-        link.addEventListener("pointerleave", hide);
-        link.addEventListener("focusin", show);
-        link.addEventListener("focusout", blur);
-        return () => {
-          link.removeEventListener("pointerenter", show);
-          link.removeEventListener("pointerleave", hide);
-          link.removeEventListener("focusin", show);
-          link.removeEventListener("focusout", blur);
-        };
-      },
-    );
-    return () => media.revert();
-  }, { dependencies: [active], scope: linkRef, revertOnUpdate: true });
+      const media = gsap.matchMedia();
+      media.add(
+        {
+          reduceMotion: "(prefers-reduced-motion: reduce)",
+          allowMotion: "(prefers-reduced-motion: no-preference)",
+        },
+        ({ conditions }) => {
+          const setOpacity = (opacity: number) => {
+            if (conditions?.reduceMotion) gsap.set(icon, { opacity });
+            else
+              gsap.to(icon, {
+                opacity,
+                duration: 0.15,
+                ease: "power2.out",
+                overwrite: "auto",
+              });
+          };
+          const show = () => setOpacity(1);
+          const hide = () => setOpacity(0.75);
+          const blur = (event: FocusEvent) => {
+            if (!link.contains(event.relatedTarget as Node | null)) hide();
+          };
+          link.addEventListener("pointerenter", show);
+          link.addEventListener("pointerleave", hide);
+          link.addEventListener("focusin", show);
+          link.addEventListener("focusout", blur);
+          return () => {
+            link.removeEventListener("pointerenter", show);
+            link.removeEventListener("pointerleave", hide);
+            link.removeEventListener("focusin", show);
+            link.removeEventListener("focusout", blur);
+          };
+        },
+      );
+      return () => media.revert();
+    },
+    { dependencies: [active], scope: linkRef, revertOnUpdate: true },
+  );
 
   return (
     <Link
