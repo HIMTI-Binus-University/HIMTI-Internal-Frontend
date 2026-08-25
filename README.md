@@ -1,393 +1,222 @@
-## 📁 Project Structure
+# HIMTI Internal Frontend
 
-```
-himti-internal-frontend/
-├── src/
-│   ├── api/                    # API layer - berisi semua hook untuk API calls
-│   │   └── users/
-│   │       └── queries.ts      # User CRUD hooks (types, queries & mutations)
-│   │
-│   ├── components/             # Reusable React components
-│   │
-│   ├── config/                 # Configuration files
-│   │   ├── api-client.ts       # Axios instance dengan interceptors
-│   │   ├── react-query.ts      # React Query client configuration
-│   │   └── routes.ts           # Routes configuration
-│   │
-│   ├── constants/              # Constants & static values
-│   │   ├── api.ts              # API endpoints (uses ApiService.baseURL)
-│   │   ├── api-service.ts      # Current environment selector (gitignored)
-│   │   ├── api-service-*.ts    # Environment-specific base URLs (gitignored)
-│   │   ├── keys.ts             # Current environment selector (gitignored)
-│   │   └── keys-*.ts           # Environment-specific keys (gitignored)
-│   │
-│   ├── hooks/                  # Custom React hooks
-│   │
-│   ├── pages/                  # Page components (setiap page dalam folder sendiri)
-│   │   ├── home/
-│   │   │   └── index.tsx       # Home page component
-│   │   └── login/
-│   │       └── index.tsx       # Login page component
-│   │
-│   ├── types/                  # Global TypeScript types
-│   │   └── route.ts            # Route type definition
-│   │
-│   ├── utils/                  # Utility functions
-│   │
-│   ├── App.tsx                 # Root component with Router
-│   ├── main.tsx                # Entry point & React Query setup
-│   ├── index.css               # Tailwind imports
-│   └── vite-env.d.ts           # Vite environment types
-│
-├── .env                        # Environment variables (jangan commit!)
-├── .env.example                # Template environment variables
-├── .eslintrc.cjs               # ESLint configuration
-├── .gitignore                  # Git ignore rules
-├── index.html                  # HTML entry point
-├── package.json                # Dependencies & scripts
-├── postcss.config.js           # PostCSS config for Tailwind
-├── tailwind.config.js          # Tailwind CSS configuration
-├── tsconfig.json               # TypeScript config untuk source code
-├── tsconfig.node.json          # TypeScript config untuk build tools
-├── vite.config.ts              # Vite configuration
-└── README.md                   # Documentation (you are here!)
-```
+React web application for HIMTI Binus University's internal administration
+platform. It provides authenticated tools for membership, access control,
+events, and links while also serving the public landing and short-link routes.
 
-### 📂 Penjelasan Folder Structure
+## Features
 
-#### `/src/api/`
+- Public landing page and Google OAuth sign-in
+- Registration-completion access flow
+- User directory, member details, filtering, summaries, and export
+- Role and permission administration
+- Membership period and registration-resource management
+- Event and sub-event creation, editing, ordering, and workspaces
+- URL shortening and click-management tools
+- Shared link workspaces with member and link administration
+- Dedicated short-link host behavior and local `/link/:shortCode` routes
+- Responsive reusable UI components, markdown rendering, and accessible dialogs
 
-Berisi semua logic untuk API calls menggunakan TanStack Query. Setiap fitur/resource punya folder sendiri dengan file `queries.ts` yang berisi:
+### Event Feature Status
 
-- **Types/Interfaces** - untuk request params, payloads, dan responses
-- **Queries** - hooks menggunakan `useQuery` untuk GET requests
-- **Mutations** - hooks menggunakan `useMutation` untuk POST/PUT/DELETE
+Event and sub-event list, create, update, and ordering operations use the backend
+API. Some advanced screens, including detailed form building, registration
+review, payments, tickets, lifecycle notes, and related workspace data, still use
+the in-memory prototype store in `src/pages/events/store.tsx` and
+`src/data/events.ts`. Changes made in those prototype flows are lost on refresh
+and are not shared between users.
 
-**Contoh:** `src/api/users/queries.ts` berisi `useGetUsers`, `useCreateUser`, `useUpdateUser`, `useDeleteUser`
+## Stack
 
-#### `/src/config/`
+- Node.js `22.22.2` and npm `10.9.7`
+- React 18, TypeScript, Vite 5
+- React Router and TanStack Query
+- Axios and Better Auth
+- Tailwind CSS, Radix UI, Base UI, and GSAP
+- Vitest and Testing Library
+- Nginx for the production container
 
-Konfigurasi aplikasi seperti Axios instance, API client setup, dll.
+## Prerequisites
 
-**File:** `api-client.ts` - Axios instance dengan:
+For native development:
 
-- Base URL dari environment variables
-- Request interceptor untuk add auth token
-- Response interceptor untuk error handling
+- Node.js `22.22.2`
+- npm `10.9.7`
+- A running HIMTI Internal backend for authenticated features
 
-#### `/src/constants/`
-
-Konstanta dan nilai static yang digunakan di seluruh aplikasi.
-
-**Environment Management:**
-
-- `api-service-local.ts`, `api-service-dev.ts`, `api-service-uat.ts`, `api-service-prod.ts` - Base URL untuk setiap environment (gitignored)
-- `api-service.ts` - File selector yang export environment aktif (gitignored)
-
-- `keys-local.ts`, `keys-dev.ts`, `keys-uat.ts`, `keys-prod.ts` - App keys per environment (gitignored)
-- `keys.ts` - File selector yang export environment aktif (gitignored)
-
-**API Endpoints:**
-
-- `api.ts` - Semua API endpoints, menggunakan `ApiService.baseURL` untuk dynamic base URL
-
-#### `/src/components/`
-
-Reusable React components. Bisa diorganisir lebih lanjut dengan subfolder per feature.
-
-**Contoh:**
-
-```
-components/
-├── ui/              # Basic UI components (Button, Input, Card, dll)
-├── forms/           # Form components
-└── layout/          # Layout components (Header, Sidebar, dll)
-```
-
-#### `/src/hooks/`
-
-Custom React hooks yang reusable.
-
-**Contoh:** `useAuth.ts`, `useDebounce.ts`, `useLocalStorage.ts`
-
-#### `/src/pages/`
-
-Page-level components. Setiap page punya folder sendiri dengan file `index.tsx`.
-
-**Contoh:**
-
-```
-pages/
-├── home/
-│   └── index.tsx
-├── dashboard/
-│   └── index.tsx
-└── users/
-    ├── index.tsx           # Users list page
-    └── detail/
-        └── index.tsx       # User detail page
-```
-
-#### `/src/types/`
-
-Global TypeScript types/interfaces yang digunakan di banyak tempat.
-
-**Contoh:** `common.ts`, `models.ts`
-
-#### `/src/utils/`
-
-Utility/helper functions.
-
-**Contoh:** `formatDate.ts`, `validators.ts`, `helpers.ts`
-
-## 🛠️ Getting Started
-
-### Prerequisites
-
-- Node.js 18+ and npm/yarn/pnpm
-
-### Installation
-
-1. Install dependencies:
+Using `nvm` is recommended:
 
 ```bash
-npm install
+nvm install
+nvm use
+npm --version
 ```
 
-2. Edit `src/constants/api-service.ts` untuk memilih environment:
+For containerized development, install Docker Engine with Docker Compose v2.
 
-```typescript
-// Untuk local development
-export * from "./api-service-local";
+## Environment
 
-// Untuk dev environment
-// export * from './api-service-dev'
-
-// Untuk UAT environment
-// export * from './api-service-uat'
-
-// Untuk production
-// export * from './api-service-prod'
-```
-
-3. Edit `src/constants/keys.ts` untuk memilih environment:
-
-```typescript
-// Untuk local development
-export { default } from "./keys-local";
-
-// Untuk dev environment
-// export { default } from './keys-dev'
-```
-
-### Development
-
-Jalankan development server:
+Create a local environment file:
 
 ```bash
-npm run dev
+cp .env.example .env
 ```
 
-App akan berjalan di `http://localhost:3000`
+| Variable | Purpose |
+| --- | --- |
+| `VITE_API_BASE_URL` | Backend origin, normally `http://localhost:8000` |
+| `VITE_ADMIN_APP_URL` | Internal frontend origin |
+| `VITE_LINK_APP_URL` | Dedicated short-link origin; use the frontend origin locally |
+| `VITE_OFOG_URL` | External OFOG application origin |
+| `VITE_REGISTRATION_APP_URL` | Registration application origin |
+| `VITE_LOCAL_LINK_BASE_PATH` | Absolute local path used for short links |
+| `FRONTEND_PORT` | Local Docker host port; defaults to `3000` |
 
-### Build
+Vite embeds every `VITE_*` value into the browser bundle at build time. These
+values are public configuration and must never contain secrets. Changing them in
+a running Nginx container has no effect; rebuild the image instead.
 
-Build untuk production:
+The backend must allow the exact frontend origin with credentialed CORS. Better
+Auth and Google OAuth must also trust the served origin and callback URL.
+
+## Run Locally Without Docker
+
+1. Install the exact locked dependencies:
+
+   ```bash
+   npm ci
+   ```
+
+2. Start the Vite development server:
+
+   ```bash
+   npm run dev
+   ```
+
+3. Open `http://localhost:3000`.
+
+The application can render public routes without the backend, but login and all
+protected tools require the backend at `VITE_API_BASE_URL`.
+
+## Run With Docker
+
+The checked-in Compose file builds the frontend from local source and serves it
+through Nginx:
 
 ```bash
+cp .env.example .env
+docker compose up --build -d
+docker compose ps
+curl http://localhost:3000/healthz
+```
+
+The frontend and backend are separate Compose projects. Start the backend stack
+from the sibling backend repository before using authenticated functionality.
+
+View logs or stop the frontend:
+
+```bash
+docker compose logs -f app
+docker compose down
+```
+
+Nested routes are handled by Nginx's SPA fallback, so refreshing a route such as
+`/events` still serves the React application.
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start Vite on port `3000` |
+| `npm run build` | Type-check and create a production build |
+| `npm run build:dev` | Build using Vite development mode |
+| `npm run build:staging` | Build using Vite staging mode |
+| `npm run preview` | Preview `dist/`, normally on port `4173` |
+| `npm test` | Run Vitest once |
+| `npm run lint` | Run ESLint with zero warnings allowed |
+
+Vite modes use their corresponding `.env.<mode>` files when present. The base
+`.env` is sufficient for the standard local and production commands.
+
+## Project Structure
+
+```text
+src/api/                 TanStack Query API hooks grouped by feature
+src/components/          Shared layout, feature, and UI components
+src/config/              Runtime configuration, routes, Axios, and React Query
+src/constants/           API paths and query keys
+src/hooks/               Feature hooks
+src/pages/               Route-level screens grouped by feature
+src/types/               Shared application and API types
+src/utils/               Formatting, auth, URL, and registration helpers
+src/App.tsx              Route rendering and protection
+src/main.tsx             Browser entry point and providers
+```
+
+API feature folders generally keep queries and mutations together in a
+`queries.ts` file. Shared endpoint paths live in `src/constants/api.ts`, while
+the configured backend origin is validated by `src/config/runtime.ts`.
+
+## Main Routes
+
+- `/`: public landing page
+- `/login`: Google OAuth sign-in
+- `/complete-registration`: incomplete-profile handoff
+- `/url-shortener`: URL and workspace management
+- `/batches`: membership periods and resources
+- `/events`: event administration and workspaces
+- `/rbac/users`: user administration
+- `/rbac/roles`: role administration
+- `/rbac/permissions`: permission administration
+- `/link/:shortCode`: local short-link resolution
+
+Protected routes require a valid Better Auth session, a completed registration
+where applicable, and the configured permission or role.
+
+## API Layer
+
+Use the shared Axios client and TanStack Query for server state:
+
+```tsx
+import { useQuery } from "@tanstack/react-query";
+import apiClient from "@/config/api-client";
+
+export function useExample() {
+  return useQuery({
+    queryKey: ["example"],
+    queryFn: async () => (await apiClient.get("/api/example")).data,
+  });
+}
+```
+
+Keep request and response types aligned with the backend OpenAPI contract.
+Invalidate the smallest relevant query key after successful mutations.
+
+## Design System
+
+Reusable primitives live in `src/components/ui`, layout components in
+`src/components/Utils`, and global tokens in `src/index.css` and
+`tailwind.config.js`. Prefer these existing components and tokens before adding
+new variants or dependencies.
+
+## Testing and Changes
+
+Before opening a pull request:
+
+```bash
+npm test
+npm run lint
 npm run build
 ```
 
-**Note:** Sebelum build, pastikan sudah edit `src/constants/api-service.ts` dan `src/constants/keys.ts` untuk environment yang sesuai.
+Add focused tests for API contracts, permission behavior, reusable components,
+and bug fixes. Use a focused branch and semantic commit messages, then open a
+pull request into the appropriate integration branch.
 
-### Preview
+## Deployment
 
-Preview production build:
-
-```bash
-npm run preview
-```
-
-### Lint
-
-Run ESLint:
-
-```bash
-npm run lint
-```
-
-## 📝 Cara Pakai API Layer
-
-### 1. Setup Query Keys (`src/constants/query-keys.ts`)
-
-```typescript
-export const QueryKeys = {
-  USERS: "users",
-  USER_DETAIL: "user-detail",
-  // Add more...
-} as const;
-```
-
-### 2. Buat API Hooks (`src/api/[feature]/index.ts`)
-
-Contoh lengkap ada di `src/api/users/index.ts`. Structure-nya:
-
-```typescript
-// 1. Define Types
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-}
-
-// 2. Create Query Hooks (GET)
-export const useGetUsers = () => {
-  return useQuery({
-    queryKey: [QueryKeys.USERS],
-    queryFn: () => apiClient.get("/users").then((res) => res.data),
-  });
-};
-
-// 3. Create Mutation Hooks (POST/PUT/DELETE)
-export const useCreateUser = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (payload) => apiClient.post("/users", payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.USERS] });
-    },
-  });
-};
-```
-
-### 3. Pakai di Component
-
-```typescript
-import { useGetUsers, useCreateUser } from "@/api/users";
-
-function UsersPage() {
-  // Fetch data
-  const { data: users, isLoading, error } = useGetUsers();
-
-  // Create mutation
-  const createUser = useCreateUser({
-    onSuccess: () => {
-      alert("User created!");
-    },
-  });
-
-  const handleCreate = () => {
-    createUser.mutate({
-      name: "John Doe",
-      email: "john@example.com",
-      username: "johndoe",
-    });
-  };
-
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
-
-  return (
-    <div>
-      <button onClick={handleCreate}>Create User</button>
-      {users?.map((user) => (
-        <div key={user.id}>{user.name}</div>
-      ))}
-    </div>
-  );
-}
-```
-
-## ➕ Menambah Feature Baru
-
-Contoh: Menambah API untuk "articles"
-
-### 1. Tambah Query Keys
-
-**File:** `src/constants/query-keys.ts`
-
-```typescript
-export const QueryKeys = {
-  USERS: "users",
-  USER_DETAIL: "user-detail",
-  ARTICLES: "articles", // ← tambah ini
-  ARTICLE_DETAIL: "article-detail", // ← tambah ini
-} as const;
-```
-
-### 2. Buat API Hooks
-
-**File:** `src/api/articles/index.ts`
-
-```typescript
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@/config/api-client";
-import { QueryKeys } from "@/constants/query-keys";
-
-// Types
-export interface Article {
-  id: number;
-  title: string;
-  content: string;
-}
-
-// Queries
-export const useGetArticles = () => {
-  return useQuery({
-    queryKey: [QueryKeys.ARTICLES],
-    queryFn: () => apiClient.get("/articles").then((res) => res.data),
-  });
-};
-
-// Mutations
-export const useCreateArticle = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (payload) => apiClient.post("/articles", payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.ARTICLES] });
-    },
-  });
-};
-```
-
-### 3. Pakai di Component
-
-```typescript
-import { useGetArticles, useCreateArticle } from "@/api/articles";
-
-function ArticlesPage() {
-  const { data: articles } = useGetArticles();
-  const createArticle = useCreateArticle();
-
-  // ... rest of your component
-}
-```
-
-## 🎨 Tailwind Design System
-
-### Custom Colors
-
-**Primary (Brand):** `primary-{50-900}` - `bg-primary-500`, `text-primary-700`
-
-**Grayscale (Neutral):** `grayscale-{50-900}` - `bg-grayscale-100`, `text-grayscale-800`
-
-### Typography
-
-**Font:** Public Sans (default)
-
-**Headings:** `text-h1` (61px) hingga `text-h6` (20px)
-
-**Body:** `text-body-1` (16px), `text-body-2` (13px), `text-body-3` (10px)
-
-**Contoh:**
-
-```jsx
-<h1 className="text-h1 text-primary-700">Heading</h1>
-<p className="text-body-1 text-grayscale-900">Body text</p>
-<button className="bg-primary-500 text-white text-body-1">Button</button>
-```
-
-
+The active VPS workflow builds environment-specific images because Vite settings
+are build-time values. Production credentials and deployment variables belong in
+GitHub Actions secrets or server-side configuration, never in this repository.
+The repository Compose file is intended for local builds; VPS deployment uses
+the Compose configuration managed on the server.
