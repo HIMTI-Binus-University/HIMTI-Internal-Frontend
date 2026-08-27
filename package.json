@@ -39,7 +39,11 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "fabric": "^6.4.3",
+    "file-saver": "^2.0.5",
     "gsap": "^3.15.0",
+    "jspdf": "^2.5.2",
+    "jszip": "^3.10.1",
     "lucide-react": "^1.7.0",
     "qrcode": "^1.5.4",
     "react": "^18.2.0",
@@ -51,12 +55,14 @@
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
     "shadcn": "^4.1.2",
-    "tailwind-merge": "^3.5.0"
+    "tailwind-merge": "^3.5.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@types/file-saver": "^2.0.7",
     "@types/node": "^25.0.3",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^18.2.48",
