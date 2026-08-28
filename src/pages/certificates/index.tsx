@@ -1,16 +1,41 @@
 import { Award } from "lucide-react";
-import { PageLayout, Container, ContainerHeader } from "@/components/Utils";
+import { PageLayout } from "@/components/Utils";
+import { CertificateProvider, useCertificateStore } from "./store";
+import UploadNames from "./upload-names";
+import PositionEditor from "./position-editor";
+import PreviewDownload from "./preview-download";
+
+const CertificateWizard = () => {
+  const { state } = useCertificateStore();
+
+  const breadcrumbs = [
+    "Tools",
+    "Certificate Generator",
+    state.currentStep === 1
+      ? "Data & Template"
+      : state.currentStep === 2
+      ? "Atur Posisi"
+      : "Preview & Download",
+  ];
+
+  return (
+    <PageLayout
+      icon={Award}
+      title="Certificate Generator"
+      breadcrumbs={breadcrumbs}
+    >
+      {state.currentStep === 1 && <UploadNames />}
+      {state.currentStep === 2 && <PositionEditor />}
+      {state.currentStep === 3 && <PreviewDownload />}
+    </PageLayout>
+  );
+};
 
 const CertificateGeneratorPage = () => {
   return (
-    <PageLayout icon={Award} title="Certificate Generator">
-      <Container>
-        <ContainerHeader>Batch Certificate Generator</ContainerHeader>
-        <div className="p-6">
-          <p className="text-muted-foreground">Coming soon...</p>
-        </div>
-      </Container>
-    </PageLayout>
+    <CertificateProvider>
+      <CertificateWizard />
+    </CertificateProvider>
   );
 };
 

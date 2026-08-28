@@ -3,7 +3,7 @@ FROM node:22.22.2-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --include=optional
+RUN npm install --legacy-peer-deps
 RUN npm install --no-save @rollup/rollup-linux-x64-musl
 
 COPY . .
