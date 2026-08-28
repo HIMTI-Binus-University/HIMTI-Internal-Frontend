@@ -17,7 +17,7 @@ const UploadNames = () => {
   return (
     <Container>
       <ContainerHeader>Upload Template & Input Nama</ContainerHeader>
-      <div className="p-6">
+      <div className="p-5">
         <p className="text-muted-foreground">
           👤 Person 1: Implement template upload and name input here
         </p>
