@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Canvas, FabricImage, FabricText } from "fabric";
-import { Minus, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCertificateStore } from "../store";
 import type { TextSettings } from "../types";
 
@@ -10,18 +17,18 @@ const CertificatePreview = () => {
   const fabricRef = useRef<Canvas | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { state } = useCertificateStore();
+  const { state, getLongestName } = useCertificateStore();
   const { template, names, textSettings } = state;
 
-  const [zoom, setZoom] = useState(100);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
-  const [currentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [displayMode, setDisplayMode] = useState("as");
 
   useEffect(() => {
     if (!canvasRef.current || !template) return;
 
     const canvas = new Canvas(canvasRef.current, {
-      backgroundColor: "#f3f4f6",
+      backgroundColor: "#ffffff",
       selection: false,
     });
 
@@ -41,9 +48,13 @@ const CertificatePreview = () => {
     updateCanvasSize();
     window.addEventListener("resize", updateCanvasSize);
 
-    FabricImage.fromURL(template.url, {}, {
-      crossOrigin: "anonymous",
-    }).then((img) => {
+    FabricImage.fromURL(
+      template.url,
+      {},
+      {
+        crossOrigin: "anonymous",
+      }
+    ).then((img) => {
       if (!img || !fabricRef.current) return;
 
       img.set({
@@ -114,19 +125,25 @@ const CertificatePreview = () => {
     canvas.renderAll();
   };
 
-  const handleZoomIn = () => {
-    if (zoom < 200) {
-      const newZoom = zoom + 10;
-      setZoom(newZoom);
-      fabricRef.current?.setZoom(newZoom / 100);
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
     }
   };
 
-  const handleZoomOut = () => {
-    if (zoom > 50) {
-      const newZoom = zoom - 10;
-      setZoom(newZoom);
-      fabricRef.current?.setZoom(newZoom / 100);
+  const handleNext = () => {
+    if (currentIndex < names.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  const handleLongestName = () => {
+    const longest = getLongestName();
+    if (longest) {
+      const index = names.findIndex((n) => n.id === longest.id);
+      if (index !== -1) {
+        setCurrentIndex(index);
+      }
     }
   };
 
@@ -141,30 +158,52 @@ const CertificatePreview = () => {
   }
 
   return (
-    <div ref={containerRef} className="flex h-full flex-col items-center justify-center gap-4">
-      <div className="rounded-lg border border-border bg-muted/10 p-2">
-        <canvas ref={canvasRef} />
+    <div ref={containerRef} className="flex h-full flex-col gap-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-semibold text-blue-900">Preview canvas</h3>
+        <Select value={displayMode} onValueChange={(value) => setDisplayMode(value || "as")}>
+          <SelectTrigger className="w-[100px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="as">as</SelectItem>
+            <SelectItem value="other">other</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="flex items-center justify-center gap-3">
+      {/* Canvas Area */}
+      <div className="flex flex-1 items-center justify-center overflow-auto">
+        <div className="rounded-lg border border-border bg-white p-2 shadow-sm">
+          <canvas ref={canvasRef} />
+        </div>
+      </div>
+
+      {/* Footer Navigation */}
+      <div className="flex items-center justify-between gap-4">
         <Button
-          variant="outline"
-          size="icon"
-          onClick={handleZoomOut}
-          disabled={zoom <= 50}
+          variant="ghost"
+          onClick={handlePrevious}
+          disabled={currentIndex === 0}
+          className="text-muted-foreground"
         >
-          <Minus className="h-4 w-4" />
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          Sebelumnya
         </Button>
-        <span className="min-w-[60px] text-center text-sm font-medium">
-          {zoom}%
-        </span>
+
+        <Button variant="outline" onClick={handleLongestName}>
+          Nama terpanjang
+        </Button>
+
         <Button
-          variant="outline"
-          size="icon"
-          onClick={handleZoomIn}
-          disabled={zoom >= 200}
+          variant="ghost"
+          onClick={handleNext}
+          disabled={currentIndex === names.length - 1}
+          className="text-muted-foreground"
         >
-          <Plus className="h-4 w-4" />
+          Berikutnya
+          <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>
