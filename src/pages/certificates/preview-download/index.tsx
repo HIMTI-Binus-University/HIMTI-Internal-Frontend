@@ -2,6 +2,8 @@ import { ArrowLeft } from "lucide-react";
 import { Container, ContainerHeader } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import { useCertificateStore } from "../store";
+import CertificatePreview from "./CertificatePreview";
+import DownloadPanel from "./DownloadPanel";
 
 const PreviewDownload = () => {
   const { setStep } = useCertificateStore();
@@ -9,28 +11,21 @@ const PreviewDownload = () => {
   return (
     <Container>
       <ContainerHeader>Preview & Download</ContainerHeader>
-      <div className="p-6">
-        <p className="text-muted-foreground">
-          👤 Person 3: Implement certificate preview and download options here
-        </p>
-        <div className="mt-4 rounded-lg border border-dashed border-border bg-muted/20 p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            Features to implement:
-          </p>
-          <ul className="mt-2 space-y-1 text-left text-sm text-muted-foreground">
-            <li>• Certificate preview (read-only canvas)</li>
-            <li>• Navigation controls (prev/next/longest name)</li>
-            <li>• Download buttons (PNG.zip, PDF.zip, PDF multi-page)</li>
-            <li>• Progress bar for generation (display in footer area)</li>
-          </ul>
+      <div className="flex h-[calc(100vh-12rem)] gap-6 p-6">
+        <div className="w-1/2">
+          <CertificatePreview />
         </div>
 
-        <div className="mt-6 flex justify-start">
-          <Button variant="outline" onClick={() => setStep(2)}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Kembali
-          </Button>
+        <div className="w-1/2">
+          <DownloadPanel />
         </div>
+      </div>
+
+      <div className="flex justify-start border-t border-border px-6 py-4">
+        <Button variant="outline" onClick={() => setStep(2)}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Kembali
+        </Button>
       </div>
     </Container>
   );

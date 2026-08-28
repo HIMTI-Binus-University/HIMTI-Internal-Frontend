@@ -1,8 +1,8 @@
 export const MAX_NAMES_PER_BATCH = 400;
 
 export const DEFAULT_FONTS = [
-  "Plus Jakarta Sans",
-  "sans-serif",
+  { label: "Plus Jakarta Sans", value: "Plus Jakarta Sans" },
+  { label: "System Sans Serif", value: "sans-serif" },
 ] as const;
 
 export const ZOOM_CONFIG = {

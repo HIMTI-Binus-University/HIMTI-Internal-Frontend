@@ -2,6 +2,8 @@ import { ArrowRight } from "lucide-react";
 import { Container, ContainerHeader } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import { useCertificateStore } from "../store";
+import TemplatePreview from "./TemplatePreview";
+import UploadPanel from "./UploadPanel";
 
 const UploadNames = () => {
   const { state, setStep } = useCertificateStore();
@@ -17,28 +19,21 @@ const UploadNames = () => {
   return (
     <Container>
       <ContainerHeader>Upload Template & Input Nama</ContainerHeader>
-      <div className="p-5">
-        <p className="text-muted-foreground">
-          👤 Person 1: Implement template upload and name input here
-        </p>
-        <div className="mt-4 rounded-lg border border-dashed border-border bg-muted/20 p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            Features to implement:
-          </p>
-          <ul className="mt-2 space-y-1 text-left text-sm text-muted-foreground">
-            <li>• Template uploader (PNG only)</li>
-            <li>• Name input (XLSX/CSV/Manual textarea)</li>
-            <li>• Name list dialog (view/edit)</li>
-            <li>• Validation & navigation to Step 2</li>
-          </ul>
+      <div className="flex h-[calc(100vh-12rem)] gap-6 p-6">
+        <div className="w-1/2">
+          <TemplatePreview />
         </div>
 
-        <div className="mt-6 flex justify-end">
-          <Button onClick={handleNext} disabled={!canProceed}>
-            Atur Posisi Nama
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+        <div className="w-1/2">
+          <UploadPanel />
         </div>
+      </div>
+
+      <div className="flex justify-end border-t border-border px-6 py-4">
+        <Button onClick={handleNext} disabled={!canProceed}>
+          Atur Posisi Nama
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
       </div>
     </Container>
   );
