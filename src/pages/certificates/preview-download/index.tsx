@@ -1,6 +1,11 @@
+import { ArrowLeft } from "lucide-react";
 import { Container, ContainerHeader } from "@/components/Utils";
+import { Button } from "@/components/ui/button";
+import { useCertificateStore } from "../store";
 
 const PreviewDownload = () => {
+  const { setStep } = useCertificateStore();
+
   return (
     <Container>
       <ContainerHeader>Preview & Download</ContainerHeader>
@@ -18,6 +23,13 @@ const PreviewDownload = () => {
             <li>• Download buttons (PNG.zip, PDF.zip, PDF multi-page)</li>
             <li>• Progress bar for generation (display in footer area)</li>
           </ul>
+        </div>
+
+        <div className="mt-6 flex justify-start">
+          <Button variant="outline" onClick={() => setStep(2)}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Kembali
+          </Button>
         </div>
       </div>
     </Container>

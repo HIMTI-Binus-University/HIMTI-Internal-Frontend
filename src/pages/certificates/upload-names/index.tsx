@@ -1,6 +1,19 @@
+import { ArrowRight } from "lucide-react";
 import { Container, ContainerHeader } from "@/components/Utils";
+import { Button } from "@/components/ui/button";
+import { useCertificateStore } from "../store";
 
 const UploadNames = () => {
+  const { state, setStep } = useCertificateStore();
+
+  const canProceed = state.template !== null && state.names.length > 0;
+
+  const handleNext = () => {
+    if (canProceed) {
+      setStep(2);
+    }
+  };
+
   return (
     <Container>
       <ContainerHeader>Upload Template & Input Nama</ContainerHeader>
@@ -18,6 +31,13 @@ const UploadNames = () => {
             <li>• Name list dialog (view/edit)</li>
             <li>• Validation & navigation to Step 2</li>
           </ul>
+        </div>
+
+        <div className="mt-6 flex justify-end">
+          <Button onClick={handleNext} disabled={!canProceed}>
+            Atur Posisi Nama
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
         </div>
       </div>
     </Container>

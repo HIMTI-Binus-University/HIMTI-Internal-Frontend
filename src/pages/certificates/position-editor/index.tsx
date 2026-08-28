@@ -1,6 +1,11 @@
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Container, ContainerHeader } from "@/components/Utils";
+import { Button } from "@/components/ui/button";
+import { useCertificateStore } from "../store";
 
 const PositionEditor = () => {
+  const { setStep } = useCertificateStore();
+
   return (
     <Container>
       <ContainerHeader>Atur Posisi Nama</ContainerHeader>
@@ -18,6 +23,17 @@ const PositionEditor = () => {
             <li>• Settings panel (position, typography, advanced settings)</li>
             <li>• Navigation to Step 1 & Step 3</li>
           </ul>
+        </div>
+
+        <div className="mt-6 flex justify-between">
+          <Button variant="outline" onClick={() => setStep(1)}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Kembali
+          </Button>
+          <Button onClick={() => setStep(3)}>
+            Preview Hasil
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
         </div>
       </div>
     </Container>
