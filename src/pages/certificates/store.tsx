@@ -39,7 +39,7 @@ const defaultTextSettings: TextSettings = {
 
 // 🔧 MOCK DATA UNTUK DEVELOPMENT - UBAH currentStep KE 1 SETELAH SELESAI
 const initialState: CertificateState = {
-  currentStep: 3, // ← UBAH JADI 1 SEBELUM MERGE
+  currentStep: 1, // ← UBAH JADI 1 SEBELUM MERGE
   template: {
     file: new File([], "mock.png"),
     url: "https://via.placeholder.com/1200x800/cccccc/000000?text=Certificate+Template",
