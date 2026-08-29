@@ -41,7 +41,7 @@ describe("registration form V1 hooks", () => {
       wrapper,
     });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(mockedClient.get).toHaveBeenCalledWith("/api/v1/registration-form", {
+    expect(mockedClient.get).toHaveBeenCalledWith("/api/registration-form", {
       params: { subEventId: "sub/event" },
     });
   });
@@ -72,7 +72,7 @@ describe("registration form V1 hooks", () => {
       }),
     );
     expect(mockedClient.put).toHaveBeenCalledWith(
-      "/api/v1/registration-form/form%2F1/draft",
+      "/api/registration-form/form%2F1/draft",
       expect.objectContaining({ revision: 1 }),
     );
     expect(invalidate).toHaveBeenCalledWith({
@@ -91,7 +91,7 @@ describe("registration form V1 hooks", () => {
     await act(() => result.current.mutateAsync({ id: "form/1", revision: 2 }));
 
     expect(mockedClient.post).toHaveBeenCalledWith(
-      "/api/v1/registration-form/form%2F1/publish",
+      "/api/registration-form/form%2F1/publish",
       { revision: 2 },
     );
   });

@@ -42,7 +42,7 @@ describe("internal post-registration hooks", () => {
     );
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockedClient.get).toHaveBeenCalledWith(
-      "/api/v1/internal/sub-events/sub%2Fevent/post-registration-assignments",
+      "/api/internal/sub-events/sub%2Fevent/post-registration-assignments",
       { params: filters },
     );
   });
@@ -63,7 +63,7 @@ describe("internal post-registration hooks", () => {
       }),
     );
     expect(mockedClient.post).toHaveBeenCalledWith(
-      "/api/v1/internal/post-registration-assignments/assignment%2F1/request-correction",
+      "/api/internal/post-registration-assignments/assignment%2F1/request-correction",
       {
         revision: 4,
         reason: "Signature is missing",

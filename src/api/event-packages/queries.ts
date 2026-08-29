@@ -14,7 +14,7 @@ export type EventPackage = ListResponse["data"][number];
 export type CreateEventPackagePayload = CreateBody;
 export type UpdateEventPackagePayload = UpdateBody;
 
-const root = "/api/v1/internal";
+const root = "/api/internal";
 const listPath = (subEventId: string) =>
   `${root}/sub-events/${encodeURIComponent(subEventId)}/packages`;
 const detailPath = (packageId: string) =>

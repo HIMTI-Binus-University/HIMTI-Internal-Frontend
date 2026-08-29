@@ -22,9 +22,9 @@ type DetailResponse =
   operations["getInternalEventPaymentDetailV1"]["responses"][200]["content"]["application/json"];
 
 const subEventRoot = (subEventId: string) =>
-  `/api/v1/internal/sub-events/${encodeURIComponent(subEventId)}`;
+  `/api/internal/sub-events/${encodeURIComponent(subEventId)}`;
 const paymentRoot = (paymentId: string) =>
-  `/api/v1/internal/event-payments/${encodeURIComponent(paymentId)}`;
+  `/api/internal/event-payments/${encodeURIComponent(paymentId)}`;
 
 export const paymentKeys = {
   all: ["internal-event-payments"] as const,

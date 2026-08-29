@@ -20,7 +20,7 @@ export type RegistrationFormPreview =
 export type RegistrationFormValidation =
   components["schemas"]["RegistrationFormValidationResultV1"];
 
-const root = "/api/v1/registration-form";
+const root = "/api/registration-form";
 const formPath = (id: string, action?: string) =>
   `${root}/${encodeURIComponent(id)}${action ? `/${action}` : ""}`;
 

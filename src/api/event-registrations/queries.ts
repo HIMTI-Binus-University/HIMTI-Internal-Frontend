@@ -29,7 +29,7 @@ export type ReviewAction =
   "approve" | "reject" | "request-correction" | "admin-cancel";
 export type BulkReviewAction = "approve" | "reject" | "cancel";
 
-const internalRoot = "/api/v1/internal";
+const internalRoot = "/api/internal";
 const subEventPath = (subEventId: string, suffix: string) =>
   `${internalRoot}/sub-events/${encodeURIComponent(subEventId)}/registrations${suffix}`;
 const registrationPath = (registrationId: string, action?: string) =>

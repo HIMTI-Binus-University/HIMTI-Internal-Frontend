@@ -13,7 +13,7 @@ export type PostRegistrationFilters = NonNullable<
 type TransitionPayload =
   operations["requestPostRegistrationCorrectionV1"]["requestBody"]["content"]["application/json"];
 
-const root = "/api/v1/internal";
+const root = "/api/internal";
 const assignmentPath = (id: string, action?: string) =>
   `${root}/post-registration-assignments/${encodeURIComponent(id)}${action ? `/${action}` : ""}`;
 

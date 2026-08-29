@@ -52,7 +52,7 @@ describe("internal payment hooks", () => {
     });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockedClient.get).toHaveBeenCalledWith(
-      "/api/v1/internal/sub-events/sub%2Fevent/payments",
+      "/api/internal/sub-events/sub%2Fevent/payments",
       { params: filters },
     );
   });
@@ -77,7 +77,7 @@ describe("internal payment hooks", () => {
     });
     await act(() => result.current.mutateAsync(payload));
     expect(mockedClient.put).toHaveBeenCalledWith(
-      "/api/v1/internal/sub-events/sub-1/payment-settings",
+      "/api/internal/sub-events/sub-1/payment-settings",
       payload,
     );
   });
@@ -102,7 +102,7 @@ describe("internal payment hooks", () => {
     });
     await act(() => result.current.mutateAsync(payload));
     expect(mockedClient.put).toHaveBeenCalledWith(
-      "/api/v1/internal/sub-events/sub-free/payment-settings",
+      "/api/internal/sub-events/sub-free/payment-settings",
       payload,
     );
   });
@@ -120,7 +120,7 @@ describe("internal payment hooks", () => {
       }),
     );
     expect(mockedClient.post).toHaveBeenCalledWith(
-      "/api/v1/internal/event-payments/pay%2F1/reject",
+      "/api/internal/event-payments/pay%2F1/reject",
       { revision: 4, reason: "Unreadable proof" },
     );
   });
@@ -129,10 +129,10 @@ describe("internal payment hooks", () => {
     const blob = new Blob(["proof"], { type: "image/png" });
     mockedClient.get.mockImplementation(() => response(blob));
     await expect(
-      getPaymentProofBlob("/api/v1/private/payment-proofs/proof-1/content"),
+      getPaymentProofBlob("/api/private/payment-proofs/proof-1/content"),
     ).resolves.toBe(blob);
     expect(mockedClient.get).toHaveBeenCalledWith(
-      "/api/v1/private/payment-proofs/proof-1/content",
+      "/api/private/payment-proofs/proof-1/content",
       { responseType: "blob" },
     );
   });

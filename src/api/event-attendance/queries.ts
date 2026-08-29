@@ -29,18 +29,23 @@ type CorrectionPayload =
   operations["checkoutEventAttendanceV1"]["requestBody"]["content"]["application/json"];
 
 const root = (subeventId: string) =>
-  `/api/v1/internal/sub-events/${encodeURIComponent(subeventId)}`;
+  `/api/internal/sub-events/${encodeURIComponent(subeventId)}`;
 
 export const attendanceKeys = {
   all: ["internal-event-attendance"] as const,
-  subevent: (subeventId: string) => [...attendanceKeys.all, subeventId] as const,
+  subevent: (subeventId: string) =>
+    [...attendanceKeys.all, subeventId] as const,
   list: (subeventId: string, query: AttendanceQuery) =>
     [...attendanceKeys.subevent(subeventId), "list", query] as const,
   search: (subeventId: string, search: string) =>
     [...attendanceKeys.subevent(subeventId), "tickets", search] as const,
 };
 
-export const useAttendance = (subeventId: string, page: number, search: string) => {
+export const useAttendance = (
+  subeventId: string,
+  page: number,
+  search: string,
+) => {
   const query: AttendanceQuery = {
     page,
     limit: 25,
@@ -50,7 +55,9 @@ export const useAttendance = (subeventId: string, page: number, search: string) 
     queryKey: attendanceKeys.list(subeventId, query),
     queryFn: () =>
       apiClient
-        .get<AttendanceResponse>(`${root(subeventId)}/attendance`, { params: query })
+        .get<AttendanceResponse>(`${root(subeventId)}/attendance`, {
+          params: query,
+        })
         .then((response) => response.data),
     enabled: Boolean(subeventId),
     placeholderData: (previous) => previous,
@@ -74,7 +81,10 @@ export const useResolveTicket = (subeventId: string) =>
     mutationFn: (credential: string) => {
       const payload: ResolvePayload = { credential };
       return apiClient
-        .post<Success<"resolveEventTicketV1">>(`${root(subeventId)}/tickets/resolve`, payload)
+        .post<Success<"resolveEventTicketV1">>(
+          `${root(subeventId)}/tickets/resolve`,
+          payload,
+        )
         .then((response) => response.data.data);
     },
   });
@@ -85,10 +95,16 @@ export const useCheckInTicket = (subeventId: string) => {
     mutationFn: (credential: string) => {
       const payload: CredentialCheckInPayload = { credential };
       return apiClient
-        .post<Success<"checkInEventTicketCredentialV1">>(`${root(subeventId)}/tickets/check-in`, payload)
+        .post<Success<"checkInEventTicketCredentialV1">>(
+          `${root(subeventId)}/tickets/check-in`,
+          payload,
+        )
         .then((response) => response.data.data);
     },
-    onSuccess: () => client.invalidateQueries({ queryKey: attendanceKeys.subevent(subeventId) }),
+    onSuccess: () =>
+      client.invalidateQueries({
+        queryKey: attendanceKeys.subevent(subeventId),
+      }),
   });
 };
 
@@ -98,17 +114,28 @@ export const useManualCheckIn = (subeventId: string) => {
     mutationFn: (ticketId: string) => {
       const payload: ManualCheckInPayload = { ticketId };
       return apiClient
-        .post<Success<"checkInEventTicketManuallyV1">>(`${root(subeventId)}/tickets/manual-check-in`, payload)
+        .post<Success<"checkInEventTicketManuallyV1">>(
+          `${root(subeventId)}/tickets/manual-check-in`,
+          payload,
+        )
         .then((response) => response.data.data);
     },
-    onSuccess: () => client.invalidateQueries({ queryKey: attendanceKeys.subevent(subeventId) }),
+    onSuccess: () =>
+      client.invalidateQueries({
+        queryKey: attendanceKeys.subevent(subeventId),
+      }),
   });
 };
 
 export const useCorrectAttendance = (subeventId: string) => {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ attendanceId, action, revision, reason }: {
+    mutationFn: ({
+      attendanceId,
+      action,
+      revision,
+      reason,
+    }: {
       attendanceId: string;
       action: "checkout" | "void";
       revision: number;
@@ -120,6 +147,9 @@ export const useCorrectAttendance = (subeventId: string) => {
         payload,
       );
     },
-    onSuccess: () => client.invalidateQueries({ queryKey: attendanceKeys.subevent(subeventId) }),
+    onSuccess: () =>
+      client.invalidateQueries({
+        queryKey: attendanceKeys.subevent(subeventId),
+      }),
   });
 };

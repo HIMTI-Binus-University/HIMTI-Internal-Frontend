@@ -56,7 +56,7 @@ describe("internal registration hooks", () => {
     );
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockedClient.get).toHaveBeenCalledWith(
-      "/api/v1/internal/sub-events/sub%2Fevent/registrations",
+      "/api/internal/sub-events/sub%2Fevent/registrations",
       { params: filters },
     );
   });
@@ -72,7 +72,7 @@ describe("internal registration hooks", () => {
     );
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockedClient.get).toHaveBeenCalledWith(
-      "/api/v1/internal/sub-events/sub-1/registrations/reg%2F1/neighbors",
+      "/api/internal/sub-events/sub-1/registrations/reg%2F1/neighbors",
       { params: filters },
     );
   });
@@ -92,7 +92,7 @@ describe("internal registration hooks", () => {
       }),
     );
     expect(mockedClient.post).toHaveBeenCalledWith(
-      "/api/v1/internal/event-registrations/reg-1/reject",
+      "/api/internal/event-registrations/reg-1/reject",
       { revision: 3, reason: "Eligibility could not be verified." },
     );
   });
