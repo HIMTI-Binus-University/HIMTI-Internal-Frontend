@@ -14,6 +14,7 @@ import { ImagePreview } from "@/components/events/ImagePreview";
 import { MarkdownTextarea } from "@/components/markdown-textarea";
 import { ResourceMarkdown } from "@/components/resource-markdown";
 import { dateTime, titleCase } from "@/components/events/helpers";
+import { VisibilityLabel } from "./visibility-help";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -385,7 +386,6 @@ export const RegistrationSetup = ({ subevent }: { subevent: Subevent }) => {
                   <SelectItem value="EXTERNAL">
                     External link - leave this site
                   </SelectItem>
-                  <SelectItem value="DISABLED">No registration</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
@@ -429,8 +429,8 @@ export const RegistrationSetup = ({ subevent }: { subevent: Subevent }) => {
                   <span>
                     <strong>Accept registrations now</strong>
                     <span className="block text-xs text-muted-foreground">
-                      Choose status OPEN above and save both settings together.
-                      Cancelled subevents are terminal.
+                      To accept registrations, set the sub-event status to Open
+                      above and turn on this option before saving.
                     </span>
                   </span>
                 </label>
@@ -505,10 +505,9 @@ export const RegistrationSetup = ({ subevent }: { subevent: Subevent }) => {
             <strong>Capacity:</strong> {subevent.maxParticipants ?? "Unlimited"}
           </p>
           <p className="text-muted-foreground">
-            Visibility answers who is eligible. Registration flow answers
-            whether they register on this site, on another site, or not at all.
-            Built-in registration uses fixed-seat packages with one whole-order
-            total. Configure package availability in the Packages tab.
+            Visibility controls who can join, while registration flow controls
+            where they sign up. For built-in registration, set up the available
+            options in the Packages tab.
           </p>
         </CardContent>
       </Card>
@@ -565,7 +564,6 @@ const EditDialog = ({
             values.get("destinationUrl"),
             "destination",
           ),
-          price: Number(values.get("price")) || 0,
           maxParticipants: Number(values.get("maxParticipants")) || undefined,
           maxTicketsPerUser: 1,
         },
@@ -643,7 +641,7 @@ const EditDialog = ({
                 ))}
               </select>
             </Field>
-            <Field label="Visibility">
+            <Field label={<VisibilityLabel />}>
               <select
                 name="visibility"
                 defaultValue={subevent.visibility}
@@ -651,7 +649,11 @@ const EditDialog = ({
               >
                 {visibilities.map((item) => (
                   <option key={item} value={item}>
-                    {titleCase(item)}
+                    {item === "PUBLIC"
+                      ? "Public - listed for everyone"
+                      : item === "INTERNAL"
+                        ? "HIMTI members only"
+                        : "Invite only - hidden from event listings"}
                   </option>
                 ))}
               </select>
@@ -696,29 +698,6 @@ const EditDialog = ({
               alt="Poster preview"
               className="h-40 w-full rounded-xl border sm:col-span-2"
             />
-            <div className="sm:col-span-2 border-b pb-2 pt-2">
-              <h3 className="text-sm font-bold">Ticketing</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Payment handling is not enabled yet. Price is shown for
-                planning.
-              </p>
-            </div>
-            <Field label="Price">
-              <Input
-                name="price"
-                type="number"
-                min="0"
-                defaultValue={subevent.price}
-              />
-            </Field>
-            <Field label="Maximum participants">
-              <Input
-                name="maxParticipants"
-                type="number"
-                min="1"
-                defaultValue={subevent.maxParticipants ?? ""}
-              />
-            </Field>
             {error && (
               <p
                 role="alert"
@@ -743,15 +722,20 @@ const EditDialog = ({
 };
 const Field = ({
   label,
+  helper,
   className,
   children,
 }: {
-  label: string;
+  label: React.ReactNode;
+  helper?: string;
   className?: string;
   children: React.ReactNode;
 }) => (
   <label className={`space-y-2 ${className ?? ""}`}>
     <span className="block text-sm font-semibold">{label}</span>
+    {helper && (
+      <span className="block text-xs text-muted-foreground">{helper}</span>
+    )}
     {children}
   </label>
 );

@@ -23,6 +23,7 @@ import type {
   SubeventType,
   SubeventVisibility,
 } from "@/types/events";
+import { VisibilityLabel } from "./visibility-help";
 import { normalizeHttpUrlInput } from "@/utils/http-url";
 import { buildSubeventCreatePayload } from "./setup-payload";
 
@@ -58,6 +59,7 @@ export default function SubeventSetupPage() {
   const [error, setError] = useState("");
   const [registrationMode, setRegistrationMode] =
     useState<RegistrationMode>("INTERNAL");
+  const [pricing, setPricing] = useState<"FREE" | "PAID">("FREE");
   if (step !== "details")
     return <Navigate to={`/events/${eventId}/subevents/new/details`} replace />;
   if (!eventsQuery.isLoading && !event)
@@ -116,7 +118,9 @@ export default function SubeventSetupPage() {
             <Field label="Type">
               <Select name="type" defaultValue="OTHER">
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>
+                    {(value) => titleCase(String(value))}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {types.map((type) => (
@@ -127,15 +131,25 @@ export default function SubeventSetupPage() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Visibility">
+            <Field label={<VisibilityLabel />}>
               <Select name="visibility" defaultValue="PUBLIC">
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>
+                    {(value) =>
+                      value === "INTERNAL"
+                        ? "HIMTI members only"
+                        : titleCase(String(value))
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {visibilities.map((visibility) => (
                     <SelectItem key={visibility} value={visibility}>
-                      {titleCase(visibility)}
+                      {visibility === "PUBLIC"
+                        ? "Public - listed for everyone"
+                        : visibility === "INTERNAL"
+                          ? "HIMTI members only"
+                          : "Invite only - hidden from event listings"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -199,10 +213,7 @@ export default function SubeventSetupPage() {
             <CardTitle>Registration</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-5 md:grid-cols-2">
-            <Field
-              label="Registration mode"
-              helper="Visibility controls eligibility; mode controls where registration happens."
-            >
+            <Field label="Registration mode">
               <Select
                 name="registrationMode"
                 value={registrationMode}
@@ -211,7 +222,9 @@ export default function SubeventSetupPage() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>
+                    {(value) => titleCase(String(value))}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="INTERNAL">
@@ -220,27 +233,57 @@ export default function SubeventSetupPage() {
                   <SelectItem value="EXTERNAL">
                     External - leave this site
                   </SelectItem>
-                  <SelectItem value="DISABLED">
-                    Disabled - no registration
-                  </SelectItem>
                 </SelectContent>
               </Select>
             </Field>
             {registrationMode === "INTERNAL" && (
-              <Field
-                label="Approval mode"
-                helper="Native registration starts with a default package; configure fixed seats, total price, and sales windows in the package workspace."
-              >
-                <Select name="approvalMode" defaultValue="AUTO_APPROVE">
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="AUTO_APPROVE">Auto approve</SelectItem>
-                    <SelectItem value="MANUAL_REVIEW">Manual review</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
+              <>
+                <Field label="Approval mode">
+                  <Select name="approvalMode" defaultValue="AUTO_APPROVE">
+                    <SelectTrigger>
+                      <SelectValue>
+                        {(value) => titleCase(String(value))}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AUTO_APPROVE">Auto approve</SelectItem>
+                      <SelectItem value="MANUAL_REVIEW">
+                        Manual review
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Ticket price">
+                  <Select
+                    name="pricing"
+                    value={pricing}
+                    onValueChange={(value) =>
+                      setPricing(value as "FREE" | "PAID")
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue>
+                        {(value) => titleCase(String(value))}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FREE">Free</SelectItem>
+                      <SelectItem value="PAID">Paid</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                {pricing === "PAID" && (
+                  <Field label="Individual ticket price (IDR) *">
+                    <Input
+                      name="individualPrice"
+                      type="number"
+                      min="1"
+                      step="1"
+                      required
+                    />
+                  </Field>
+                )}
+              </>
             )}
             {registrationMode === "EXTERNAL" && (
               <Field
@@ -259,6 +302,10 @@ export default function SubeventSetupPage() {
             <Field label="Maximum participants">
               <Input name="maxParticipants" type="number" min="1" />
             </Field>
+            <p className="text-xs text-muted-foreground md:col-span-2">
+              An individual one-seat ticket will be created automatically. Use
+              the Packages tab to add bundles or other ticket options.
+            </p>
             <p className="text-sm text-muted-foreground md:col-span-2">
               The subevent is created as DRAFT with registration closed. Next,
               Registration Setup lets you change status to OPEN and enable
@@ -294,7 +341,7 @@ const Field = ({
   className,
   children,
 }: {
-  label: string;
+  label: React.ReactNode;
   helper?: string;
   className?: string;
   children: React.ReactNode;

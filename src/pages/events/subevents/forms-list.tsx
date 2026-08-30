@@ -1,6 +1,13 @@
 import { useState } from "react";
 import type { AxiosError } from "axios";
-import { Copy, FilePlus2, LockKeyhole, Send, Trash2, XCircle } from "lucide-react";
+import {
+  Copy,
+  FilePlus2,
+  LockKeyhole,
+  Send,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import {
@@ -22,8 +29,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "../components";
+import { newestFormsFirst } from "./forms-list-order";
 
 const errorMessage = (error: unknown) =>
   (error as AxiosError<{ message?: string; msg?: string }>).response?.data
@@ -78,7 +85,8 @@ export function FormsList({
     revision: number;
   } | null>(null);
   const base = `/events/${eventId}/subevents/${subeventId}/forms`;
-  const pendingError = clone.error ?? publish.error ?? close.error ?? remove.error;
+  const pendingError =
+    clone.error ?? publish.error ?? close.error ?? remove.error;
   const resetLifecycle = () => {
     clone.reset();
     publish.reset();
@@ -116,9 +124,7 @@ export function FormsList({
       />
     );
 
-  const forms = [...query.data].sort((a, b) =>
-    a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
-  );
+  const forms = newestFormsFirst(query.data);
 
   return (
     <div className="space-y-5">
@@ -126,7 +132,8 @@ export function FormsList({
         <div>
           <h2 className="text-xl font-bold">Registration forms</h2>
           <p className="text-sm text-muted-foreground">
-            Create independent forms, edit drafts, and preserve published responses.
+            Create independent forms, edit drafts, and preserve published
+            responses.
           </p>
         </div>
         <Button asChild>
@@ -141,112 +148,112 @@ export function FormsList({
           {errorMessage(pendingError)}
         </p>
       )}
-      {forms.map((form) => (
-        <Card key={form.id}>
-          <CardHeader>
-            <CardTitle>{form.name}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-              <article
-                key={form.id}
-                className="flex flex-col gap-4 rounded-xl border bg-muted/20 p-4 md:flex-row md:items-center"
+      <div className="divide-y overflow-hidden rounded-xl border bg-card">
+        {forms.map((form) => (
+          <article
+            key={form.id}
+            className="flex flex-col gap-3 p-4 transition-colors hover:bg-muted/20 md:flex-row md:items-center"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-semibold">{form.name}</h3>
+                <FormStatusBadge status={form.status} />
+                <span className="text-xs text-muted-foreground">
+                  {titleCase(form.stage)}
+                </span>
+              </div>
+              <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
+                {form.description || "No description"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Updated {dateTime(form.updatedAt ?? form.createdAt)} ·{" "}
+                {form.sections.length} sections
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 md:justify-end">
+              <Button size="sm" variant="secondary" asChild>
+                <Link to={`${base}/${encodeURIComponent(form.id)}`}>
+                  {form.status === "DRAFT" ? "Edit" : "View"}
+                </Link>
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={clone.isPending}
+                onClick={() => {
+                  resetLifecycle();
+                  clone.mutate(
+                    { id: form.id },
+                    {
+                      onSuccess: (created) =>
+                        navigate(`${base}/${encodeURIComponent(created.id)}`),
+                    },
+                  );
+                }}
               >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <FormStatusBadge status={form.status} />
-                    <span className="text-xs text-muted-foreground">
-                      {titleCase(form.stage)}
-                    </span>
-                  </div>
-                  <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                    {form.description || "No description"}
-                  </p>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Updated {dateTime(form.updatedAt ?? form.createdAt)} ·{" "}
-                    {form.sections.length} sections
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" asChild>
-                    <Link to={`${base}/${encodeURIComponent(form.id)}`}>
-                      {form.status === "DRAFT" ? "Edit" : "View"}
-                    </Link>
-                  </Button>
+                <Copy />
+                {clone.isPending ? "Duplicating..." : "Duplicate form"}
+              </Button>
+              {form.status === "DRAFT" && (
+                <>
                   <Button
-                      variant="secondary"
-                      disabled={clone.isPending}
-                      onClick={() => {
-                        resetLifecycle();
-                        clone.mutate(
-                          { id: form.id },
-                          {
-                            onSuccess: (created) =>
-                              navigate(
-                                `${base}/${encodeURIComponent(created.id)}`,
-                              ),
-                          },
-                        );
-                      }}
-                    >
-                      <Copy />
-                      {clone.isPending ? "Duplicating..." : "Duplicate form"}
-                    </Button>
-                  {form.status === "DRAFT" && (
-                    <>
-                    <Button
-                      disabled={publish.isPending}
-                      onClick={() =>
-                        setLifecycleTarget({
-                          action: "publish",
-                          id: form.id,
-                          name: form.name,
-                          revision: form.revision,
-                          stage: form.stage,
-                          audience: form.audience,
-                          isRequired: form.isRequired,
-                          blocksCheckIn: form.blocksCheckIn,
-                        })
-                      }
-                    >
-                      <Send />
-                      Publish
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      disabled={remove.isPending}
-                      onClick={() => setDeleteTarget({
+                    size="sm"
+                    disabled={publish.isPending}
+                    onClick={() =>
+                      setLifecycleTarget({
+                        action: "publish",
                         id: form.id,
                         name: form.name,
                         revision: form.revision,
-                      })}
-                    >
-                      <Trash2 />
-                      Delete
-                    </Button>
-                    </>
-                  )}
-                  {form.status === "PUBLISHED" && (
-                    <Button
-                      variant="secondary"
-                      disabled={close.isPending}
-                      onClick={() =>
-                        setLifecycleTarget({
-                          action: "close",
-                          id: form.id,
-                          name: form.name,
-                          revision: form.revision,
-                        })
-                      }
-                    >
-                      <XCircle />
-                      Close
-                    </Button>
-                  )}
-                </div>
-              </article>
-          </CardContent>
-        </Card>
-      ))}
+                        stage: form.stage,
+                        audience: form.audience,
+                        isRequired: form.isRequired,
+                        blocksCheckIn: form.blocksCheckIn,
+                      })
+                    }
+                  >
+                    <Send />
+                    Publish
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={remove.isPending}
+                    onClick={() =>
+                      setDeleteTarget({
+                        id: form.id,
+                        name: form.name,
+                        revision: form.revision,
+                      })
+                    }
+                  >
+                    <Trash2 />
+                    Delete
+                  </Button>
+                </>
+              )}
+              {form.status === "PUBLISHED" && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={close.isPending}
+                  onClick={() =>
+                    setLifecycleTarget({
+                      action: "close",
+                      id: form.id,
+                      name: form.name,
+                      revision: form.revision,
+                    })
+                  }
+                >
+                  <XCircle />
+                  Close
+                </Button>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
       <p className="flex items-center gap-2 text-xs text-muted-foreground">
         <LockKeyhole className="h-4 w-4" />
         Published and closed forms are immutable. Duplicate one to create a
@@ -268,14 +275,16 @@ export function FormsList({
                 <>
                   {lifecycleTarget.name} will become available to participants
                   and can no longer be edited. It applies to every ticket
-                  package. {lifecycleTarget.stage === "REGISTRATION"
+                  package.{" "}
+                  {lifecycleTarget.stage === "REGISTRATION"
                     ? "The registration leader completes one required form during registration; it does not affect check-in."
                     : `${lifecycleTarget.audience === "BUYER" ? "The registration leader submits one response" : "Each attendee submits a separate response"}. ${lifecycleTarget.isRequired ? "Completion is required" : "Completion is optional"}${lifecycleTarget.blocksCheckIn ? " and check-in is unavailable until it is completed" : " and it does not prevent check-in"}.`}
                 </>
               ) : (
                 <>
-                  {lifecycleTarget?.name} will no longer be available to participants. Its saved
-                  responses and history will remain available.
+                  {lifecycleTarget?.name} will no longer be available to
+                  participants. Its saved responses and history will remain
+                  available.
                 </>
               )}
             </AlertDialogDescription>
@@ -311,8 +320,9 @@ export function FormsList({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this draft?</AlertDialogTitle>
             <AlertDialogDescription>
-              {deleteTarget?.name} will be removed from normal form administration.
-              The backend retains it as a soft-deleted audit record.
+              {deleteTarget?.name} will be removed from normal form
+              administration. The backend retains it as a soft-deleted audit
+              record.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -18,8 +18,28 @@ describe("buildSubeventCreatePayload", () => {
       approvalMode: "AUTO_APPROVE",
       isRegistrationOpen: false,
       price: 0,
+      paid: false,
       maxTicketsPerUser: 1,
     });
+  });
+
+  it("uses the paid individual ticket price", () => {
+    const form = validForm();
+    form.set("pricing", "PAID");
+    form.set("individualPrice", "50000");
+    expect(buildSubeventCreatePayload(form, "event-1")).toMatchObject({
+      paid: true,
+      price: 50000,
+    });
+  });
+
+  it("requires a positive paid individual ticket price", () => {
+    const form = validForm();
+    form.set("pricing", "PAID");
+    form.set("individualPrice", "0");
+    expect(() => buildSubeventCreatePayload(form, "event-1")).toThrow(
+      "greater than 0",
+    );
   });
 
   it("requires an external destination URL", () => {
