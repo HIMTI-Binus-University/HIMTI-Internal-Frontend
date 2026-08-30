@@ -19,7 +19,8 @@ export const Api = {
   linkWorkspaceMember: "/api/link-workspaces/:workspaceId/members/:userId",
   linkWorkspaceLinks: "/api/link-workspaces/:workspaceId/links",
   linkWorkspaceLink: "/api/link-workspaces/:workspaceId/links/:linkId",
-  linkWorkspaceLinkDeactivate: "/api/link-workspaces/:workspaceId/links/:linkId/deactivate",
+  linkWorkspaceLinkDeactivate:
+    "/api/link-workspaces/:workspaceId/links/:linkId/deactivate",
   linkWorkspaceAttach: "/api/link-workspaces/:workspaceId/links/attach",
 
   // Permission endpoints
