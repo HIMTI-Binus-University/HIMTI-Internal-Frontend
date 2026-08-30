@@ -64,4 +64,16 @@ export const Api = {
   subeventDetail: "/api/sub-event/get-list/:id",
   subeventCreate: "/api/sub-event/create-sub-event",
   subeventUpdate: "/api/sub-event/update-sub-event/:id",
+  // Election administration endpoints
+  elections: "/api/internal/elections",
+  election: "/api/internal/elections/:electionId",
+  electionCandidates: "/api/internal/elections/:electionId/candidates",
+  electionCandidate: "/api/internal/elections/candidates/:candidateId",
+  electionOpen: "/api/internal/elections/:electionId/open",
+  electionClose: "/api/internal/elections/:electionId/close",
+  electionPublish: "/api/internal/elections/:electionId/publish",
+  electionDebateSchedule: "/api/internal/elections/:electionId/debate-schedule",
+  electionPublicDetails: "/api/internal/elections/:electionId/public-details",
+  electionTurnout: "/api/internal/elections/:electionId/turnout",
+  electionTally: "/api/internal/elections/:electionId/tally",
 };
