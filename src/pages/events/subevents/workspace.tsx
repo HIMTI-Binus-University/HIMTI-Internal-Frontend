@@ -204,7 +204,11 @@ export default function SubeventWorkspacePage() {
       ) : active === "registration-setup" ? (
         <RegistrationSetup subevent={subevent} />
       ) : active === "packages" ? (
-        <PackagesWorkspace subEventId={subeventId} />
+        <PackagesWorkspace
+          subEventId={subeventId}
+          registrationOpensAt={subevent.registrationOpensAt}
+          registrationClosesAt={subevent.registrationClosesAt}
+        />
       ) : active === "forms" ? (
         <FormsList eventId={eventId} subeventId={subeventId} />
       ) : active === "payment" ? (
@@ -315,9 +319,11 @@ const PrototypeNotice = ({ section }: { section: string }) => (
 export const RegistrationSetup = ({ subevent }: { subevent: Subevent }) => {
   const update = useUpdateSubevent(subevent.eventId);
   const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
   const [mode, setMode] = useState(subevent.registrationMode);
   const save = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setSaved(false);
     try {
       update.mutate(
         {
@@ -327,7 +333,10 @@ export const RegistrationSetup = ({ subevent }: { subevent: Subevent }) => {
             subevent.status,
           ),
         },
-        { onError: (failure) => setError(apiError(failure)) },
+        {
+          onSuccess: () => setSaved(true),
+          onError: (failure) => setError(apiError(failure)),
+        },
       );
     } catch (failure) {
       setError((failure as Error).message);
@@ -343,7 +352,10 @@ export const RegistrationSetup = ({ subevent }: { subevent: Subevent }) => {
           <form
             className="grid gap-4 sm:grid-cols-2"
             onSubmit={save}
-            onChange={() => setError("")}
+            onChange={() => {
+              setError("");
+              setSaved(false);
+            }}
           >
             <Field label="Subevent status">
               <Select
@@ -473,10 +485,15 @@ export const RegistrationSetup = ({ subevent }: { subevent: Subevent }) => {
                 {error}
               </p>
             )}
-            <div className="sm:col-span-2">
+            <div className="flex items-center gap-3 sm:col-span-2">
               <Button disabled={update.isPending}>
                 {update.isPending ? "Saving..." : "Save registration setup"}
               </Button>
+              {saved && (
+                <p role="status" className="text-sm text-semantic-success">
+                  Registration setup saved.
+                </p>
+              )}
             </div>
           </form>
         </CardContent>

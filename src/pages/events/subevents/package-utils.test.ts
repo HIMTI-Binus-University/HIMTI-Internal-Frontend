@@ -5,19 +5,26 @@ import { packageOptionLabel, packagePayload } from "./package-utils";
 describe("package helpers", () => {
   it("serializes local sales windows and whole-order values", () => {
     const values = new FormData();
-    values.set("code", " team ");
     values.set("name", "Team of four");
     values.set("wholeOrderTotalIdr", "150000");
     values.set("seatCount", "4");
     values.set("salesStartAt", "2026-08-22T09:00");
     values.set("salesEndAt", "2026-08-23T09:00");
     expect(packagePayload(values)).toEqual(expect.objectContaining({
-      code: "TEAM",
+      code: "TEAM-OF-FOUR",
       currency: "IDR",
       priceMinor: "150000",
       seatCount: 4,
       status: "DRAFT",
     }));
+  });
+
+  it("preserves an existing package code when its name changes", () => {
+    const values = new FormData();
+    values.set("name", "Renamed package");
+    values.set("wholeOrderTotalIdr", "0");
+    values.set("seatCount", "1");
+    expect(packagePayload(values, "ORIGINAL").code).toBe("ORIGINAL");
   });
 
   it("rejects fractional seats and labels inactive historical choices", () => {

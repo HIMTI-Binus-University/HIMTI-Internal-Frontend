@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type { AxiosError } from "axios";
 import { LockKeyhole, PackagePlus, Pencil, Users } from "lucide-react";
 
@@ -32,7 +32,15 @@ const errorMessage = (error: unknown) =>
   (error as Error).message ??
   "The package operation failed.";
 
-export function PackagesWorkspace({ subEventId }: { subEventId: string }) {
+export function PackagesWorkspace({
+  subEventId,
+  registrationOpensAt,
+  registrationClosesAt,
+}: {
+  subEventId: string;
+  registrationOpensAt: string | null;
+  registrationClosesAt: string | null;
+}) {
   const query = useEventPackages(subEventId);
   const update = useUpdateEventPackage(subEventId);
   const [editor, setEditor] = useState<EventPackage | "new" | null>(null);
@@ -44,7 +52,11 @@ export function PackagesWorkspace({ subEventId }: { subEventId: string }) {
     );
 
   if (query.isLoading)
-    return <p className="py-12 text-center text-sm text-muted-foreground">Loading packages...</p>;
+    return (
+      <p className="py-12 text-center text-sm text-muted-foreground">
+        Loading packages...
+      </p>
+    );
   if (query.isError)
     return (
       <EmptyState
@@ -60,17 +72,27 @@ export function PackagesWorkspace({ subEventId }: { subEventId: string }) {
         <div>
           <h2 className="text-xl font-bold">Ticket packages</h2>
           <p className="text-sm text-muted-foreground">
-            Set fixed seats, a whole-order total in IDR, and package-specific sales windows.
+            Set fixed seats, a whole-order total in IDR, and package-specific
+            sales windows.
           </p>
         </div>
-        <Button onClick={() => setEditor("new")}><PackagePlus />Create package</Button>
+        <Button onClick={() => setEditor("new")}>
+          <PackagePlus />
+          Create package
+        </Button>
       </div>
-      {error && <p role="alert" className="text-sm text-semantic-danger">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-semantic-danger">
+          {error}
+        </p>
+      )}
       {!query.data?.length ? (
         <EmptyState
           title="No packages yet"
           description="Create a package before opening native registration."
-          action={<Button onClick={() => setEditor("new")}>Create package</Button>}
+          action={
+            <Button onClick={() => setEditor("new")}>Create package</Button>
+          }
         />
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
@@ -80,91 +102,308 @@ export function PackagesWorkspace({ subEventId }: { subEventId: string }) {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <CardTitle>{item.name}</CardTitle>
-                    <p className="mt-1 font-mono text-xs text-muted-foreground">{item.code}</p>
+                    <p className="mt-1 font-mono text-xs text-muted-foreground">
+                      {item.code}
+                    </p>
                   </div>
-                  <Badge variant={item.status === "ACTIVE" ? "success" : "neutral"}>{titleCase(item.status)}</Badge>
+                  <Badge
+                    variant={item.status === "ACTIVE" ? "success" : "neutral"}
+                  >
+                    {titleCase(item.status)}
+                  </Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4 p-4">
-                <p className="text-sm text-muted-foreground">{item.description || "No description"}</p>
+                <p className="text-sm text-muted-foreground">
+                  {item.description || "No description"}
+                </p>
                 <dl className="grid grid-cols-2 gap-4 text-sm">
-                  <PackageDetail label="Fixed seats" value={`${item.seatCount}`} />
-                  <PackageDetail label="Whole-order total IDR" value={formatMinor(item.priceMinor, item.currency)} />
-                  <PackageDetail label="Sales start" value={dateTime(item.salesStartAt ?? undefined)} />
-                  <PackageDetail label="Sales end" value={dateTime(item.salesEndAt ?? undefined)} />
+                  <PackageDetail
+                    label="Fixed seats"
+                    value={`${item.seatCount}`}
+                  />
+                  <PackageDetail
+                    label="Whole-order total IDR"
+                    value={formatMinor(item.priceMinor, item.currency)}
+                  />
+                  <PackageDetail
+                    label="Sales start"
+                    value={dateTime(item.salesStartAt ?? undefined)}
+                  />
+                  <PackageDetail
+                    label="Sales end"
+                    value={dateTime(item.salesEndAt ?? undefined)}
+                  />
                 </dl>
                 {item.dependentOrderCount > 0 && (
                   <div className="flex gap-2 rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
                     <LockKeyhole className="h-4 w-4 shrink-0" />
-                    Referenced by {item.dependentOrderCount} order{item.dependentOrderCount === 1 ? "" : "s"}. Package terms are immutable; status remains manageable.
+                    Referenced by {item.dependentOrderCount} order
+                    {item.dependentOrderCount === 1 ? "" : "s"}. Package terms
+                    are immutable; status remains manageable.
                   </div>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" disabled={!item.editable} onClick={() => setEditor(item)}>
-                    <Pencil />{item.editable ? "Edit terms" : "Terms locked"}
+                  <Button
+                    variant="secondary"
+                    disabled={!item.editable}
+                    onClick={() => setEditor(item)}
+                  >
+                    <Pencil />
+                    {item.editable ? "Edit terms" : "Terms locked"}
                   </Button>
                   <select
                     aria-label={`Status for ${item.name}`}
                     value={item.status}
                     disabled={update.isPending}
-                    onChange={(event) => changeStatus(item, event.target.value as EventPackage["status"])}
+                    onChange={(event) =>
+                      changeStatus(
+                        item,
+                        event.target.value as EventPackage["status"],
+                      )
+                    }
                     className="h-10 rounded-lg border border-input bg-card px-3 text-sm"
                   >
                     <option value="DRAFT">Draft</option>
                     <option value="ACTIVE">Active</option>
                     <option value="INACTIVE">Inactive</option>
                   </select>
-                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Users className="h-4 w-4" />{item.dependentOrderCount} orders</span>
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Users className="h-4 w-4" />
+                    {item.dependentOrderCount} orders
+                  </span>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
-      <PackageDialog subEventId={subEventId} value={editor} close={() => setEditor(null)} />
+      <PackageDialog
+        subEventId={subEventId}
+        value={editor}
+        registrationOpensAt={registrationOpensAt}
+        registrationClosesAt={registrationClosesAt}
+        close={() => setEditor(null)}
+      />
     </div>
   );
 }
 
 const PackageDetail = ({ label, value }: { label: string; value: string }) => (
-  <div><dt className="text-xs font-bold uppercase text-muted-foreground">{label}</dt><dd className="mt-1 font-semibold">{value}</dd></div>
+  <div>
+    <dt className="text-xs font-bold uppercase text-muted-foreground">
+      {label}
+    </dt>
+    <dd className="mt-1 font-semibold">{value}</dd>
+  </div>
 );
 
-function PackageDialog({ subEventId, value, close }: { subEventId: string; value: EventPackage | "new" | null; close: () => void }) {
+function PackageDialog({
+  subEventId,
+  value,
+  registrationOpensAt,
+  registrationClosesAt,
+  close,
+}: {
+  subEventId: string;
+  value: EventPackage | "new" | null;
+  registrationOpensAt: string | null;
+  registrationClosesAt: string | null;
+  close: () => void;
+}) {
   const create = useCreateEventPackage(subEventId);
   const update = useUpdateEventPackage(subEventId);
   const [error, setError] = useState("");
-  const item = value === "new" ? undefined : value ?? undefined;
+  const item = value === "new" ? undefined : (value ?? undefined);
+  const [salesStart, setSalesStart] = useState("");
+  const [salesEnd, setSalesEnd] = useState("");
+  useEffect(() => {
+    setSalesStart(localDateTime(item?.salesStartAt ?? null));
+    setSalesEnd(localDateTime(item?.salesEndAt ?? null));
+  }, [item, value]);
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     try {
-      const payload = packagePayload(new FormData(event.currentTarget));
-      const mutationOptions = { onSuccess: close, onError: (failure: unknown) => setError(errorMessage(failure)) };
-      if (item) update.mutate({ packageId: item.id, payload: { ...payload, revision: item.revision } }, mutationOptions);
+      const payload = packagePayload(
+        new FormData(event.currentTarget),
+        item?.code,
+      );
+      const mutationOptions = {
+        onSuccess: close,
+        onError: (failure: unknown) => setError(errorMessage(failure)),
+      };
+      if (item)
+        update.mutate(
+          {
+            packageId: item.id,
+            payload: { ...payload, revision: item.revision },
+          },
+          mutationOptions,
+        );
       else create.mutate(payload, mutationOptions);
-    } catch (failure) { setError(errorMessage(failure)); }
+    } catch (failure) {
+      setError(errorMessage(failure));
+    }
   };
   return (
     <Dialog open={value !== null} onOpenChange={(open) => !open && close()}>
       <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto">
-        <DialogHeader><DialogTitle>{item ? "Edit package" : "Create package"}</DialogTitle><DialogDescription>Enter the total IDR price for the entire fixed-seat order, not a per-seat price. Only IDR is supported here.</DialogDescription></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>{item ? "Edit package" : "Create package"}</DialogTitle>
+          <DialogDescription>
+            Enter the total IDR price for the entire fixed-seat order, not a
+            per-seat price. Only IDR is supported here.
+          </DialogDescription>
+        </DialogHeader>
         <form className="grid gap-4 sm:grid-cols-2" onSubmit={submit}>
-          <Field label="Name"><Input name="name" required maxLength={255} defaultValue={item?.name} /></Field>
-          <Field label="Code"><Input name="code" required maxLength={50} defaultValue={item?.code} /></Field>
-          <Field label="Fixed seat count"><Input name="seatCount" type="number" required min={1} step={1} defaultValue={item?.seatCount ?? 1} /></Field>
-          <Field label="Whole-order total IDR"><Input name="wholeOrderTotalIdr" inputMode="numeric" pattern="[0-9]+" required defaultValue={item?.priceMinor ?? "0"} /></Field>
-          <Field label="Currency"><Input value="IDR" readOnly aria-readonly="true" /></Field>
-          <Field label="Status"><select name="status" defaultValue={item?.status ?? "DRAFT"} className="h-10 w-full rounded-lg border bg-card px-3 text-sm"><option value="DRAFT">Draft</option><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></Field>
-          <Field label="Sales start"><Input name="salesStartAt" type="datetime-local" defaultValue={localDateTime(item?.salesStartAt ?? null)} /></Field>
-          <Field label="Sales end"><Input name="salesEndAt" type="datetime-local" defaultValue={localDateTime(item?.salesEndAt ?? null)} /></Field>
-          <label className="space-y-2 sm:col-span-2"><span className="text-sm font-semibold">Description</span><textarea name="description" rows={3} maxLength={2000} defaultValue={item?.description ?? ""} className="w-full rounded-lg border bg-card p-3 text-sm" /></label>
-          {error && <p role="alert" className="text-sm text-semantic-danger sm:col-span-2">{error}</p>}
-          <div className="flex justify-end gap-2 sm:col-span-2"><Button type="button" variant="secondary" onClick={close}>Cancel</Button><Button type="submit" disabled={create.isPending || update.isPending}>{create.isPending || update.isPending ? "Saving..." : "Save package"}</Button></div>
+          <Field label="Name">
+            <Input
+              name="name"
+              required
+              maxLength={255}
+              defaultValue={item?.name}
+            />
+          </Field>
+          <Field label="Fixed seat count">
+            <Input
+              name="seatCount"
+              type="number"
+              required
+              min={1}
+              step={1}
+              defaultValue={item?.seatCount ?? 1}
+            />
+          </Field>
+          <Field label="Whole-order total IDR">
+            <Input
+              name="wholeOrderTotalIdr"
+              inputMode="numeric"
+              pattern="[0-9]+"
+              required
+              defaultValue={item?.priceMinor ?? "0"}
+            />
+          </Field>
+          <Field label="Currency">
+            <Input value="IDR" readOnly aria-readonly="true" />
+          </Field>
+          <Field label="Status">
+            <select
+              name="status"
+              defaultValue={item?.status ?? "DRAFT"}
+              className="h-10 w-full rounded-lg border bg-card px-3 text-sm"
+            >
+              <option value="DRAFT">Draft</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
+          </Field>
+          <DateField
+            label="Sales start"
+            action="Use registration opening"
+            unavailable="Registration opening not set"
+            available={Boolean(registrationOpensAt)}
+            onUse={() => setSalesStart(localDateTime(registrationOpensAt))}
+          >
+            <Input
+              name="salesStartAt"
+              type="datetime-local"
+              value={salesStart}
+              onChange={(event) => setSalesStart(event.target.value)}
+            />
+          </DateField>
+          <DateField
+            label="Sales end"
+            action="Use registration closing"
+            unavailable="Registration closing not set"
+            available={Boolean(registrationClosesAt)}
+            onUse={() => setSalesEnd(localDateTime(registrationClosesAt))}
+          >
+            <Input
+              name="salesEndAt"
+              type="datetime-local"
+              value={salesEnd}
+              onChange={(event) => setSalesEnd(event.target.value)}
+            />
+          </DateField>
+          <label className="space-y-2 sm:col-span-2">
+            <span className="text-sm font-semibold">Description</span>
+            <textarea
+              name="description"
+              rows={3}
+              maxLength={2000}
+              defaultValue={item?.description ?? ""}
+              className="w-full rounded-lg border bg-card p-3 text-sm"
+            />
+          </label>
+          {error && (
+            <p
+              role="alert"
+              className="text-sm text-semantic-danger sm:col-span-2"
+            >
+              {error}
+            </p>
+          )}
+          <div className="flex justify-end gap-2 sm:col-span-2">
+            <Button type="button" variant="secondary" onClick={close}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={create.isPending || update.isPending}
+            >
+              {create.isPending || update.isPending
+                ? "Saving..."
+                : "Save package"}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
   );
 }
 
-const Field = ({ label, children }: { label: string; children: React.ReactNode }) => <label className="space-y-2"><span className="text-sm font-semibold">{label}</span>{children}</label>;
+const Field = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <label className="space-y-2">
+    <span className="text-sm font-semibold">{label}</span>
+    {children}
+  </label>
+);
+
+const DateField = ({
+  label,
+  action,
+  unavailable,
+  available,
+  onUse,
+  children,
+}: {
+  label: string;
+  action: string;
+  unavailable: string;
+  available: boolean;
+  onUse: () => void;
+  children: React.ReactNode;
+}) => (
+  <label className="space-y-2">
+    <span className="flex min-h-5 items-center justify-between gap-2">
+      <span className="text-sm font-semibold">{label}</span>
+      <button
+        type="button"
+        disabled={!available}
+        onClick={onUse}
+        title={available ? action : unavailable}
+        className="truncate text-xs font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline"
+      >
+        {available ? action : "Not set"}
+      </button>
+    </span>
+    {children}
+  </label>
+);
