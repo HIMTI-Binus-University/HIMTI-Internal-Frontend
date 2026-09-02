@@ -25,6 +25,8 @@ const UploadNames = () => {
         </div>
 
         <div className="w-1/2">
+          <p>Daftar Nama</p>
+          <p>Gunakan XLSX, CSV, atau tempel satu nama per baris.</p>
           <UploadPanel />
         </div>
       </div>
