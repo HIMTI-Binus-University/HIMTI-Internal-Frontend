@@ -17,6 +17,9 @@ import RegistrationReviewPage from "@/pages/events/subevents/registration-review
 import BatchesPage from "@/pages/batches";
 import CompleteRegistrationPage from "@/pages/complete-registration";
 import CertificateGeneratorPage from "@/pages/certificates";
+import ElectionsPage from "@/pages/elections";
+import ElectionEditorPage from "@/pages/elections/editor";
+import ElectionWorkspacePage from "@/pages/elections/workspace";
 
 export const publicRoutes: Route[] = [
   {
@@ -160,6 +163,47 @@ export const publicRoutes: Route[] = [
     isEnabled: true,
     isProtected: true,
     requiredPermission: "manage_events",
+  },
+  {
+    key: "router-elections",
+    title: "Elections",
+    description: "Election Administration",
+    component: ElectionsPage,
+    path: "/elections",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_elections",
+    group: "Tools",
+  },
+  {
+    key: "router-election-create",
+    title: "Create election",
+    description: "Create Election",
+    component: ElectionEditorPage,
+    path: "/elections/new",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_elections",
+  },
+  {
+    key: "router-election-edit",
+    title: "Edit election",
+    description: "Edit Election",
+    component: ElectionEditorPage,
+    path: "/elections/:electionId/edit",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_elections",
+  },
+  {
+    key: "router-election-workspace",
+    title: "Election workspace",
+    description: "Election Workspace",
+    component: ElectionWorkspacePage,
+    path: "/elections/:electionId",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_elections",
   },
   {
     key: "router-rbac-permissions",
