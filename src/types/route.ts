@@ -9,6 +9,7 @@ export type HimtiPermission =
   | "manage_elections"
   | "view_election_results"
   | "manage_batch"
+  | "manage_himti_kit"
   | "create_events"
   | "view_dashboard";
 

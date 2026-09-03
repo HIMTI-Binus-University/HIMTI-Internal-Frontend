@@ -19,6 +19,7 @@ import CompleteRegistrationPage from "@/pages/complete-registration";
 import ElectionsPage from "@/pages/elections";
 import ElectionEditorPage from "@/pages/elections/editor";
 import ElectionWorkspacePage from "@/pages/elections/workspace";
+import HimtiKitDashboardPage from "@/pages/himti-kit";
 
 export const publicRoutes: Route[] = [
   {
@@ -58,6 +59,18 @@ export const publicRoutes: Route[] = [
     isProtected: true,
     requiredPermission: "manage_urls",
     allowedRoles: ["Admin"],
+    group: "Tools",
+  },
+  {
+    key: "router-himti-kit",
+    title: "HIMTI KIT",
+    description: "HIMTI KIT Resources & Software Management",
+    component: HimtiKitDashboardPage,
+    path: "/himti-kit",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_himti_kit",
+    allowedRoles: ["Admin", "General Manager", "Manager"],
     group: "Tools",
   },
   {

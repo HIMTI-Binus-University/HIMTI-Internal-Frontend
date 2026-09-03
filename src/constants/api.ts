@@ -79,4 +79,10 @@ export const Api = {
   electionPublicDetails: `${API_URL}/api/v1/internal/elections/:electionId/public-details`,
   electionTurnout: `${API_URL}/api/v1/internal/elections/:electionId/turnout`,
   electionTally: `${API_URL}/api/v1/internal/elections/:electionId/tally`,
+
+  // HIMTI KIT administration endpoints
+  himtiKitResources: `${API_URL}/api/v1/admin/himti-kit/resources`,
+  himtiKitResource: `${API_URL}/api/v1/admin/himti-kit/resources/:id`,
+  himtiKitSoftwares: `${API_URL}/api/v1/admin/himti-kit/softwares`,
+  himtiKitSoftware: `${API_URL}/api/v1/admin/himti-kit/softwares/:id`,
 };
