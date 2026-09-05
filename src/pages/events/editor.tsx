@@ -1,152 +1,170 @@
-import { useEffect, useState, type FormEvent } from "react";
-import type { AxiosError } from "axios";
-import { CalendarDays, ImagePlus } from "lucide-react";
+import { useState, type FormEvent } from "react";
+import { CalendarDays } from "lucide-react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-
 import {
   useCreateEvent,
-  useGetEvents,
+  useGetEvent,
   useUpdateEvent,
 } from "@/api/events/queries";
+import { useEventGroups } from "@/api/event-groups/queries";
 import { PageLayout } from "@/components/Utils";
-import { ImagePreview } from "@/components/events/ImagePreview";
-import { MarkdownTextarea } from "@/components/markdown-textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { normalizeHttpUrlInput } from "@/utils/http-url";
-import { normalizeOptionalEventUrl } from "./event-form";
-
-const apiError = (error: unknown) =>
-  (error as AxiosError<{ message?: string; msg?: string }>).response?.data
-    ?.message ??
-  (error as AxiosError<{ msg?: string }>).response?.data?.msg ??
-  "Failed to save event.";
+import { MarkdownTextarea } from "@/components/markdown-textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function EventEditorPage() {
-  const { eventId } = useParams();
+  const { eventId = "" } = useParams();
   const navigate = useNavigate();
-  const eventsQuery = useGetEvents();
-  const existing = eventsQuery.data?.data.find((event) => event.id === eventId);
-  const createEvent = useCreateEvent();
-  const updateEvent = useUpdateEvent();
-  const [cover, setCover] = useState("");
+  const detail = useGetEvent(eventId);
+  const groups = useEventGroups();
+  const create = useCreateEvent();
+  const update = useUpdateEvent();
+  const [groupId, setGroupId] = useState<string | null>();
   const [error, setError] = useState("");
-  useEffect(
-    () => setCover(existing?.coverImageUrl ?? ""),
-    [existing?.coverImageUrl],
-  );
-
-  if (eventId && !eventsQuery.isLoading && !existing)
+  const existing = detail.data;
+  const selectedGroupId = groupId ?? existing?.eventGroupId ?? "none";
+  const selectedGroupName =
+    selectedGroupId === "none"
+      ? "No group"
+      : (groups.data?.find((group) => group.id === selectedGroupId)?.name ??
+        "Loading event group...");
+  if (eventId && !detail.isLoading && !existing)
     return <Navigate to="/events" replace />;
-  const submit = (formEvent: FormEvent<HTMLFormElement>) => {
-    formEvent.preventDefault();
-    const values = new FormData(formEvent.currentTarget);
-    const name = String(values.get("name") ?? "").trim();
-    if (!name) return setError("Event name is required.");
-    let coverImageUrl: string | null;
-    try {
-      coverImageUrl = normalizeOptionalEventUrl(cover, "cover");
-    } catch {
-      return setError(
-        "Enter a valid cover link such as example.com/image.jpg. Only HTTP and HTTPS links are allowed.",
-      );
-    }
-    const payload = {
+  const submit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const name = String(f.get("name") || "").trim();
+    if (name.length < 3)
+      return setError("Event name must be at least 3 characters.");
+    const startsAt = String(f.get("startsAt") || "");
+    const endsAt = String(f.get("endsAt") || "");
+    if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt))
+      return setError("End time must be after start time.");
+    const body = {
       name,
-      publicDescription: String(values.get("description") ?? "").trim(),
-      coverImageUrl,
+      eventGroupId:
+        groupId === "none" ? null : (groupId ?? existing?.eventGroupId),
+      publicDescription: String(f.get("publicDescription") || "") || null,
+      internalDescription: String(f.get("internalDescription") || "") || null,
+      startsAt: startsAt ? new Date(startsAt).toISOString() : null,
+      endsAt: endsAt ? new Date(endsAt).toISOString() : null,
+      locationName: String(f.get("locationName") || "") || null,
+      locationAddress: String(f.get("locationAddress") || "") || null,
+      coverImageUrl: String(f.get("coverImageUrl") || "") || null,
     };
     const options = {
       onSuccess: (saved: { id: string }) => navigate(`/events/${saved.id}`),
-      onError: (failure: unknown) => setError(apiError(failure)),
+      onError: () => setError("Failed to save event."),
     };
-    if (existing) updateEvent.mutate({ id: existing.id, ...payload }, options);
-    else createEvent.mutate(payload, options);
+    existing
+      ? update.mutate({ id: existing.id, ...body }, options)
+      : create.mutate(body, options);
   };
-  const pending = createEvent.isPending || updateEvent.isPending;
-
+  if (eventId && detail.isLoading)
+    return (
+      <PageLayout icon={CalendarDays} title="Event">
+        <p className="py-12 text-center">Loading...</p>
+      </PageLayout>
+    );
+  const local = (value: string | null | undefined) =>
+    value ? new Date(value).toISOString().slice(0, 16) : "";
   return (
     <PageLayout
-      icon={ImagePlus}
+      icon={CalendarDays}
       title={existing ? "Edit event" : "Create event"}
-      breadcrumbs={["Tools", "Events", existing ? existing.name : "Create"]}
       backTo={existing ? `/events/${existing.id}` : "/events"}
     >
-      <form
-        className="mx-auto max-w-4xl space-y-5"
-        onSubmit={submit}
-        onChange={() => setError("")}
-      >
+      <form className="mx-auto max-w-4xl space-y-5" onSubmit={submit}>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarDays className="h-5 w-5 text-primary" />
-              {existing ? "Edit event" : "Create new event"}
-            </CardTitle>
+            <CardTitle>Event details</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-5">
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold">
-                Event name <span className="text-semantic-danger">*</span>
-              </span>
+          <CardContent className="grid gap-5 sm:grid-cols-2">
+            <label className="space-y-2 sm:col-span-2">
+              <span className="text-sm font-semibold">Name *</span>
               <Input
                 name="name"
                 defaultValue={existing?.name}
-                placeholder="e.g. TECHNO 2027"
+                required
+                minLength={3}
               />
             </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold">Public description</span>
-              <MarkdownTextarea
-                name="description"
-                defaultValue={existing?.publicDescription ?? ""}
-                rows={5}
-                placeholder="Explain the event in language participants will understand."
-              />
-              <span className="block text-xs text-muted-foreground">
-                Supports Markdown and formatted paste from Google Docs.
-              </span>
+            <label className="space-y-2 sm:col-span-2">
+              <span className="text-sm font-semibold">Event group</span>
+              <Select value={selectedGroupId} onValueChange={setGroupId}>
+                <SelectTrigger>
+                  <SelectValue>{selectedGroupName}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No group</SelectItem>
+                  {groups.data?.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ImagePlus className="h-5 w-5 text-primary" />
-              Cover image
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_12rem]">
-            <label className="block space-y-2">
+            <label className="space-y-2">
+              <span className="text-sm font-semibold">Starts</span>
+              <Input
+                name="startsAt"
+                type="datetime-local"
+                defaultValue={local(existing?.startsAt)}
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-semibold">Ends</span>
+              <Input
+                name="endsAt"
+                type="datetime-local"
+                defaultValue={local(existing?.endsAt)}
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-semibold">Location</span>
+              <Input
+                name="locationName"
+                defaultValue={existing?.locationName ?? ""}
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-semibold">Address</span>
+              <Input
+                name="locationAddress"
+                defaultValue={existing?.locationAddress ?? ""}
+              />
+            </label>
+            <label className="space-y-2 sm:col-span-2">
               <span className="text-sm font-semibold">Cover image URL</span>
               <Input
                 name="coverImageUrl"
-                type="text"
-                inputMode="url"
-                value={cover}
-                onChange={(event) => setCover(event.target.value)}
-                placeholder="images.example.com/event.jpg"
+                type="url"
+                defaultValue={existing?.coverImageUrl ?? ""}
               />
-              <span className="block text-xs text-muted-foreground">
-                Optional. Schemeless HTTP links are accepted.
-              </span>
             </label>
-            <ImagePreview
-              src={
-                cover.trim()
-                  ? (() => {
-                      try {
-                        return normalizeHttpUrlInput(cover);
-                      } catch {
-                        return null;
-                      }
-                    })()
-                  : null
-              }
-              alt="Cover preview"
-              className="h-28 w-full rounded-xl border border-border"
-            />
+            <label className="space-y-2 sm:col-span-2">
+              <span className="text-sm font-semibold">Public description</span>
+              <MarkdownTextarea
+                name="publicDescription"
+                defaultValue={existing?.publicDescription ?? ""}
+              />
+            </label>
+            <label className="space-y-2 sm:col-span-2">
+              <span className="text-sm font-semibold">Internal notes</span>
+              <MarkdownTextarea
+                name="internalDescription"
+                defaultValue={existing?.internalDescription ?? ""}
+              />
+            </label>
           </CardContent>
         </Card>
         {error && (
@@ -154,18 +172,16 @@ export default function EventEditorPage() {
             {error}
           </p>
         )}
-        <div className="sticky bottom-4 flex flex-col-reverse gap-2 rounded-xl border border-border bg-card/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:justify-end">
+        <div className="flex justify-end gap-2">
           <Button
             type="button"
             variant="secondary"
-            onClick={() =>
-              navigate(existing ? `/events/${existing.id}` : "/events")
-            }
+            onClick={() => navigate(-1)}
           >
             Cancel
           </Button>
-          <Button disabled={pending}>
-            {pending ? "Saving..." : "Save event"}
+          <Button disabled={create.isPending || update.isPending}>
+            Save event
           </Button>
         </div>
       </form>

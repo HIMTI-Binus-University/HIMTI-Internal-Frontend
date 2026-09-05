@@ -35,6 +35,7 @@ type SidebarProps = {
 const routeIconMap: Record<string, LucideIcon> = {
   "router-url-shortener": Link2,
   "router-events": CalendarDays,
+  "router-event-groups": Layers3,
   "router-elections": Vote,
   "router-batches": Layers3,
   "router-rbac-permissions": KeyRound,

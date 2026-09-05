@@ -56,15 +56,27 @@ export const Api = {
   membershipResource: "/api/membership/resources/:id",
   membershipResourceOrder: "/api/membership/periods/:id/resources/order",
 
-  // Event hub administration endpoints
-  eventList: "/api/event/get-list",
-  eventCreate: "/api/event/create-event",
-  eventUpdate: "/api/event/update-event/:id",
-  eventSubeventOrder: "/api/event/:id/sub-events/order",
-  subeventList: "/api/sub-event/get-list",
-  subeventDetail: "/api/sub-event/get-list/:id",
-  subeventCreate: "/api/sub-event/create-sub-event",
-  subeventUpdate: "/api/sub-event/update-sub-event/:id",
+  // Event administration endpoints
+  eventGroups: "/api/internal/event-groups",
+  eventGroup: "/api/internal/event-groups/:id",
+  eventGroupPublish: "/api/internal/event-groups/:id/publish",
+  eventGroupArchive: "/api/internal/event-groups/:id/archive",
+  eventGroupOrganizers: "/api/internal/event-groups/:id/organizers",
+  events: "/api/internal/events",
+  event: "/api/internal/events/:id",
+  eventPublish: "/api/internal/events/:id/publish",
+  eventClose: "/api/internal/events/:id/close",
+  eventCancel: "/api/internal/events/:id/cancel",
+  eventOrganizers: "/api/internal/events/:id/organizers",
+  eventRegistrationSettings: "/api/internal/events/:id/registration-settings",
+  eventPackages: "/api/internal/events/:id/packages",
+  eventPackage: "/api/internal/events/:id/packages/:packageId",
+  eventPackageActivate: "/api/internal/events/:id/packages/:packageId/activate",
+  eventPackageDeactivate:
+    "/api/internal/events/:id/packages/:packageId/deactivate",
+  eventRegistrationForm: "/api/internal/events/:id/registration-form",
+  eventRegistrationFormAction:
+    "/api/internal/events/:id/registration-form/:action",
   // Election administration endpoints
   elections: "/api/internal/elections",
   election: "/api/internal/elections/:electionId",

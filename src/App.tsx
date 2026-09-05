@@ -2,7 +2,6 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { publicRoutes, linkRoutes } from "./config/routes";
 import { ProtectedRoute } from "@/components/Utils/ProtectedRoute";
 import { routeMode } from "@/config/runtime";
-import { EventsProvider } from "@/pages/events/store";
 
 const isLinkSubdomain = routeMode.isLinkHost(window.location.hostname);
 const activeRoutes = isLinkSubdomain ? linkRoutes : publicRoutes;
@@ -41,11 +40,7 @@ const router = createBrowserRouter(
 );
 
 function App() {
-  return (
-    <EventsProvider>
-      <RouterProvider router={router} />
-    </EventsProvider>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;

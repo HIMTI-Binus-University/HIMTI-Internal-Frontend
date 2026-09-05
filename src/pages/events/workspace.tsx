@@ -1,94 +1,108 @@
 import {
-  ArrowDown,
-  ArrowUp,
-  CalendarClock,
   CalendarDays,
+  ClipboardCheck,
+  CreditCard,
   Edit3,
-  ExternalLink,
+  FileText,
+  LayoutDashboard,
   MapPin,
-  Plus,
+  Settings2,
+  Ticket,
+  Users,
 } from "lucide-react";
-import type { AxiosError } from "axios";
-import { useState } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
-
+import { useGetMe } from "@/api/auth/queries";
+import { useRegistrationSettings } from "@/api/event-registration/queries";
 import {
-  useGetEvents,
-  useGetSubevents,
-  useOrderSubevents,
-  useUpdateEvent,
-  useUpdateSubevent,
+  useAddEventOrganizer,
+  useEventOrganizers,
+  useGetEvent,
+  useTransitionEvent,
 } from "@/api/events/queries";
-import { PageLayout } from "@/components/Utils";
-import { ExpandableMarkdown } from "@/components/expandable-markdown";
-import { ImagePreview } from "@/components/events/ImagePreview";
-import { StatusBadge } from "@/components/events/StatusBadge";
-import { dateTime, titleCase } from "@/components/events/helpers";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { IconButton } from "@/components/ui/icon-button";
+import { EventPackages } from "@/components/events/EventPackages";
+import { OrganizerManager } from "@/components/events/OrganizerManager";
+import { RegistrationFormBuilder } from "@/components/events/RegistrationFormBuilder";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type { EventStatus, SubeventStatus } from "@/types/events";
-import { getSafeHttpUrl } from "@/utils/http-url";
-import { EmptyState } from "./components";
+  PaymentSummary,
+  RegistrationSettings,
+} from "@/components/events/RegistrationSettings";
+import { StatusBadge } from "@/components/events/StatusBadge";
+import { ExpandableMarkdown } from "@/components/expandable-markdown";
+import { PageLayout } from "@/components/Utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import type { UserMeResponse } from "@/types/auth";
+import type { EventItem } from "@/types/events";
+import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 
-const eventStatuses: EventStatus[] = [
-  "DRAFT",
-  "PUBLISHED",
-  "CLOSED",
-  "CANCELLED",
-];
-const subeventStatuses: SubeventStatus[] = [
-  "DRAFT",
-  "OPEN",
-  "CLOSED",
-  "CANCELLED",
-];
-const message = (error: unknown, fallback: string) =>
-  (error as AxiosError<{ message?: string; msg?: string }>).response?.data
-    ?.message ??
-  (error as AxiosError<{ msg?: string }>).response?.data?.msg ??
-  fallback;
+const sections = [
+  { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "setup", label: "Registration setup", icon: Settings2 },
+  { id: "packages", label: "Packages", icon: Ticket },
+  { id: "form", label: "Registration form", icon: FileText },
+  { id: "payment", label: "Payment", icon: CreditCard },
+  { id: "registrations", label: "Registrations", icon: Users },
+  { id: "attendance", label: "Attendance", icon: ClipboardCheck },
+] as const;
+type Section = (typeof sections)[number]["id"];
 
 export default function EventWorkspacePage() {
   const { eventId = "" } = useParams();
-  const eventsQuery = useGetEvents();
-  const subeventsQuery = useGetSubevents(eventId);
-  const updateEvent = useUpdateEvent();
-  const updateSubevent = useUpdateSubevent(eventId);
-  const orderSubevents = useOrderSubevents(eventId);
-  const [error, setError] = useState("");
-  const event = eventsQuery.data?.data.find((item) => item.id === eventId);
-  const subevents = [...(subeventsQuery.data ?? [])].sort(
-    (a, b) => a.position - b.position,
-  );
-  if (!eventsQuery.isLoading && !event)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const detail = useGetEvent(eventId);
+  const transition = useTransitionEvent();
+  const organizers = useEventOrganizers(eventId);
+  const add = useAddEventOrganizer(eventId);
+  const { data: me } = useGetMe();
+  const canManageRegistration =
+    me?.permissions.includes("manage_event_registration") ?? false;
+  const settings = useRegistrationSettings(eventId, canManageRegistration);
+  if (!detail.isLoading && !detail.data)
     return <Navigate to="/events" replace />;
-  if (!event)
+  if (!detail.data)
     return (
-      <PageLayout icon={CalendarDays} title="Event workspace">
-        <p className="py-12 text-center text-sm text-muted-foreground">
-          Loading event...
-        </p>
+      <PageLayout icon={CalendarDays} title="Event">
+        <p className="py-12 text-center">Loading...</p>
       </PageLayout>
     );
-
-  const move = (index: number, direction: -1 | 1) => {
-    const ids = subevents.map((item) => item.id);
-    [ids[index], ids[index + direction]] = [ids[index + direction], ids[index]];
-    orderSubevents.mutate(ids, {
-      onError: (failure) =>
-        setError(message(failure, "Failed to reorder subevents.")),
-    });
-  };
-  const destination = (value: string | null) => getSafeHttpUrl(value);
-
+  const event = detail.data;
+  const canManageEvents = me?.permissions.includes("manage_events") ?? false;
+  const canManagePackages =
+    me?.permissions.includes("manage_event_packages") ?? false;
+  const canManageForm =
+    me?.permissions.includes("manage_event_registration_form") ?? false;
+  const isManager =
+    me?.roles.includes("Admin") ||
+    organizers.data?.some(
+      (organizer) =>
+        organizer.userId === me?.id && organizer.role === "MANAGER",
+    ) ||
+    event.eventGroup?.organizers?.some(
+      (organizer) =>
+        organizer.userId === me?.id && organizer.role === "MANAGER",
+    ) ||
+    false;
+  const canEditEvent = canManageEvents && isManager;
+  const requested = searchParams.get("section") as Section | null;
+  const visibleSections = sections.filter((item) => {
+    if (["setup", "payment", "registrations", "attendance"].includes(item.id))
+      return (
+        canManageRegistration &&
+        (item.id !== "attendance" || settings.data?.attendanceEnabled)
+      );
+    if (item.id === "packages") return canManagePackages;
+    if (item.id === "form") return canManageForm;
+    return true;
+  });
+  const active = visibleSections.some(({ id }) => id === requested)
+    ? requested!
+    : "overview";
+  const action =
+    event.status === "DRAFT"
+      ? "publish"
+      : event.status === "PUBLISHED"
+        ? "close"
+        : null;
   return (
     <PageLayout
       icon={CalendarDays}
@@ -97,227 +111,181 @@ export default function EventWorkspacePage() {
       backTo="/events"
     >
       <Card className="overflow-hidden">
-        <ImagePreview
-          src={event.coverImageUrl}
-          alt={event.name}
-          className="aspect-[16/5] max-h-80 w-full rounded-none"
-        />
-        <CardContent className="p-4 sm:p-5">
-          <div className="flex min-w-0 flex-col justify-center">
-              <p className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                Event
-              </p>
+        <CardContent className="p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-bold sm:text-2xl">{event.name}</h1>
+                <h1 className="text-2xl font-bold">{event.name}</h1>
                 <StatusBadge status={event.status} />
               </div>
-              <ExpandableMarkdown className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                {event.publicDescription || "No public description configured."}
-              </ExpandableMarkdown>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button variant="edit" asChild>
-                  <Link to={`/events/${event.id}/edit`}>
-                    <Edit3 />
-                    Edit
-                  </Link>
-                </Button>
-                <Select
-                  value={event.status}
-                  onValueChange={(status) =>
-                    updateEvent.mutate(
-                      { id: event.id, status: status as EventStatus },
-                      {
-                        onError: (failure) =>
-                          setError(
-                            message(failure, "Failed to update event status."),
-                          ),
-                      },
-                    )
-                  }
-                >
-                  <SelectTrigger className="w-40" aria-label="Event status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {eventStatuses.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                {event.locationName || "Location pending"}
+              </p>
+            </div>
+            {canEditEvent && (
+              <Button variant="edit" asChild>
+                <Link to={`/events/${event.id}/edit`}>
+                  <Edit3 />
+                  Edit event
+                </Link>
+              </Button>
+            )}
           </div>
+        </CardContent>
+        <nav
+          aria-label="Event workspace sections"
+          className="overflow-x-auto border-t bg-muted/30"
+        >
+          <div className="flex min-w-max px-2">
+            {visibleSections.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-current={active === item.id ? "page" : undefined}
+                onClick={() =>
+                  setSearchParams(
+                    item.id === "overview" ? {} : { section: item.id },
+                  )
+                }
+                className={cn(
+                  "flex items-center gap-2 border-b-2 border-transparent px-3 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                  active === item.id && "border-primary text-primary",
+                )}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </nav>
+      </Card>
+      {active === "overview" && (
+        <Overview
+          event={event}
+          action={action}
+          canEdit={canEditEvent}
+          transition={transition}
+          organizers={organizers}
+          add={add}
+          me={me}
+        />
+      )}
+      {active === "setup" && (
+        <RegistrationSettings
+          eventId={eventId}
+          canEdit={canManageRegistration}
+        />
+      )}
+      {active === "packages" && (
+        <EventPackages eventId={eventId} canEdit={canManagePackages} />
+      )}
+      {active === "form" && (
+        <RegistrationFormBuilder eventId={eventId} canEdit={canManageForm} />
+      )}
+      {active === "payment" && <PaymentSummary eventId={eventId} />}
+      {active === "registrations" && (
+        <Unavailable
+          title="Registrations are not available yet"
+          description="Registrant records and operational actions will appear here when the backend operations are available."
+        />
+      )}
+      {active === "attendance" && (
+        <Unavailable
+          title="Attendance is configured"
+          description={`Check-in tracking is enabled${settings.data?.attendanceCheckoutEnabled ? " with check-out tracking" : ""}. Attendance operations are not available yet.`}
+        />
+      )}
+    </PageLayout>
+  );
+}
+
+function Overview({
+  event,
+  action,
+  canEdit,
+  transition,
+  organizers,
+  add,
+  me,
+}: {
+  event: EventItem;
+  action: "publish" | "close" | null;
+  canEdit: boolean;
+  transition: ReturnType<typeof useTransitionEvent>;
+  organizers: ReturnType<typeof useEventOrganizers>;
+  add: ReturnType<typeof useAddEventOrganizer>;
+  me?: UserMeResponse;
+}) {
+  return (
+    <>
+      <Card>
+        <CardContent className="p-5">
+          <ExpandableMarkdown className="max-w-3xl text-sm text-muted-foreground">
+            {event.publicDescription || "No public description."}
+          </ExpandableMarkdown>
+          {canEdit && (
+            <div className="mt-5 flex flex-wrap gap-2">
+              {action && (
+                <Button
+                  onClick={() => transition.mutate({ id: event.id, action })}
+                  disabled={transition.isPending}
+                >
+                  {action === "publish" ? "Publish" : "Close event"}
+                </Button>
+              )}
+              {event.status !== "CANCELLED" && (
+                <Button
+                  variant="destructive"
+                  onClick={() =>
+                    transition.mutate({ id: event.id, action: "cancel" })
+                  }
+                  disabled={transition.isPending}
+                >
+                  Cancel event
+                </Button>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
       <Card>
-        <CardHeader className="border-b">
-          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-            <div>
-              <CardTitle className="text-xl">Subevents</CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Manage member-facing cards, visibility, status, and display
-                order.
-              </p>
-            </div>
-            <Button asChild>
-              <Link to={`/events/${event.id}/subevents/new/details`}>
-                <Plus />
-                Create subevent
-              </Link>
-            </Button>
-          </div>
-        </CardHeader>
         <CardContent className="p-5">
-          {error && (
-            <p role="alert" className="mb-4 text-sm text-semantic-danger">
-              {error}
-            </p>
-          )}
-          {subeventsQuery.isLoading ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              Loading subevents...
-            </p>
-          ) : subeventsQuery.isError ? (
-            <EmptyState
-              title="Subevents could not be loaded"
-              description="Try loading this event again."
-              action={
-                <Button
-                  variant="secondary"
-                  onClick={() => subeventsQuery.refetch()}
-                >
-                  Try again
-                </Button>
-              }
-            />
-          ) : subevents.length ? (
-            <div className="grid gap-3">
-              {subevents.map((subevent, index) => (
-                <Card key={subevent.id} className="overflow-hidden">
-                  <CardContent className="grid gap-4 p-4 sm:grid-cols-[5rem_minmax(0,1fr)_auto] sm:items-center">
-                    <ImagePreview
-                      src={subevent.posterUrl}
-                      alt={subevent.name}
-                      className="h-20 w-20 rounded-lg"
-                    />
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate font-bold">{subevent.name}</h3>
-                        <StatusBadge status={subevent.status} />
-                        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
-                          {titleCase(subevent.visibility)}
-                        </span>
-                      </div>
-                      <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
-                        {subevent.publicDescription || "No public description."}
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                        <span className="inline-flex items-center gap-1">
-                          <CalendarClock className="h-3.5 w-3.5" />
-                          {dateTime(subevent.date)}
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <MapPin className="h-3.5 w-3.5" />
-                          {subevent.locationName || "Location pending"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center justify-end gap-1">
-                      <IconButton
-                        label={`Move ${subevent.name} up`}
-                        disabled={index === 0 || orderSubevents.isPending}
-                        onClick={() => move(index, -1)}
-                      >
-                        <ArrowUp />
-                      </IconButton>
-                      <IconButton
-                        label={`Move ${subevent.name} down`}
-                        disabled={
-                          index === subevents.length - 1 ||
-                          orderSubevents.isPending
-                        }
-                        onClick={() => move(index, 1)}
-                      >
-                        <ArrowDown />
-                      </IconButton>
-                      {destination(subevent.destinationUrl) && (
-                        <IconButton
-                          label={`Open destination for ${subevent.name}`}
-                          onClick={() =>
-                            window.open(
-                              destination(subevent.destinationUrl)!,
-                              "_blank",
-                              "noopener,noreferrer",
-                            )
-                          }
-                        >
-                          <ExternalLink />
-                        </IconButton>
-                      )}
-                      <Select
-                        value={subevent.status}
-                        onValueChange={(status) =>
-                          updateSubevent.mutate(
-                            {
-                              id: subevent.id,
-                              status: status as SubeventStatus,
-                            },
-                            {
-                              onError: (failure) =>
-                                setError(
-                                  message(
-                                    failure,
-                                    "Failed to update subevent status.",
-                                  ),
-                                ),
-                            },
-                          )
-                        }
-                      >
-                        <SelectTrigger
-                          className="w-32"
-                          aria-label={`Status for ${subevent.name}`}
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {subeventStatuses.map((status) => (
-                            <SelectItem key={status} value={status}>
-                              {status}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button size="sm" variant="secondary" asChild>
-                        <Link
-                          to={`/events/${event.id}/subevents/${subevent.id}/overview`}
-                        >
-                          Manage
-                        </Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              icon={CalendarDays}
-              title="No subevents yet"
-              description="Create the first member-facing card for this event."
-              action={
-                <Button asChild>
-                  <Link to={`/events/${event.id}/subevents/new/details`}>
-                    <Plus />
-                    Create subevent
-                  </Link>
-                </Button>
-              }
-            />
-          )}
+          <OrganizerManager
+            organizers={organizers.data ?? []}
+            isLoading={organizers.isLoading}
+            isError={organizers.isError}
+            canSearchUsers={
+              canEdit && (me?.permissions.includes("manage_users") ?? false)
+            }
+            isAdding={add.isPending}
+            addError={add.isError}
+            onAdd={(userId, role, done) =>
+              add.mutate({ userId, role }, { onSuccess: done })
+            }
+          />
         </CardContent>
       </Card>
-    </PageLayout>
+    </>
+  );
+}
+
+function Unavailable({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="flex min-h-56 flex-col items-center justify-center p-8 text-center">
+        <ClipboardCheck className="mb-3 h-10 w-10 text-muted-foreground" />
+        <h2 className="text-lg font-semibold">{title}</h2>
+        <p className="mt-2 max-w-lg text-sm text-muted-foreground">
+          {description}
+        </p>
+      </CardContent>
+    </Card>
   );
 }

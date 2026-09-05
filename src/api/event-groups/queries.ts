@@ -3,8 +3,8 @@ import apiClient from "@/config/api-client";
 import { Api } from "@/constants/api";
 import type {
   DataResponse,
-  EventItem,
-  EventPayload,
+  EventGroup,
+  EventGroupPayload,
   Organizer,
   OrganizerRole,
 } from "@/types/events";
@@ -12,58 +12,56 @@ import type {
 const url = (template: string, id: string) =>
   template.replace(":id", encodeURIComponent(id));
 const keys = {
-  all: ["events"] as const,
-  detail: (id: string) => ["events", id] as const,
+  all: ["event-groups"] as const,
+  detail: (id: string) => ["event-groups", id] as const,
 };
-
-export const useGetEvents = (search = "", status = "") =>
+export const useEventGroups = (search = "", enabled = true) =>
   useQuery({
-    queryKey: [...keys.all, search, status],
+    queryKey: [...keys.all, search],
     queryFn: () =>
       apiClient
-        .get<DataResponse<EventItem[]>>(Api.events, {
-          params: {
-            page: 1,
-            limit: 100,
-            search: search || undefined,
-            status: status || undefined,
-          },
+        .get<DataResponse<EventGroup[]>>(Api.eventGroups, {
+          params: { page: 1, limit: 100, search: search || undefined },
         })
         .then((r) => r.data.data),
+    enabled,
   });
-export const useGetEvent = (id: string) =>
+export const useEventGroup = (id: string) =>
   useQuery({
     queryKey: keys.detail(id),
     queryFn: () =>
       apiClient
-        .get<DataResponse<EventItem>>(url(Api.event, id))
+        .get<DataResponse<EventGroup>>(url(Api.eventGroup, id))
         .then((r) => r.data.data),
     enabled: !!id,
   });
-export const useCreateEvent = () => {
+export const useCreateEventGroup = () => {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (body: EventPayload) =>
+    mutationFn: (body: EventGroupPayload) =>
       apiClient
-        .post<DataResponse<EventItem>>(Api.events, body)
+        .post<DataResponse<EventGroup>>(Api.eventGroups, body)
         .then((r) => r.data.data),
     onSuccess: () => client.invalidateQueries({ queryKey: keys.all }),
   });
 };
-export const useUpdateEvent = () => {
+export const useUpdateEventGroup = () => {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: Partial<EventPayload> & { id: string }) =>
+    mutationFn: ({
+      id,
+      ...body
+    }: Partial<EventGroupPayload> & { id: string }) =>
       apiClient
-        .patch<DataResponse<EventItem>>(url(Api.event, id), body)
+        .patch<DataResponse<EventGroup>>(url(Api.eventGroup, id), body)
         .then((r) => r.data.data),
-    onSuccess: (event) => {
+    onSuccess: (group) => {
       client.invalidateQueries({ queryKey: keys.all });
-      client.setQueryData(keys.detail(event.id), event);
+      client.setQueryData(keys.detail(group.id), group);
     },
   });
 };
-export const useTransitionEvent = () => {
+export const useTransitionEventGroup = () => {
   const client = useQueryClient();
   return useMutation({
     mutationFn: ({
@@ -71,16 +69,14 @@ export const useTransitionEvent = () => {
       action,
     }: {
       id: string;
-      action: "publish" | "close" | "cancel";
+      action: "publish" | "archive";
     }) =>
       apiClient
-        .post<DataResponse<EventItem>>(
+        .post<DataResponse<EventGroup>>(
           url(
-            {
-              publish: Api.eventPublish,
-              close: Api.eventClose,
-              cancel: Api.eventCancel,
-            }[action],
+            action === "publish"
+              ? Api.eventGroupPublish
+              : Api.eventGroupArchive,
             id,
           ),
         )
@@ -88,20 +84,20 @@ export const useTransitionEvent = () => {
     onSuccess: () => client.invalidateQueries({ queryKey: keys.all }),
   });
 };
-export const useEventOrganizers = (id: string) =>
+export const useEventGroupOrganizers = (id: string) =>
   useQuery({
     queryKey: [...keys.detail(id), "organizers"],
     queryFn: () =>
       apiClient
-        .get<DataResponse<Organizer[]>>(url(Api.eventOrganizers, id))
+        .get<DataResponse<Organizer[]>>(url(Api.eventGroupOrganizers, id))
         .then((r) => r.data.data),
     enabled: !!id,
   });
-export const useAddEventOrganizer = (id: string) => {
+export const useAddEventGroupOrganizer = (id: string) => {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (body: { userId: string; role: OrganizerRole }) =>
-      apiClient.post(url(Api.eventOrganizers, id), body),
+      apiClient.post(url(Api.eventGroupOrganizers, id), body),
     onSuccess: () =>
       client.invalidateQueries({
         queryKey: [...keys.detail(id), "organizers"],

@@ -1,427 +1,81 @@
-import type { components } from "@/generated/openapi";
-
-export type LifecycleStatus =
-  "DRAFT" | "UPCOMING" | "OPEN" | "CLOSED" | "ARCHIVED";
 export type EventStatus = "DRAFT" | "PUBLISHED" | "CLOSED" | "CANCELLED";
-export type SubeventStatus = "DRAFT" | "OPEN" | "CLOSED" | "CANCELLED";
-export type SubeventVisibility = "PUBLIC" | "INTERNAL" | "INVITE_ONLY";
-export type SubeventType =
-  | "MAIN_EVENT"
-  | "WORKSHOP"
-  | "SEMINAR"
-  | "COMPETITION"
-  | "WELCOMING_PARTY"
-  | "DOMESTIC_STUDY_TOUR"
-  | "INTERNATIONAL_STUDY_TOUR"
-  | "COMPANY_VISIT"
-  | "OTHER";
-export type TicketType = "INDIVIDUAL" | "BUNDLE";
-export type TicketStatus = LifecycleStatus;
-export type FormStatus = LifecycleStatus;
-export type FormVersionStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
-export type FormPurpose =
-  | "MAIN_REGISTRATION"
-  | "TRANSPORTATION"
-  | "ACCOMMODATION"
-  | "ADDITIONAL_INFORMATION"
-  | "OTHER";
-export type FormCompletionStage = "DURING_REGISTRATION" | "POST_REGISTRATION";
-export type FormFieldType =
-  | "SHORT_TEXT"
-  | "LONG_TEXT"
-  | "EMAIL"
-  | "PHONE"
-  | "NUMBER"
-  | "DATE"
-  | "TIME"
-  | "DROPDOWN"
-  | "SINGLE_CHOICE"
-  | "MULTIPLE_CHOICE"
-  | "CHECKBOX"
-  | "FILE_UPLOAD"
-  | "IMAGE_UPLOAD"
-  | "INFORMATION";
-export type RegistrationStatus =
-  | "DRAFT"
-  | "SUBMITTED"
-  | "PENDING_REVIEW"
-  | "REQUIRES_CORRECTION"
-  | "CONFIRMED"
-  | "REJECTED"
-  | "CANCELLED";
-export type FormSubmissionStatus =
-  "DRAFT" | "SUBMITTED" | "PENDING_REVIEW" | "APPROVED" | "REQUIRES_CORRECTION";
-export type PaymentStatus =
-  | "NOT_REQUIRED"
-  | "AWAITING_UPLOAD"
-  | "PENDING_REVIEW"
-  | "APPROVED"
-  | "REJECTED";
-export type BundleStatus =
-  | "WAITING_FOR_MEMBERS"
-  | "PENDING_VALIDATION"
-  | "APPROVED"
-  | "REJECTED"
-  | "CANCELLED";
-export type ActivityType =
-  | "REGISTRATION_CREATED"
-  | "REGISTRATION_SUBMITTED"
-  | "ANSWERS_EDITED"
-  | "REVIEW_REQUESTED"
-  | "REGISTRATION_APPROVED"
-  | "REGISTRATION_REJECTED"
-  | "CORRECTION_REQUESTED"
-  | "PAYMENT_APPROVED"
-  | "PAYMENT_REJECTED"
-  | "BUNDLE_APPROVED"
-  | "BUNDLE_REJECTED"
-  | "NOTE_ADDED";
+export type EventGroupStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+export type OrganizerRole = "MANAGER" | "ORGANIZER";
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  nim?: string;
-  universityId?: string;
-  studyProgramId?: string;
-  graduateBatch?: string;
-  phoneNumber?: string;
-}
-export interface Event {
-  id: string;
-  name: string;
-  publicDescription: string | null;
-  coverImageUrl: string | null;
-  status: EventStatus;
-  createdAt: string;
-  createdBy?: string;
-  updatedAt: string | null;
-  updatedBy?: string;
-}
-export interface EventListSubevent {
-  id: string;
-  eventId: string;
-  name: string;
-  date: string;
-  type: SubeventType;
-  locationUrl?: string | null;
-  posterUrl?: string | null;
-  destinationUrl?: string | null;
-  position?: number;
-  visibility: SubeventVisibility;
-  status: SubeventStatus;
-}
-export interface EventListItem extends Event {
-  subevents: EventListSubevent[];
-}
-type SubeventContract = components["schemas"]["SubEventDetailResponse"]["data"];
-type UpdateSubeventContract = components["schemas"]["UpdateSubEventRequest"];
-
-export type RegistrationMode = SubeventContract["registrationMode"];
-export type ApprovalMode = SubeventContract["approvalMode"];
-
-export interface Subevent {
-  id: string;
-  eventId: string;
-  name: string;
-  publicDescription: string | null;
-  privateDescription: string | null;
-  date: string;
-  type: SubeventType;
-  locationName: string | null;
-  locationUrl: string | null;
-  posterUrl: string | null;
-  destinationUrl: string | null;
-  position: number;
-  price: number;
-  paid: boolean;
-  visibility: SubeventVisibility;
-  status: SubeventStatus;
-  isRegistrationOpen: boolean;
-  registrationMode: RegistrationMode;
-  approvalMode: ApprovalMode;
-  registrationOpensAt: string | null;
-  registrationClosesAt: string | null;
-  cancellationClosesAt: string | null;
-  autoAcceptRegistration: boolean;
-  maxParticipants: number | null;
-  maxTicketsPerUser: number | null;
-  participantCount: number;
-  submittedResponseCount: number;
-  attendanceCheckoutEnabled: boolean;
-  registrationForms: { id: string; status: string; questionCount: number }[];
-  createdAt?: string;
-  updatedAt?: string | null;
-}
-export interface EventPayload {
-  name: string;
-  publicDescription: string;
-  coverImageUrl: string | null;
-}
-export interface SubeventPayload extends UpdateSubeventContract {
-  eventId: string;
-  name: string;
-  publicDescription?: string;
-  privateDescription?: string;
-  date: string;
-  type: SubeventType;
-  locationName?: string;
-  locationUrl?: string | null;
-  posterUrl?: string | null;
-  destinationUrl?: string | null;
-  price: number;
-  paid?: boolean;
-  maxParticipants?: number | null;
-  maxTicketsPerUser?: number | null;
-  visibility: SubeventVisibility;
-}
-export interface PaginatedResponse<T> {
-  msg: string;
-  data: T[];
-  meta: {
-    page: number;
-    limit: number;
-    totalRecords: number;
-    totalPages: number;
-  };
-}
-export interface ApiItemResponse<T> {
-  msg: string;
-  data: T;
-}
-export interface PrototypeEvent {
-  id: string;
-  name: string;
-  publicDescription?: string;
-  coverImageUrl?: string;
-  status: LifecycleStatus;
-  createdAt: string;
-  createdBy: string;
-  updatedAt?: string;
-  updatedBy?: string;
-}
-export interface PrototypeSubevent {
-  id: string;
-  eventId: string;
-  name: string;
-  publicDescription?: string;
-  privateDescription?: string;
-  type: SubeventType;
-  startsAt: string;
-  endsAt: string;
-  locationName?: string;
-  locationAddress?: string;
-  locationUrl?: string;
-  capacity?: number;
-  maxTicketsPerUser: number;
-  registrationOpensAt?: string;
-  registrationClosesAt?: string;
-  editLockAt?: string;
-  autoConfirmWhenComplete: boolean;
-  status: LifecycleStatus;
-  createdAt: string;
-  createdBy: string;
-  updatedAt?: string;
-  updatedBy?: string;
-}
-export interface PaymentSetting {
-  id: string;
-  subeventId: string;
-  isPaymentRequired: boolean;
-  bankName?: string;
-  accountName?: string;
-  accountNumber?: string;
-  paymentInstructions?: string;
-  proofDeadline?: string;
-  acceptedMimeTypes: string[];
-  maximumFileSizeBytes?: number;
-}
-export interface TicketOption {
-  id: string;
-  subeventId: string;
-  name: string;
-  description?: string;
-  type: TicketType;
-  price: number;
-  currency: string;
-  bundleSize?: number;
-  capacity?: number;
-  salesOpensAt?: string;
-  salesClosesAt?: string;
-  status: TicketStatus;
-}
-export interface FormQuestionOption {
-  id: string;
-  formQuestionId: string;
-  label: string;
-  value: string;
-  orderIndex: number;
-  isActive: boolean;
-}
-export interface FormQuestion {
-  id: string;
-  formVersionId: string;
-  formSectionId: string;
-  label: string;
-  fieldKey: string;
-  fieldType: FormFieldType;
-  helpText?: string;
-  placeholder?: string;
-  isRequired: boolean;
-  validationConfig?: Record<string, unknown>;
-  orderIndex: number;
-}
-export interface FormSection {
-  id: string;
-  formVersionId: string;
-  title: string;
-  description?: string;
-  orderIndex: number;
-}
-export interface FormVersion {
-  id: string;
-  formId: string;
-  versionNumber: number;
-  status: FormVersionStatus;
-  publishedAt?: string;
-}
-export interface Form {
-  id: string;
-  name: string;
-  description?: string;
-  purpose: FormPurpose;
-  status: FormStatus;
-  createdAt: string;
-  updatedAt?: string;
-  createdBy: string;
-}
-export interface SubeventForm {
-  id: string;
-  subeventId: string;
-  formVersionId: string;
-  purpose: FormPurpose;
-  completionStage: FormCompletionStage;
-  isRequired: boolean;
-  blocksConfirmation: boolean;
-  orderIndex: number;
-  availableFrom?: string;
-  dueAt?: string;
-}
-export interface Registration {
-  id: string;
+export interface Organizer {
   userId: string;
-  subeventId: string;
-  ticketOptionId: string;
-  ticketNameSnapshot: string;
-  priceSnapshot: number;
-  finalAmountSnapshot: number;
-  status: RegistrationStatus;
-  correctionReason?: string;
-  submittedAt?: string;
-  confirmedAt?: string;
-  lastEditedAt?: string;
-  lastReviewedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-export interface FormSubmission {
-  id: string;
-  registrationId: string;
-  subeventFormId: string;
-  status: FormSubmissionStatus;
-  correctionReason?: string;
-  submittedAt?: string;
-  lastEditedAt?: string;
-  reviewedAt?: string;
-}
-export interface FormAnswer {
-  id: string;
-  formSubmissionId: string;
-  formQuestionId: string;
-  textValue?: string;
-  numberValue?: number;
-  booleanValue?: boolean;
-  dateTimeValue?: string;
-  fileId?: string;
-  selectedOptionIds?: string[];
-}
-export interface Payment {
-  id: string;
-  registrationId: string;
-  baseAmount: number;
-  expectedAmount: number;
-  status: PaymentStatus;
-  rejectionReason?: string;
-  reviewedAt?: string;
-}
-export interface PaymentProof {
-  id: string;
-  paymentId: string;
-  fileId: string;
-  isCurrent: boolean;
-  uploadedAt: string;
-  replacedAt?: string;
-}
-export interface BundleGroup {
-  id: string;
-  ticketOptionId: string;
-  leaderUserId: string;
-  referenceCode: string;
-  requiredMemberCount: number;
-  totalPriceSnapshot: number;
-  status: BundleStatus;
-  rejectionReason?: string;
-}
-export interface BundleMember {
-  bundleGroupId: string;
-  registrationId: string;
-  role: "LEADER" | "MEMBER";
-  joinedAt: string;
-}
-export interface RegistrationNote {
-  id: string;
-  registrationId: string;
-  content: string;
-  createdBy: string;
-  createdAt: string;
-}
-export interface ActivityLog {
-  id: string;
-  registrationId: string;
-  type: ActivityType;
-  description: string;
-  actorUserId?: string;
-  createdAt: string;
-}
-export interface FileRecord {
-  id: string;
-  publicUrl?: string;
-  originalName: string;
-  mimeType: string;
-  sizeBytes: number;
-  sha256?: string;
+  role: OrganizerRole;
+  user?: { id: string; name: string; email: string };
 }
 
-export interface EventData {
-  users: User[];
-  events: PrototypeEvent[];
-  subevents: PrototypeSubevent[];
-  paymentSettings: PaymentSetting[];
-  ticketOptions: TicketOption[];
-  forms: Form[];
-  formVersions: FormVersion[];
-  formSections: FormSection[];
-  formQuestions: FormQuestion[];
-  formQuestionOptions: FormQuestionOption[];
-  subeventForms: SubeventForm[];
-  registrations: Registration[];
-  formSubmissions: FormSubmission[];
-  formAnswers: FormAnswer[];
-  payments: Payment[];
-  paymentProofs: PaymentProof[];
-  bundleGroups: BundleGroup[];
-  bundleMembers: BundleMember[];
-  registrationNotes: RegistrationNote[];
-  activityLogs: ActivityLog[];
-  files: FileRecord[];
+export interface EventGroup {
+  id: string;
+  name: string;
+  publicDescription: string | null;
+  internalDescription: string | null;
+  coverImageUrl: string | null;
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  status: EventGroupStatus;
+  organizers?: Organizer[];
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface EventItem {
+  id: string;
+  eventGroupId: string | null;
+  name: string;
+  publicDescription: string | null;
+  internalDescription: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  locationName: string | null;
+  locationAddress: string | null;
+  locationUrl: string | null;
+  coverImageUrl: string | null;
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  status: EventStatus;
+  isRegistrationOpen?: boolean;
+  organizers?: Organizer[];
+  eventGroup?: {
+    id: string;
+    name: string;
+    organizers?: Organizer[];
+  } | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export type EventGroupPayload = Pick<EventGroup, "name"> &
+  Partial<
+    Pick<
+      EventGroup,
+      | "publicDescription"
+      | "internalDescription"
+      | "coverImageUrl"
+      | "primaryColor"
+      | "secondaryColor"
+    >
+  >;
+export type EventPayload = Pick<EventItem, "name"> &
+  Partial<
+    Pick<
+      EventItem,
+      | "eventGroupId"
+      | "publicDescription"
+      | "internalDescription"
+      | "startsAt"
+      | "endsAt"
+      | "locationName"
+      | "locationAddress"
+      | "locationUrl"
+      | "coverImageUrl"
+      | "primaryColor"
+      | "secondaryColor"
+    >
+  >;
+export interface DataResponse<T> {
+  data: T;
 }
