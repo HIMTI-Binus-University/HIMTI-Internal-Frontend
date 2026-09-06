@@ -7,6 +7,7 @@ export type HimtiPermission =
   | "manage_permissions"
   | "manage_events"
   | "manage_elections"
+  | "manage_certificates"
   | "view_election_results"
   | "manage_batch"
   | "create_events"
