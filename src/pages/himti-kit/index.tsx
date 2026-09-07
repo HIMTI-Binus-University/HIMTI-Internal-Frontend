@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
-import { AppWindow, BookOpen, FolderKanban } from "lucide-react";
+import { AppWindow, BookOpen, FolderKanban, Palette } from "lucide-react";
 import { PageLayout } from "@/components/Utils";
 import { gsap, useGSAP } from "@/lib/motion";
+import { AppearanceTab } from "./components/appearance-tab";
 import { ResourcesTab } from "./components/resources-tab";
 import { SoftwareTab } from "./components/software-tab";
 
-type TabType = "resources" | "software";
+type TabType = "resources" | "software" | "appearance";
 
 export default function HimtiKitDashboardPage() {
   const [activeTab, setActiveTab] = useState<TabType>("resources");
@@ -34,11 +35,11 @@ export default function HimtiKitDashboardPage() {
     >
       <div ref={containerRef} className="space-y-6">
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-border pb-1">
+        <div className="flex items-center gap-2 border-b border-border pb-1 overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab("resources")}
-            className={`inline-flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-all ${
+            className={`inline-flex shrink-0 items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-all ${
               activeTab === "resources"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"
@@ -51,7 +52,7 @@ export default function HimtiKitDashboardPage() {
           <button
             type="button"
             onClick={() => setActiveTab("software")}
-            className={`inline-flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-all ${
+            className={`inline-flex shrink-0 items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-all ${
               activeTab === "software"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"
@@ -60,11 +61,26 @@ export default function HimtiKitDashboardPage() {
             <AppWindow className="h-4 w-4" />
             <span>Software Directory</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("appearance")}
+            className={`inline-flex shrink-0 items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-all ${
+              activeTab === "appearance"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"
+            }`}
+          >
+            <Palette className="h-4 w-4" />
+            <span>Website Appearance</span>
+          </button>
         </div>
 
         {/* Tab Content */}
         <div data-tab-content key={activeTab}>
-          {activeTab === "resources" ? <ResourcesTab /> : <SoftwareTab />}
+          {activeTab === "resources" && <ResourcesTab />}
+          {activeTab === "software" && <SoftwareTab />}
+          {activeTab === "appearance" && <AppearanceTab />}
         </div>
       </div>
     </PageLayout>
