@@ -21,7 +21,7 @@ const UploadNames = () => {
   return (
     <Container>
       <ContainerHeader>Upload Template & Input Nama</ContainerHeader>
-      <div className="flex h-[calc(100vh-12rem)] gap-6 p-6">
+      <div className="flex min-h-[calc(100vh-12rem)] gap-6 p-6">
         <div className="w-1/2">
           <div className="mb-4 flex items-start gap-3 border border-border rounded-lg p-4 flex flex-col justify-center">
 

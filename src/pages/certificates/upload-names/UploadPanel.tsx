@@ -1,86 +1,112 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { CloudUpload, Info, Pencil } from "lucide-react";
-// import { Textarea } from "@/components/ui/textarea";
+import { CloudUpload, Pencil, Trash2, Upload, Eye } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import * as XLSX from "xlsx";
 
 const UploadPanel = () => {
   const [panelState, setPanelState] = useState<"input" | "review" | "edit">("input");
-  
+
+  const [showNames, setShowNames] = useState(false);
+
   type NamesInfo = {
-    sumber_data : string;
-    baris_kosong : number;
-    nama_dup : number;
-    nama_panjang : number;
-    nama_terpanjang : string;
-    lima_pertama : string[];
-    semua_nama : string[];
-    jmlh_nama_valid : number;
-  }
-  const [namesInfo, setNamesInfo] = useState<NamesInfo | null>(null);
-
-  // const [textError, setTextError] = useState<string[]>([]);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const HandleInputFile = (event : React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-
-    if(!file){
-      return;
-    };
-
-    console.log(file.name);
-    console.log(file.type);
+    sumber_data: string;
+    baris_kosong: number;
+    nama_dup: number;
+    nama_panjang: number;
+    nama_terpanjang: string;
+    lima_pertama: string[];
+    semua_nama: string[];
+    jmlh_nama_valid: number;
   };
 
+  const [namesInfo, setNamesInfo] = useState<NamesInfo | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const HandleInputText = (name_list : string | undefined) => {
-    if(!name_list){
+
+  const HandleInputFile = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
       return;
-    };
+    }
 
-    const raw_lines = name_list.split('\n');
+    const data = await file.arrayBuffer();
 
-    let baris_kosong = 0
+    const workbook = XLSX.read(data, { type: "array" });
+
+    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+
+    const rows = XLSX.utils.sheet_to_json(firstSheet, {
+      header: 1,
+      defval: "",
+    }) as string[][];
+
+    const names = rows
+      .map((row) => String(row[0]).trim())
+      .filter((name) => name !== "");
+
+    const text = names.join("\n");
+
+    HandleInputText(text, file.name);
+  };
+
+  const HandleInputText = (name_list: string | undefined, sumber_data: string = "Text") => {
+    if (!name_list) {
+      return;
+    }
+
+    const raw_lines = name_list.split("\n");
+
+    let baris_kosong = 0;
     let nama_panjang = 0;
     let nama_terpanjang = "";
+
     const seen = new Set<string>();
+
     let nama_dup = 0;
     const semua_nama: string[] = [];
     let jmlh_nama_valid = 0;
 
-    for (const cur_line of raw_lines){
+    for (const cur_line of raw_lines) {
       const nama = cur_line.trim();
 
-      if(nama === ""){
+      if (nama === "") {
         baris_kosong++;
-        //yg ini no error
         continue;
       }
 
-      //Add to error
-      if(nama.length > 150){
+      if (nama.length > 150) {
         nama_panjang++;
-        // add error 1 nama lebih dari 150 karakter dilewati.
         continue;
       }
 
-      if(nama.length > nama_terpanjang.length){
+      if (nama.length > nama_terpanjang.length) {
         nama_terpanjang = nama;
       }
 
       const key = nama.toLowerCase();
+
       if (seen.has(key)) {
-        // add error 1 nama duplikat dipertahankan
         nama_dup++;
         continue;
       }
+
       seen.add(key);
       jmlh_nama_valid++;
       semua_nama.push(cur_line);
-    };
+    }
 
     setNamesInfo({
-      sumber_data: "Teks",
+      sumber_data,
       baris_kosong,
       nama_dup,
       nama_panjang,
@@ -93,107 +119,311 @@ const UploadPanel = () => {
     setPanelState("review");
   };
 
+  const textareaClass =
+    "w-full min-h-[180px] resize-none rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20";
+
   switch (panelState) {
     case "input":
       return (
         <div className="w-full">
-          <div className="flex h-full flex-col gap-4 overflow-auto mt-5">
+          <div className="mt-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-foreground">
+                Add participant list
+              </h2>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                Upload file or enter list of names manually
+              </p>
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx"
+              className="hidden"
+              onChange={HandleInputFile}
+            />
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="group w-full rounded-xl border border-dashed border-border bg-muted/30 p-5 text-left transition hover:border-primary/50 hover:bg-muted/60"
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                  <CloudUpload className="h-5 w-5 text-primary" />
+                </div>
+
+                <div>
+                  <p className="font-medium text-foreground">
+                    Upload XLSX or CSV File
+                  </p>
+
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    The first column that contains data will be used
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            <div className="my-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs font-medium text-muted-foreground">
+                Or
+              </span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+
             <div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv,.xlsx"
-                className="hidden"
-                onChange={HandleInputFile}
+              <label className="text-sm font-medium text-foreground">
+                Write lists of names
+              </label>
+
+              <textarea
+                ref={textareaRef}
+                className={`${textareaClass} mt-3`}
+                placeholder={`John Doe
+Jad Abyanza Fauzan`}
               />
 
-              <Button 
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full flex flex-row items-center justify-start h-auto items-start gap-1 px-4 py-3 text-left whitespace-normal">
-                <div className="rounded-lg bg-transparent p-2">
-                  <CloudUpload className="h-5 w-5 text-blue-600" />
-                </div>
-                <div className="flex flex-col">
-                  <p>Unggah XLSX atau CSV</p>
-                  <p className="mt-2 text-xs text-muted-foreground">Kolom pertama yang berisi data yang akan digunakan.</p>
-                </div>
-              </Button>
+              <div className="mt-2 flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Maximum of 150 characters per name
+                </p>
 
-              <br></br>
-
-              <p>Menulis Daftar Nama</p>
-              <textarea 
-              ref={textareaRef}
-              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20" 
-              placeholder="John Doe
-Jad Abyanza Fauzan">
-              </textarea>
-              <p className="mt-2 text-xs text-muted-foreground">Satu baris dianggap satu nama. Maksimal 150 karakter per nama.</p>
-
-              <Button className="" onClick={() => HandleInputText(textareaRef.current?.value)}>Gunakan daftar ini</Button>
+                <Button
+                  onClick={() =>
+                    HandleInputText(textareaRef.current?.value)
+                  }
+                  className="rounded-lg"
+                >
+                  Use this list
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       );
-  
+
     case "review":
-      return(
+      return (
         <div className="w-full">
-          <div className="flex h-full flex-col gap-4 overflow-auto mt-5">
-            <div className="bg-card p-8">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx"
+            className="hidden"
+            onChange={HandleInputFile}
+          />
 
-              <div className="rounded-lg border border-border p-3 flex flex-row mt-2">
-                <p>Sumber Data : {namesInfo?.sumber_data}</p>
-                <p className="ml-auto">{namesInfo?.jmlh_nama_valid} nama valid</p>
+          <div className="mt-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-foreground">
+                Check list name
+              </h2>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                Make sure the participant data is correct
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border bg-muted/30 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Data Source
+                  </p>
+
+                  <p className="mt-1 font-medium text-foreground">
+                    {namesInfo?.sumber_data}
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-primary">
+                    {namesInfo?.jmlh_nama_valid}
+                  </p>
+
+                  <p className="text-xs text-muted-foreground">
+                    Valid name
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-border bg-background p-4">
+                <p className="text-2xl font-semibold text-foreground">
+                  {namesInfo?.baris_kosong}
+                </p>
+
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Empty row skipped
+                </p>
               </div>
 
-              <div className="rounded-lg border border-border p-3">
-                <p className="mt-1 text-sm text-gray-500">Baris kosong dilewati : {namesInfo?.baris_kosong}</p>
-                <p className="mt-1 text-sm text-gray-500">Nama Duplikat :  {namesInfo?.nama_dup}</p>
-                <p className="mt-1 text-sm text-gray-500">Nama terlalu panjang : {namesInfo?.nama_panjang}</p>
+              <div className="rounded-xl border border-border bg-background p-4">
+                <p className="text-2xl font-semibold text-foreground">
+                  {namesInfo?.nama_dup}
+                </p>
+
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Duplicate names
+                </p>
               </div>
 
-              <div className="rounded-lg p-5 bg-orange flex flex-row">
-                <Info className="h-5 w-5 text-blue-600"/>
-              </div>
+              <div className="rounded-xl border border-border bg-background p-4">
+                <p className="text-2xl font-semibold text-foreground">
+                  {namesInfo?.nama_panjang}
+                </p>
 
-              <p className="mt-1 text-sm text-gray-500">Lima nama pertama :</p>
-              <div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Overly long names
+                </p>
+              </div>
+            </div>
+
+            {/* First five names */}
+            <div className="mt-6">
+              <p className="text-sm font-medium text-foreground">
+                First five names
+              </p>
+
+              <div className="mt-2 overflow-hidden rounded-xl border border-border">
                 {namesInfo?.lima_pertama.map((nama, i) => (
-                  <p key={i}>{nama}</p>
+                  <div
+                    key={i}
+                    className="border-b border-border px-4 py-3 text-sm last:border-b-0"
+                  >
+                    <span className="mr-3 text-muted-foreground">
+                      {i + 1}.
+                    </span>
+
+                    <span className="text-foreground">{nama}</span>
+                  </div>
                 ))}
               </div>
-              
-              <p>Nama terpanjang : {namesInfo?.nama_terpanjang}</p>
+            </div>
 
-              <div>
-                <Button className="rounded-full border bg-transparent hover:bg-transparen">Lihat seluruh daftar</Button>
-                <Button className="rounded-full border bg-transparent hover:bg-transparen" onClick={() => setPanelState("edit")}><Pencil/>Edit daftar</Button>
-                <Button className="rounded-full border bg-transparent hover:bg-transparen">Ganti data</Button>  
-              </div>
+            {/* Longest name */}
+            <div className="mt-4 rounded-xl bg-muted/40 px-4 py-3">
+              <p className="text-xs font-medium text-muted-foreground">
+                Longest name
+              </p>
 
-              <Button className="bg-transparent text-red-500 hover:bg-transparent hover:text-red-600" onClick={() => setPanelState("input")}>Hapus</Button>
+              <p className="mt-1 break-words text-sm text-foreground">
+                {namesInfo?.nama_terpanjang}
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                className="rounded-full"
+                onClick={() => setShowNames(true)}
+              >
+                <Eye className="mr-2 h-4 w-4"/>
+                View full list
+              </Button>
+
+              <Button
+                variant="outline"
+                className="rounded-full"
+                onClick={() => setPanelState("edit")}
+              >
+                <Pencil className="mr-2 h-4 w-4"/>
+                Edit list
+              </Button>
+
+              <Button
+                variant="outline"
+                className="rounded-full"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="mr-2 h-4 w-4"/>
+                Change data
+              </Button>
+            </div>
+
+            <div className="mt-4 border-t border-border pt-4">
+              <Button
+                variant="ghost"
+                className="rounded-lg px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setPanelState("input")}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </Button>
             </div>
           </div>
+
+          <Dialog open={showNames} onOpenChange={setShowNames}>
+            <DialogContent className="max-h-[80vh] overflow-hidden rounded-2xl">
+              <DialogHeader>
+                <DialogTitle>Seluruh daftar peserta</DialogTitle>
+              </DialogHeader>
+
+              <p className="text-sm text-muted-foreground">
+                {namesInfo?.jmlh_nama_valid} valid names.
+              </p>
+
+              <div className="max-h-[55vh] overflow-y-auto rounded-xl border border-border">
+                {namesInfo?.semua_nama.map((nama, i) => (
+                  <div
+                    key={i}
+                    className="border-b border-border px-4 py-3 text-sm last:border-b-0"
+                  >
+                    <span className="mr-3 text-muted-foreground">
+                      {i + 1}.
+                    </span>
+
+                    <span className="text-foreground">{nama}</span>
+                  </div>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       );
 
     case "edit":
-      return(
+      return (
         <div className="w-full">
-          <div className="flex h-full flex-col gap-4 overflow-auto mt-5">
-            <p>Edit daftar nama</p>
+          <div className="mt-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="mb-5">
+              <h2 className="text-lg font-semibold text-foreground">
+                Edit list names
+              </h2>
+            </div>
 
-             <textarea 
+            <textarea
               ref={textareaRef}
-              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20" 
+              defaultValue={namesInfo?.semua_nama.join("\n")}
+              className={textareaClass}
             />
 
-            <p className="mt-2 text-xs text-muted-foreground">Satu baris dianggap satu nama. Maksimal 150 karakter per nama.</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              One line equals one name. Maximum 150 characters per name.
+            </p>
 
-            <div>
-              <Button onClick={() => HandleInputText(textareaRef.current?.value)}>Simpan daftar</Button>
-              <Button onClick={() => setPanelState("review")}>Batal</Button>
+            <div className="mt-5 flex gap-2">
+              <Button
+                onClick={() =>
+                  HandleInputText(textareaRef.current?.value)
+                }
+                className="rounded-lg"
+              >
+                Save list
+              </Button>
+
+              <Button
+                variant="outline"
+                className="rounded-lg"
+                onClick={() => setPanelState("review")}
+              >
+                Cancel
+              </Button>
             </div>
           </div>
         </div>
