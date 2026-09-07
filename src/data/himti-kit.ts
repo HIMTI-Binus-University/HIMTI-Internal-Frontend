@@ -4,7 +4,7 @@ export const initialHimtiKitResources: HimtiKitResource[] = [
   {
     id: "res-1",
     title: "Data Structures & Algorithms Comprehensive Notes",
-    semester: 2,
+    major: "Computer Science",
     coverImageUrl: "https://images.unsplash.com/photo-1516116211227-bbc13c7d690c?w=600&auto=format&fit=crop&q=80",
     resourceUrl: "https://drive.google.com/drive/folders/example-dsa",
     description: "In-depth summary covering Trees, Graphs, Sorting algorithms, and Big-O asymptotic analysis.",
@@ -12,30 +12,39 @@ export const initialHimtiKitResources: HimtiKitResource[] = [
   },
   {
     id: "res-2",
-    title: "Linear Algebra & Engineering Mathematics",
-    semester: 1,
+    title: "Linear Algebra & Neural Foundations",
+    major: "Artificial Intelligence",
     coverImageUrl: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop&q=80",
     resourceUrl: "https://drive.google.com/drive/folders/example-math",
-    description: "Matrix operations, eigenvalues, vector spaces, and exam preparation cheat sheets.",
+    description: "Matrix operations, eigenvalues, gradient descent, and neural network mathematical foundations.",
     createdAt: "2026-03-05T09:30:00Z",
   },
   {
     id: "res-3",
-    title: "Database Systems & SQL Design Patterns",
-    semester: 3,
+    title: "Database Systems & Big Data Engineering",
+    major: "Data Science",
     coverImageUrl: "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=600&auto=format&fit=crop&q=80",
     resourceUrl: "https://drive.google.com/drive/folders/example-db",
-    description: "Relational database normalization (1NF-3NF), ERD design, indexing strategies, and PostgreSQL queries.",
+    description: "Relational normalization (1NF-3NF), ERD design, PostgreSQL queries, and ETL pipelines.",
     createdAt: "2026-03-10T11:15:00Z",
   },
   {
     id: "res-4",
-    title: "Operating Systems & Concurrency Guide",
-    semester: 4,
+    title: "Operating Systems & Network Penetration Testing",
+    major: "Cyber Security",
     coverImageUrl: "https://images.unsplash.com/photo-1629654297299-c8506221ca97?w=600&auto=format&fit=crop&q=80",
-    resourceUrl: "https://drive.google.com/drive/folders/example-os",
-    description: "Process synchronization, deadlocks, memory virtualization, and paging systems.",
+    resourceUrl: "https://drive.google.com/drive/folders/example-sec",
+    description: "Linux kernel architecture, memory vulnerabilities, buffer overflow, and network packet analysis.",
     createdAt: "2026-03-15T14:00:00Z",
+  },
+  {
+    id: "res-5",
+    title: "Game Engine Architecture & 3D Math with Unity",
+    major: "Game Application and Technology",
+    coverImageUrl: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80",
+    resourceUrl: "https://drive.google.com/drive/folders/example-gat",
+    description: "Vector physics, rendering pipelines, shaders, game loops, and C# scripting fundamentals.",
+    createdAt: "2026-03-18T16:00:00Z",
   },
 ];
 
@@ -75,7 +84,7 @@ export const initialHimtiKitSoftwares: HimtiKitSoftware[] = [
 ];
 
 // LocalStorage helpers for persistent mock testing
-const RESOURCES_STORAGE_KEY = "himti_kit_mock_resources";
+const RESOURCES_STORAGE_KEY = "himti_kit_mock_resources_v2";
 const SOFTWARES_STORAGE_KEY = "himti_kit_mock_softwares";
 
 export const getStoredResources = (): HimtiKitResource[] => {

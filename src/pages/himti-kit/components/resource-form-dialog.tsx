@@ -10,9 +10,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type {
-  CreateHimtiKitResourceInput,
-  HimtiKitResource,
+import {
+  BINUS_IT_MAJORS,
+  type CreateHimtiKitResourceInput,
+  type HimtiKitResource,
 } from "@/types/himti-kit";
 
 interface ResourceFormDialogProps {
@@ -31,7 +32,7 @@ export function ResourceFormDialog({
   isLoading,
 }: ResourceFormDialogProps) {
   const [title, setTitle] = useState("");
-  const [semester, setSemester] = useState<number | string>(1);
+  const [major, setMajor] = useState<string>("Computer Science");
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const [resourceUrl, setResourceUrl] = useState("");
   const [description, setDescription] = useState("");
@@ -40,13 +41,13 @@ export function ResourceFormDialog({
   useEffect(() => {
     if (initialData) {
       setTitle(initialData.title);
-      setSemester(initialData.semester);
+      setMajor(initialData.major || "Computer Science");
       setCoverImageUrl(initialData.coverImageUrl ?? "");
       setResourceUrl(initialData.resourceUrl);
       setDescription(initialData.description ?? "");
     } else {
       setTitle("");
-      setSemester(1);
+      setMajor("Computer Science");
       setCoverImageUrl("");
       setResourceUrl("");
       setDescription("");
@@ -60,6 +61,10 @@ export function ResourceFormDialog({
       setError("Title is required.");
       return;
     }
+    if (!major.trim()) {
+      setError("Jurusan is required.");
+      return;
+    }
     if (!resourceUrl.trim()) {
       setError("Download/Resource URL is required.");
       return;
@@ -69,7 +74,7 @@ export function ResourceFormDialog({
       setError(null);
       await onSubmit({
         title: title.trim(),
-        semester: Number(semester) || semester,
+        major: major.trim(),
         coverImageUrl: coverImageUrl.trim() || null,
         resourceUrl: resourceUrl.trim(),
         description: description.trim() || null,
@@ -91,7 +96,7 @@ export function ResourceFormDialog({
               {initialData ? "Edit Learning Material" : "Add Learning Material"}
             </DialogTitle>
             <DialogDescription>
-              Provide resource details, download link, and semester for student access.
+              Provide material details, target Jurusan IT, and download link for student access.
             </DialogDescription>
           </DialogHeader>
 
@@ -117,19 +122,22 @@ export function ResourceFormDialog({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="resource-semester">
-                  Semester <span className="text-destructive">*</span>
+                <Label htmlFor="resource-major">
+                  Jurusan IT <span className="text-destructive">*</span>
                 </Label>
-                <Input
-                  id="resource-semester"
-                  type="number"
-                  min={1}
-                  max={8}
-                  placeholder="1 - 8"
-                  value={semester}
-                  onChange={(e) => setSemester(e.target.value)}
+                <select
+                  id="resource-major"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={major}
+                  onChange={(e) => setMajor(e.target.value)}
                   required
-                />
+                >
+                  {BINUS_IT_MAJORS.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-1.5">
@@ -180,7 +188,7 @@ export function ResourceFormDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Saving..." : initialData ? "Update Resource" : "Create Resource"}
+              {isLoading ? "Saving..." : initialData ? "Update Material" : "Create Material"}
             </Button>
           </DialogFooter>
         </form>

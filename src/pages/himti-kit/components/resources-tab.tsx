@@ -20,12 +20,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { CreateHimtiKitResourceInput, HimtiKitResource } from "@/types/himti-kit";
+import {
+  BINUS_IT_MAJORS,
+  type CreateHimtiKitResourceInput,
+  type HimtiKitResource,
+} from "@/types/himti-kit";
 import { ResourceFormDialog } from "./resource-form-dialog";
 
 export function ResourcesTab() {
   const [search, setSearch] = useState("");
-  const [selectedSemester, setSelectedSemester] = useState<string>("ALL");
+  const [selectedMajor, setSelectedMajor] = useState<string>("ALL");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingResource, setEditingResource] = useState<HimtiKitResource | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<HimtiKitResource | null>(null);
@@ -35,16 +39,20 @@ export function ResourcesTab() {
   const updateMutation = useUpdateHimtiKitResource();
   const deleteMutation = useDeleteHimtiKitResource();
 
+  const filterOptions = ["ALL", ...BINUS_IT_MAJORS.filter((m) => m !== "All Majors")];
+
   const filteredResources = useMemo(() => {
     return resources.filter((item) => {
       const matchSearch =
         item.title.toLowerCase().includes(search.toLowerCase()) ||
         (item.description && item.description.toLowerCase().includes(search.toLowerCase()));
-      const matchSemester =
-        selectedSemester === "ALL" || String(item.semester) === selectedSemester;
-      return matchSearch && matchSemester;
+      const matchMajor =
+        selectedMajor === "ALL" ||
+        item.major === selectedMajor ||
+        item.major === "All Majors";
+      return matchSearch && matchMajor;
     });
-  }, [resources, search, selectedSemester]);
+  }, [resources, search, selectedMajor]);
 
   const handleOpenCreate = () => {
     setEditingResource(null);
@@ -74,40 +82,42 @@ export function ResourcesTab() {
   return (
     <div className="space-y-6">
       {/* Search and Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="w-full sm:max-w-md">
-          <SearchField
-            id="resource-search"
-            label="Search learning materials"
-            placeholder="Search by title or topic..."
-            value={search}
-            onChange={setSearch}
-            className="relative w-full"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card p-1 text-xs">
-            {["ALL", "1", "2", "3", "4", "5", "6", "7", "8"].map((sem) => (
-              <button
-                key={sem}
-                type="button"
-                onClick={() => setSelectedSemester(sem)}
-                className={`rounded px-2.5 py-1 font-medium transition-colors ${
-                  selectedSemester === sem
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {sem === "ALL" ? "All Semesters" : `Sem ${sem}`}
-              </button>
-            ))}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="w-full sm:max-w-md">
+            <SearchField
+              id="resource-search"
+              label="Search learning materials"
+              placeholder="Search by title or topic..."
+              value={search}
+              onChange={setSearch}
+              className="relative w-full"
+            />
           </div>
 
-          <Button size="sm" onClick={handleOpenCreate} className="gap-1.5">
+          <Button size="sm" onClick={handleOpenCreate} className="gap-1.5 self-start sm:self-auto">
             <Plus className="h-4 w-4" />
             <span>Add Material</span>
           </Button>
+        </div>
+
+        {/* Major / Jurusan Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+          <span className="shrink-0 font-medium text-muted-foreground mr-1">Jurusan:</span>
+          {filterOptions.map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => setSelectedMajor(opt)}
+              className={`shrink-0 rounded-lg px-3 py-1.5 font-medium transition-all ${
+                selectedMajor === opt
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "border border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+              }`}
+            >
+              {opt === "ALL" ? "All Jurusan" : opt}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -136,8 +146,8 @@ export function ResourcesTab() {
             icon={BookOpen}
             title="No learning materials found"
             description={
-              search || selectedSemester !== "ALL"
-                ? "Try adjusting your search query or semester filter."
+              search || selectedMajor !== "ALL"
+                ? "Try adjusting your search query or jurusan filter."
                 : "No learning materials have been uploaded yet. Click 'Add Material' to create one."
             }
           />
@@ -149,7 +159,7 @@ export function ResourcesTab() {
                 className="flex flex-col justify-between overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
               >
                 <div>
-                  {/* Cover Preview */}
+                  {/* Cover Preview & Jurusan Tag */}
                   <div className="relative h-36 w-full bg-muted/30">
                     {resource.coverImageUrl ? (
                       <img
@@ -166,10 +176,9 @@ export function ResourcesTab() {
                       </div>
                     )}
                     <Badge
-                      variant="secondary"
-                      className="absolute right-3 top-3 border border-border/80 bg-background/90 text-xs font-semibold backdrop-blur"
+                      className="absolute right-3 top-3 border border-border/80 bg-background/90 text-xs font-semibold text-foreground backdrop-blur"
                     >
-                      Semester {resource.semester}
+                      {resource.major || "General IT"}
                     </Badge>
                   </div>
 
@@ -179,7 +188,7 @@ export function ResourcesTab() {
                       {resource.title}
                     </h3>
                     {resource.description && (
-                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                      <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                         {resource.description}
                       </p>
                     )}
