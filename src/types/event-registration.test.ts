@@ -40,6 +40,7 @@ describe("event registration payload helpers", () => {
   it("rejects duplicate form field keys", () => {
     expect(
       validateRegistrationFormDraft({
+        expectedRevision: 0,
         name: "Registration",
         sections: [
           {

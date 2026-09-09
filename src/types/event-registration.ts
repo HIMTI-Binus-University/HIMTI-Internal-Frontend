@@ -15,6 +15,38 @@ export type RegistrationForm = components["schemas"]["EventRegistrationForm"];
 export type RegistrationSettings =
   components["schemas"]["EventRegistrationSettings"];
 
+export type RegistrationSettingsDraft = Omit<
+  RegistrationSettingsPayload,
+  | "registrationOpensAt"
+  | "registrationClosesAt"
+  | "cancellationClosesAt"
+  | "capacity"
+  | "paymentProofMaxBytes"
+> & {
+  registrationOpensAt: string;
+  registrationClosesAt: string;
+  cancellationClosesAt: string;
+  capacity: string;
+};
+
+export const buildRegistrationSettingsPayload = (
+  draft: RegistrationSettingsDraft,
+): RegistrationSettingsPayload => ({
+  isRegistrationOpen: draft.isRegistrationOpen,
+  registrationOpensAt: isoOrNull(draft.registrationOpensAt),
+  registrationClosesAt: isoOrNull(draft.registrationClosesAt),
+  cancellationClosesAt: isoOrNull(draft.cancellationClosesAt),
+  capacity: draft.capacity ? Number(draft.capacity) : null,
+  paymentCurrency: draft.paymentCurrency,
+  paymentBankName: draft.paymentBankName,
+  paymentAccountNumber: draft.paymentAccountNumber,
+  paymentAccountHolder: draft.paymentAccountHolder,
+  paymentInstructions: draft.paymentInstructions,
+  attendanceEnabled: draft.attendanceEnabled,
+  attendanceCheckoutEnabled:
+    draft.attendanceEnabled && draft.attendanceCheckoutEnabled,
+});
+
 export type PackageDraft = {
   name: string;
   description: string;
@@ -29,6 +61,7 @@ export interface FormOptionDraft {
   value: string;
 }
 export interface FormQuestionDraft {
+  logicalId?: string;
   fieldKey: string;
   label: string;
   type: QuestionType;
@@ -42,6 +75,7 @@ export interface FormSectionDraft {
   questions: FormQuestionDraft[];
 }
 export interface RegistrationFormDraft {
+  expectedRevision?: number;
   name: string;
   description: string;
   sections: FormSectionDraft[];
@@ -60,6 +94,7 @@ export const buildRegistrationFormPayload = (
   draft: RegistrationFormDraft,
 ): RegistrationFormPayload =>
   ({
+    expectedRevision: draft.expectedRevision ?? 0,
     name: draft.name.trim(),
     description: draft.description.trim() || null,
     sections: draft.sections.map((section) => ({

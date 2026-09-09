@@ -6,6 +6,7 @@ import {
   useSetEventPackageActive,
 } from "@/api/event-registration/queries";
 import { StatusBadge } from "@/components/events/StatusBadge";
+import { ConfirmAction } from "@/components/events/ConfirmAction";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -23,6 +24,7 @@ import {
   emptyPackageDraft,
   validatePackageDraft,
 } from "@/types/event-registration";
+import { backendMessage, useNotification } from "@/components/notification";
 
 const currency = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -49,6 +51,7 @@ export function EventPackages({
   const query = useEventPackages(eventId);
   const save = useSaveEventPackage(eventId);
   const setActive = useSetEventPackageActive(eventId);
+  const notify = useNotification();
   const [editing, setEditing] = useState<EventPackage | null | undefined>();
   const [draft, setDraft] = useState<PackageDraft>(emptyPackageDraft);
   const [error, setError] = useState("");
@@ -74,7 +77,14 @@ export function EventPackages({
     if (problem) return setError(problem);
     save.mutate(
       { id: editing?.id, body: buildPackagePayload(draft) },
-      { onSuccess: () => setEditing(undefined) },
+      {
+        onSuccess: () => {
+          notify(editing ? "Package changes saved." : "Package created.");
+          setEditing(undefined);
+        },
+        onError: (cause) =>
+          notify(backendMessage(cause, "Could not save package."), "error"),
+      },
     );
   };
   return (
@@ -149,20 +159,40 @@ export function EventPackages({
                   </div>
                 </dl>
                 {canEdit && (
-                  <Button
-                    className="mt-4"
-                    size="sm"
-                    variant={item.status === "ACTIVE" ? "secondary" : "default"}
-                    disabled={setActive.isPending}
-                    onClick={() =>
-                      setActive.mutate({
+                  <ConfirmAction
+                    successMessage={
+                      item.status === "ACTIVE"
+                        ? "Package deactivated."
+                        : "Package activated."
+                    }
+                    label={
+                      item.status === "ACTIVE"
+                        ? "Deactivate package"
+                        : "Activate package"
+                    }
+                    description={
+                      item.status === "ACTIVE"
+                        ? `Make "${item.name}" unavailable for new registrations.`
+                        : `Make "${item.name}" eligible for new registrations, subject to its sales dates and event registration settings.`
+                    }
+                    onConfirm={() =>
+                      setActive.mutateAsync({
                         id: item.id,
                         active: item.status !== "ACTIVE",
                       })
                     }
                   >
-                    {item.status === "ACTIVE" ? "Deactivate" : "Activate"}
-                  </Button>
+                    <Button
+                      className="mt-4"
+                      size="sm"
+                      variant={
+                        item.status === "ACTIVE" ? "secondary" : "default"
+                      }
+                      disabled={setActive.isPending}
+                    >
+                      {item.status === "ACTIVE" ? "Deactivate" : "Activate"}
+                    </Button>
+                  </ConfirmAction>
                 )}
               </CardContent>
             </Card>

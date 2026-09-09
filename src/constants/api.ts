@@ -63,6 +63,7 @@ export const Api = {
   eventGroupArchive: "/api/internal/event-groups/:id/archive",
   eventGroupOrganizers: "/api/internal/event-groups/:id/organizers",
   events: "/api/internal/events",
+  eventGroupOptions: "/api/internal/events/event-group-options",
   event: "/api/internal/events/:id",
   eventPublish: "/api/internal/events/:id/publish",
   eventClose: "/api/internal/events/:id/close",

@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, Copy, Eye, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, Plus, Trash2 } from "lucide-react";
 import {
   useRegistrationForm,
   useRegistrationFormAction,
   useSaveRegistrationForm,
 } from "@/api/event-registration/queries";
 import { StatusBadge } from "@/components/events/StatusBadge";
+import { ConfirmAction } from "@/components/events/ConfirmAction";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { backendMessage, useNotification } from "@/components/notification";
 import {
   Select,
   SelectContent,
@@ -55,18 +57,21 @@ export function RegistrationFormBuilder({
   const query = useRegistrationForm(eventId);
   const save = useSaveRegistrationForm(eventId);
   const action = useRegistrationFormAction(eventId);
+  const notify = useNotification();
   const [draft, setDraft] = useState<RegistrationFormDraft>(emptyForm);
   const [message, setMessage] = useState("");
   const [preview, setPreview] = useState(false);
   useEffect(() => {
     if (!query.data) return;
     setDraft({
+      expectedRevision: query.data.revision,
       name: query.data.name,
       description: query.data.description ?? "",
       sections: query.data.sections.map((section) => ({
         title: section.title,
         description: section.description ?? "",
         questions: section.questions.map((question) => ({
+          logicalId: question.logicalId,
           fieldKey: question.fieldKey,
           label: question.label,
           type: question.type,
@@ -110,11 +115,19 @@ export function RegistrationFormBuilder({
   const saveDraft = () => {
     const problem = validateRegistrationFormDraft(payload);
     if (problem) return setMessage(problem);
-    save.mutate(payload, { onSuccess: () => setMessage("Draft saved.") });
+    save.mutate(payload, {
+      onSuccess: () => {
+        setMessage("Registration form saved.");
+        notify("Registration form saved.");
+      },
+      onError: (cause) =>
+        notify(
+          backendMessage(cause, "Could not save registration form."),
+          "error",
+        ),
+    });
   };
-  const run = (
-    name: "validate" | "preview" | "publish" | "close" | "duplicate",
-  ) => {
+  const run = (name: "validate" | "preview" | "publish" | "close") => {
     setMessage("");
     action.mutate(name, {
       onSuccess: () => {
@@ -124,7 +137,19 @@ export function RegistrationFormBuilder({
             : `${name[0].toUpperCase()}${name.slice(1)} complete.`,
         );
         if (name === "preview") setPreview(true);
+        notify(
+          name === "validate"
+            ? "Registration form is valid."
+            : name === "preview"
+              ? "Registration form preview generated."
+              : `Registration form ${name}d.`,
+        );
       },
+      onError: (cause) =>
+        notify(
+          backendMessage(cause, `Could not ${name} registration form.`),
+          "error",
+        ),
     });
   };
   if (query.isLoading)
@@ -173,6 +198,8 @@ export function RegistrationFormBuilder({
                   disabled={!canEdit}
                 />
                 <OrderButtons
+                  target={section.title || `Section ${sectionIndex + 1}`}
+                  kind="section"
                   onUp={() =>
                     setDraft({
                       ...draft,
@@ -226,6 +253,8 @@ export function RegistrationFormBuilder({
                       disabled={!canEdit}
                     />
                     <OrderButtons
+                      target={question.label || `Question ${questionIndex + 1}`}
+                      kind="question"
                       onUp={() =>
                         setSection(sectionIndex, {
                           questions: move(section.questions, questionIndex, -1),
@@ -351,22 +380,28 @@ export function RegistrationFormBuilder({
                             }
                             disabled={!canEdit}
                           />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Remove option"
-                            onClick={() =>
+                          <ConfirmAction
+                            notify={false}
+                            label="Remove option"
+                            description={`Remove "${option.label || `Option ${optionIndex + 1}`}" from "${question.label}" in the local draft. Save draft to persist this change.`}
+                            onConfirm={() =>
                               setQuestion(sectionIndex, questionIndex, {
                                 options: question.options.filter(
                                   (_, at) => at !== optionIndex,
                                 ),
                               })
                             }
-                            disabled={!canEdit}
                           >
-                            <Trash2 />
-                          </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Remove option"
+                              disabled={!canEdit}
+                            >
+                              <Trash2 />
+                            </Button>
+                          </ConfirmAction>
                         </div>
                       ))}
                       {canEdit && (
@@ -493,13 +528,27 @@ export function RegistrationFormBuilder({
       <aside>
         <Card className="sticky top-4">
           <CardHeader>
-            <CardTitle>Draft actions</CardTitle>
+            <CardTitle>Form actions</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2">
-            {canEdit && (
-              <Button onClick={saveDraft} disabled={save.isPending}>
-                Save draft
-              </Button>
+            {canEdit && status === "PUBLISHED" ? (
+              <ConfirmAction
+                notify={false}
+                label="Save and publish changes"
+                description="Changes take effect immediately for new registrations. New questions are assigned to every existing active participant, including unfinished registrations and participants awaiting payment. Original answers are preserved. Deleted questions withdraw unanswered additional requests. No notifications are sent: contact participants manually."
+                onConfirm={saveDraft}
+              >
+                <Button disabled={save.isPending || action.isPending}>
+                  Save changes
+                </Button>
+              </ConfirmAction>
+            ) : (
+              canEdit &&
+              status === "DRAFT" && (
+                <Button onClick={saveDraft} disabled={save.isPending}>
+                  Save draft
+                </Button>
+              )
             )}
             <Button
               variant="secondary"
@@ -517,31 +566,33 @@ export function RegistrationFormBuilder({
               Preview
             </Button>
             {canEdit && status === "DRAFT" && (
-              <Button
-                onClick={() => run("publish")}
-                disabled={!query.data || action.isPending}
+              <ConfirmAction
+                label="Publish form"
+                successMessage="Registration form published."
+                description={`Publish the saved form "${query.data?.name}" for registration. Unsaved edits are not included.`}
+                onConfirm={() => action.mutateAsync("publish")}
               >
-                Publish
-              </Button>
+                <Button
+                  disabled={!query.data || action.isPending || save.isPending}
+                >
+                  Publish
+                </Button>
+              </ConfirmAction>
             )}
             {canEdit && status === "PUBLISHED" && (
-              <Button
-                variant="secondary"
-                onClick={() => run("close")}
-                disabled={action.isPending}
+              <ConfirmAction
+                label="Close form"
+                successMessage="Registration form closed."
+                description={`Close "${query.data?.name}" so it is no longer the published form available for new registrations.`}
+                onConfirm={() => action.mutateAsync("close")}
               >
-                Close form
-              </Button>
-            )}
-            {canEdit && status !== "DRAFT" && (
-              <Button
-                variant="secondary"
-                onClick={() => run("duplicate")}
-                disabled={action.isPending}
-              >
-                <Copy />
-                Duplicate to draft
-              </Button>
+                <Button
+                  variant="secondary"
+                  disabled={action.isPending || save.isPending}
+                >
+                  Close form
+                </Button>
+              </ConfirmAction>
             )}
             <p
               aria-live="polite"
@@ -737,11 +788,15 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 function OrderButtons({
+  target,
+  kind,
   onUp,
   onDown,
   remove,
   disabled,
 }: {
+  target: string;
+  kind: "section" | "question";
   onUp: () => void;
   onDown: () => void;
   remove: () => void;
@@ -769,16 +824,22 @@ function OrderButtons({
       >
         <ArrowDown />
       </Button>
-      <Button
-        type="button"
-        size="icon"
-        variant="ghost"
-        aria-label="Remove"
-        onClick={remove}
-        disabled={disabled}
+      <ConfirmAction
+        notify={false}
+        label={`Remove ${kind}`}
+        description={`Remove "${target}"${kind === "section" ? " and all its questions" : " and its options"} from the local draft. Save draft to persist this change.`}
+        onConfirm={remove}
       >
-        <Trash2 />
-      </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          aria-label={`Remove ${kind}`}
+          disabled={disabled}
+        >
+          <Trash2 />
+        </Button>
+      </ConfirmAction>
     </div>
   );
 }

@@ -32,15 +32,16 @@ type PublishFormResponse =
   operations["publishEventRegistrationForm"]["responses"][200]["content"]["application/json"];
 type CloseFormResponse =
   operations["closeEventRegistrationForm"]["responses"][200]["content"]["application/json"];
-type DuplicateFormResponse =
-  operations["duplicateEventRegistrationForm"]["responses"][201]["content"]["application/json"];
 type FormActionResponse =
   | FormResponse
   | FormPreviewResponse
   | FormValidateResponse
   | PublishFormResponse
-  | CloseFormResponse
-  | DuplicateFormResponse;
+  | CloseFormResponse;
+export type InternalRegistrationListResponse =
+  operations["listInternalEventRegistrations"]["responses"][200]["content"]["application/json"];
+export type InternalRegistration =
+  operations["getInternalEventRegistration"]["responses"][200]["content"]["application/json"]["data"];
 
 const eventUrl = (template: string, eventId: string) =>
   template.replace(":id", encodeURIComponent(eventId));
@@ -53,7 +54,135 @@ const keys = {
   settings: (eventId: string) => ["events", eventId, "registration-settings"],
   packages: (eventId: string) => ["events", eventId, "packages"],
   form: (eventId: string) => ["events", eventId, "registration-form"],
+  bundles: (eventId: string) => ["events", eventId, "registration-bundles"],
+  registrations: (eventId: string) => ["events", eventId, "registrations"],
 };
+
+export const useInternalEventRegistrations = (
+  eventId: string,
+  filters: {
+    page: number;
+    status?: InternalRegistration["status"];
+    kind?: InternalRegistration["kind"];
+  },
+) =>
+  useQuery({
+    queryKey: [...keys.registrations(eventId), filters],
+    queryFn: () =>
+      apiClient
+        .get<InternalRegistrationListResponse>(
+          `/api/internal/events/${encodeURIComponent(eventId)}/registrations`,
+          { params: { ...filters, limit: 20 } },
+        )
+        .then(({ data }) => data),
+    enabled: Boolean(eventId),
+  });
+
+export const useInternalEventRegistration = (
+  eventId: string,
+  registrationId: string,
+) =>
+  useQuery({
+    queryKey: [...keys.registrations(eventId), registrationId],
+    queryFn: () =>
+      apiClient
+        .get<
+          operations["getInternalEventRegistration"]["responses"][200]["content"]["application/json"]
+        >(
+          `/api/internal/events/${encodeURIComponent(eventId)}/registrations/${encodeURIComponent(registrationId)}`,
+        )
+        .then(({ data }) => data.data),
+    enabled: Boolean(eventId && registrationId),
+  });
+
+export const useInternalRegistrationPayment = (
+  eventId: string,
+  registrationId: string,
+  enabled: boolean,
+) =>
+  useQuery({
+    queryKey: ["event-registration-payment", eventId, registrationId],
+    queryFn: () =>
+      apiClient
+        .get<
+          operations["getInternalEventRegistrationPayment"]["responses"][200]["content"]["application/json"]
+        >(
+          `/api/internal/events/${encodeURIComponent(eventId)}/registrations/${encodeURIComponent(registrationId)}/payment`,
+        )
+        .then(({ data }) => data.data),
+    enabled: enabled && Boolean(eventId && registrationId),
+    refetchInterval: 10000,
+  });
+
+export const useEventBundles = (eventId: string, enabled = true) =>
+  useQuery({
+    queryKey: keys.bundles(eventId),
+    queryFn: () =>
+      apiClient
+        .get(
+          `/api/internal/events/${encodeURIComponent(eventId)}/registrations/bundles`,
+        )
+        .then(({ data }) => data.data as BundleOrder[]),
+    enabled: Boolean(eventId) && enabled,
+  });
+
+export const useRemoveBundleMember = (eventId: string) => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      registrationId,
+      userId,
+      expectedRevision,
+      reason,
+    }: {
+      registrationId: string;
+      userId: string;
+      expectedRevision: number;
+      reason: string;
+    }) =>
+      apiClient.delete(
+        `/api/internal/events/${encodeURIComponent(eventId)}/registrations/${encodeURIComponent(registrationId)}/members/${encodeURIComponent(userId)}`,
+        { data: { expectedRevision, reason } },
+      ),
+    onSuccess: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: keys.bundles(eventId) }),
+        client.invalidateQueries({ queryKey: keys.registrations(eventId) }),
+      ]),
+  });
+};
+
+export type BundleOrder = {
+  id: string;
+  orderNumber: string;
+  status: string;
+  revision: number;
+  seatCount: number;
+  totalMinor: string;
+  currency: string;
+  ticketPackage: { id: string; name: string };
+  members: {
+    id: string;
+    userId: string;
+    position: number;
+    status: string;
+    user: { name: string | null; email: string };
+  }[];
+};
+
+export const useOutstandingAnswers = (eventId: string, page: number) =>
+  useQuery({
+    queryKey: ["events", eventId, "outstanding-answers", page],
+    queryFn: () =>
+      apiClient
+        .get<
+          operations["supplementalTracking"]["responses"][200]["content"]["application/json"]
+        >(
+          `/api/internal/events/${encodeURIComponent(eventId)}/registrations/outstanding-answers`,
+          { params: { page, limit: 25 } },
+        )
+        .then(({ data }) => data.data),
+  });
 
 export const useRegistrationSettings = (eventId: string, enabled = true) =>
   useQuery({
@@ -183,14 +312,10 @@ export const useRegistrationFormAction = (eventId: string) => {
         return apiClient
           .post<PublishFormResponse>(url)
           .then(({ data }) => data);
-      if (action === "close")
-        return apiClient.post<CloseFormResponse>(url).then(({ data }) => data);
-      return apiClient
-        .post<DuplicateFormResponse>(url)
-        .then(({ data }) => data);
+      return apiClient.post<CloseFormResponse>(url).then(({ data }) => data);
     },
     onSuccess: () => client.invalidateQueries({ queryKey: keys.form(eventId) }),
   });
 };
 
-type FormAction = "validate" | "preview" | "publish" | "close" | "duplicate";
+type FormAction = "validate" | "preview" | "publish" | "close";

@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/config/api-client";
 import { Api } from "@/constants/api";
+import type { operations } from "@/generated/openapi";
 import type {
   DataResponse,
+  CreateEventPayload,
   EventItem,
   EventPayload,
   Organizer,
@@ -15,6 +17,8 @@ const keys = {
   all: ["events"] as const,
   detail: (id: string) => ["events", id] as const,
 };
+type EventGroupOptionsResponse =
+  operations["getEventGroupOptions"]["responses"][200]["content"]["application/json"];
 
 export const useGetEvents = (search = "", status = "") =>
   useQuery({
@@ -40,10 +44,18 @@ export const useGetEvent = (id: string) =>
         .then((r) => r.data.data),
     enabled: !!id,
   });
+export const useEventGroupOptions = () =>
+  useQuery({
+    queryKey: [...keys.all, "event-group-options"],
+    queryFn: () =>
+      apiClient
+        .get<EventGroupOptionsResponse>(Api.eventGroupOptions)
+        .then((r) => r.data.data),
+  });
 export const useCreateEvent = () => {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (body: EventPayload) =>
+    mutationFn: (body: CreateEventPayload) =>
       apiClient
         .post<DataResponse<EventItem>>(Api.events, body)
         .then((r) => r.data.data),

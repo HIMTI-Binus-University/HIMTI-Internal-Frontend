@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { publicRoutes, linkRoutes } from "./config/routes";
 import { ProtectedRoute } from "@/components/Utils/ProtectedRoute";
 import { routeMode } from "@/config/runtime";
+import { NotificationProvider } from "@/components/notification";
 
 const isLinkSubdomain = routeMode.isLinkHost(window.location.hostname);
 const activeRoutes = isLinkSubdomain ? linkRoutes : publicRoutes;
@@ -40,7 +41,11 @@ const router = createBrowserRouter(
 );
 
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <NotificationProvider>
+      <RouterProvider router={router} />
+    </NotificationProvider>
+  );
 }
 
 export default App;

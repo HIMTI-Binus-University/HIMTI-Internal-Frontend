@@ -19,18 +19,19 @@ import {
   useTransitionEvent,
 } from "@/api/events/queries";
 import { EventPackages } from "@/components/events/EventPackages";
+import { EventRegistrations } from "@/components/events/EventBundles";
+import { ReviewSettings } from "@/components/events/ReviewSettings";
+import { ConfirmAction } from "@/components/events/ConfirmAction";
 import { OrganizerManager } from "@/components/events/OrganizerManager";
 import { RegistrationFormBuilder } from "@/components/events/RegistrationFormBuilder";
-import {
-  PaymentSummary,
-  RegistrationSettings,
-} from "@/components/events/RegistrationSettings";
+import { RegistrationSettings } from "@/components/events/RegistrationSettings";
 import { StatusBadge } from "@/components/events/StatusBadge";
 import { ExpandableMarkdown } from "@/components/expandable-markdown";
 import { PageLayout } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { backendMessage, useNotification } from "@/components/notification";
 import type { UserMeResponse } from "@/types/auth";
 import type { EventItem } from "@/types/events";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
@@ -43,6 +44,7 @@ const sections = [
   { id: "payment", label: "Payment", icon: CreditCard },
   { id: "registrations", label: "Registrations", icon: Users },
   { id: "attendance", label: "Attendance", icon: ClipboardCheck },
+  { id: "review", label: "Event Summary", icon: ClipboardCheck },
 ] as const;
 type Section = (typeof sections)[number]["id"];
 
@@ -53,6 +55,7 @@ export default function EventWorkspacePage() {
   const transition = useTransitionEvent();
   const organizers = useEventOrganizers(eventId);
   const add = useAddEventOrganizer(eventId);
+  const notify = useNotification();
   const { data: me } = useGetMe();
   const canManageRegistration =
     me?.permissions.includes("manage_event_registration") ?? false;
@@ -71,6 +74,10 @@ export default function EventWorkspacePage() {
     me?.permissions.includes("manage_event_packages") ?? false;
   const canManageForm =
     me?.permissions.includes("manage_event_registration_form") ?? false;
+  const canReviewRegistrations =
+    me?.permissions.includes("review_event_registrations") ?? false;
+  const canReviewPayments =
+    me?.permissions.includes("review_event_payments") ?? false;
   const isManager =
     me?.roles.includes("Admin") ||
     organizers.data?.some(
@@ -85,6 +92,8 @@ export default function EventWorkspacePage() {
   const canEditEvent = canManageEvents && isManager;
   const requested = searchParams.get("section") as Section | null;
   const visibleSections = sections.filter((item) => {
+    if (item.id === "registrations") return canReviewRegistrations;
+    if (item.id === "payment") return canManageRegistration;
     if (["setup", "payment", "registrations", "attendance"].includes(item.id))
       return (
         canManageRegistration &&
@@ -163,12 +172,11 @@ export default function EventWorkspacePage() {
       {active === "overview" && (
         <Overview
           event={event}
-          action={action}
           canEdit={canEditEvent}
-          transition={transition}
           organizers={organizers}
           add={add}
           me={me}
+          notify={notify}
         />
       )}
       {active === "setup" && (
@@ -183,11 +191,20 @@ export default function EventWorkspacePage() {
       {active === "form" && (
         <RegistrationFormBuilder eventId={eventId} canEdit={canManageForm} />
       )}
-      {active === "payment" && <PaymentSummary eventId={eventId} />}
+      {active === "payment" && (
+        <RegistrationSettings
+          eventId={eventId}
+          canEdit={canManageRegistration}
+          section="payment"
+        />
+      )}
       {active === "registrations" && (
-        <Unavailable
-          title="Registrations are not available yet"
-          description="Registrant records and operational actions will appear here when the backend operations are available."
+        <EventRegistrations
+          eventId={eventId}
+          canReviewPayments={canReviewPayments}
+          canViewProofs={
+            me?.permissions.includes("view_payment_proofs") ?? false
+          }
         />
       )}
       {active === "attendance" && (
@@ -196,26 +213,45 @@ export default function EventWorkspacePage() {
           description={`Check-in tracking is enabled${settings.data?.attendanceCheckoutEnabled ? " with check-out tracking" : ""}. Attendance operations are not available yet.`}
         />
       )}
+      {active === "review" && (
+        <ReviewSettings
+          event={event}
+          canManageRegistration={canManageRegistration}
+          canManagePackages={canManagePackages}
+          canManageForm={canManageForm}
+          organizerCount={
+            !organizers.isError ? organizers.data?.length : undefined
+          }
+          onSectionChange={(section) =>
+            setSearchParams(section === "overview" ? {} : { section })
+          }
+        >
+          <Lifecycle
+            event={event}
+            action={action}
+            canEdit={canEditEvent}
+            transition={transition}
+          />
+        </ReviewSettings>
+      )}
     </PageLayout>
   );
 }
 
 function Overview({
   event,
-  action,
   canEdit,
-  transition,
   organizers,
   add,
   me,
+  notify,
 }: {
   event: EventItem;
-  action: "publish" | "close" | null;
   canEdit: boolean;
-  transition: ReturnType<typeof useTransitionEvent>;
   organizers: ReturnType<typeof useEventOrganizers>;
   add: ReturnType<typeof useAddEventOrganizer>;
   me?: UserMeResponse;
+  notify: ReturnType<typeof useNotification>;
 }) {
   return (
     <>
@@ -224,29 +260,6 @@ function Overview({
           <ExpandableMarkdown className="max-w-3xl text-sm text-muted-foreground">
             {event.publicDescription || "No public description."}
           </ExpandableMarkdown>
-          {canEdit && (
-            <div className="mt-5 flex flex-wrap gap-2">
-              {action && (
-                <Button
-                  onClick={() => transition.mutate({ id: event.id, action })}
-                  disabled={transition.isPending}
-                >
-                  {action === "publish" ? "Publish" : "Close event"}
-                </Button>
-              )}
-              {event.status !== "CANCELLED" && (
-                <Button
-                  variant="destructive"
-                  onClick={() =>
-                    transition.mutate({ id: event.id, action: "cancel" })
-                  }
-                  disabled={transition.isPending}
-                >
-                  Cancel event
-                </Button>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
       <Card>
@@ -261,13 +274,75 @@ function Overview({
             isAdding={add.isPending}
             addError={add.isError}
             onAdd={(userId, role, done) =>
-              add.mutate({ userId, role }, { onSuccess: done })
+              add.mutate(
+                { userId, role },
+                {
+                  onSuccess: () => {
+                    done();
+                    notify("Organizer added.");
+                  },
+                  onError: (cause) =>
+                    notify(
+                      backendMessage(cause, "Could not add organizer."),
+                      "error",
+                    ),
+                },
+              )
             }
           />
         </CardContent>
       </Card>
     </>
   );
+}
+
+function Lifecycle({
+  event,
+  action,
+  canEdit,
+  transition,
+}: {
+  event: EventItem;
+  action: "publish" | "close" | null;
+  canEdit: boolean;
+  transition: ReturnType<typeof useTransitionEvent>;
+}) {
+  return canEdit ? (
+    <div className="mt-5 flex flex-wrap gap-2">
+      {action && (
+        <ConfirmAction
+          label={action === "publish" ? "Publish event" : "Close event"}
+          successMessage={
+            action === "publish" ? "Event published." : "Event closed."
+          }
+          description={
+            action === "publish"
+              ? `Publish "${event.name}" to make it publicly visible. Registration still depends on its registration settings.`
+              : `Close "${event.name}" and turn off registration.`
+          }
+          onConfirm={() => transition.mutateAsync({ id: event.id, action })}
+        >
+          <Button disabled={transition.isPending}>
+            {action === "publish" ? "Publish" : "Close event"}
+          </Button>
+        </ConfirmAction>
+      )}
+      {event.status !== "CANCELLED" && (
+        <ConfirmAction
+          label="Cancel event"
+          successMessage="Event cancelled."
+          description={`Cancel "${event.name}" and turn off registration. The event cannot leave the cancelled status.`}
+          onConfirm={() =>
+            transition.mutateAsync({ id: event.id, action: "cancel" })
+          }
+        >
+          <Button variant="destructive" disabled={transition.isPending}>
+            Cancel event
+          </Button>
+        </ConfirmAction>
+      )}
+    </div>
+  ) : null;
 }
 
 function Unavailable({

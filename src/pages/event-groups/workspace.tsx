@@ -10,10 +10,12 @@ import {
 import { useGetEvents } from "@/api/events/queries";
 import { PageLayout } from "@/components/Utils";
 import { OrganizerManager } from "@/components/events/OrganizerManager";
+import { ConfirmAction } from "@/components/events/ConfirmAction";
 import { StatusBadge } from "@/components/events/StatusBadge";
 import { ExpandableMarkdown } from "@/components/expandable-markdown";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { backendMessage, useNotification } from "@/components/notification";
 export default function EventGroupWorkspacePage() {
   const { eventGroupId = "" } = useParams();
   const detail = useEventGroup(eventGroupId);
@@ -21,6 +23,7 @@ export default function EventGroupWorkspacePage() {
   const organizers = useEventGroupOrganizers(eventGroupId);
   const add = useAddEventGroupOrganizer(eventGroupId);
   const transition = useTransitionEventGroup();
+  const notify = useNotification();
   const { data: me } = useGetMe();
   if (!detail.isLoading && !detail.data)
     return <Navigate to="/events" replace />;
@@ -61,23 +64,30 @@ export default function EventGroupWorkspacePage() {
           </div>
           <div className="mt-5 flex gap-2">
             {group.status === "DRAFT" && (
-              <Button
-                onClick={() =>
-                  transition.mutate({ id: group.id, action: "publish" })
+              <ConfirmAction
+                label="Publish event group"
+                successMessage="Event group published."
+                description={`Make "${group.name}" publicly visible. This does not publish its events.`}
+                onConfirm={() =>
+                  transition.mutateAsync({ id: group.id, action: "publish" })
                 }
               >
-                Publish
-              </Button>
+                <Button disabled={transition.isPending}>Publish</Button>
+              </ConfirmAction>
             )}
             {group.status !== "ARCHIVED" && (
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  transition.mutate({ id: group.id, action: "archive" })
+              <ConfirmAction
+                label="Archive event group"
+                successMessage="Event group archived."
+                description={`Remove "${group.name}" from public event groups. Its events' statuses will not change.`}
+                onConfirm={() =>
+                  transition.mutateAsync({ id: group.id, action: "archive" })
                 }
               >
-                Archive
-              </Button>
+                <Button variant="secondary" disabled={transition.isPending}>
+                  Archive
+                </Button>
+              </ConfirmAction>
             )}
           </div>
         </CardContent>
@@ -113,7 +123,7 @@ export default function EventGroupWorkspacePage() {
         </CardContent>
       </Card>
       <Card>
-        <CardContent>
+        <CardContent className="p-5">
           <OrganizerManager
             organizers={organizers.data ?? []}
             isLoading={organizers.isLoading}
@@ -122,7 +132,20 @@ export default function EventGroupWorkspacePage() {
             isAdding={add.isPending}
             addError={add.isError}
             onAdd={(userId, role, done) =>
-              add.mutate({ userId, role }, { onSuccess: done })
+              add.mutate(
+                { userId, role },
+                {
+                  onSuccess: () => {
+                    done();
+                    notify("Organizer added.");
+                  },
+                  onError: (cause) =>
+                    notify(
+                      backendMessage(cause, "Could not add organizer."),
+                      "error",
+                    ),
+                },
+              )
             }
           />
         </CardContent>

@@ -1,3 +1,5 @@
+import type { operations } from "@/generated/openapi";
+
 export type EventStatus = "DRAFT" | "PUBLISHED" | "CLOSED" | "CANCELLED";
 export type EventGroupStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 export type OrganizerRole = "MANAGER" | "ORGANIZER";
@@ -76,6 +78,8 @@ export type EventPayload = Pick<EventItem, "name"> &
       | "secondaryColor"
     >
   >;
+export type CreateEventPayload =
+  operations["createEvent"]["requestBody"]["content"]["application/json"];
 export interface DataResponse<T> {
   data: T;
 }

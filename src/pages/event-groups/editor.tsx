@@ -11,12 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MarkdownTextarea } from "@/components/markdown-textarea";
+import { backendMessage, useNotification } from "@/components/notification";
 export default function EventGroupEditorPage() {
   const { eventGroupId = "" } = useParams();
   const detail = useEventGroup(eventGroupId);
   const create = useCreateEventGroup();
   const update = useUpdateEventGroup();
   const navigate = useNavigate();
+  const notify = useNotification();
   const [error, setError] = useState("");
   const isEditing = Boolean(eventGroupId);
   const group = isEditing ? detail.data : undefined;
@@ -37,9 +39,17 @@ export default function EventGroupEditorPage() {
       secondaryColor: String(f.get("secondaryColor") || "") || null,
     };
     const options = {
-      onSuccess: (saved: { id: string }) =>
-        navigate(`/event-groups/${saved.id}`),
-      onError: () => setError("Failed to save event group."),
+      onSuccess: (saved: { id: string }) => {
+        notify(
+          isEditing ? "Event group changes saved." : "Event group created.",
+        );
+        navigate(`/event-groups/${saved.id}`);
+      },
+      onError: (cause: unknown) => {
+        const message = backendMessage(cause, "Failed to save event group.");
+        setError(message);
+        notify(message, "error");
+      },
     };
     isEditing && group
       ? update.mutate({ id: group.id, ...body }, options)
