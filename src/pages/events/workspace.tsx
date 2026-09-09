@@ -20,6 +20,7 @@ import {
 } from "@/api/events/queries";
 import { EventPackages } from "@/components/events/EventPackages";
 import { EventRegistrations } from "@/components/events/EventBundles";
+import { EventAttendance } from "@/components/events/EventAttendance";
 import { ReviewSettings } from "@/components/events/ReviewSettings";
 import { ConfirmAction } from "@/components/events/ConfirmAction";
 import { OrganizerManager } from "@/components/events/OrganizerManager";
@@ -78,6 +79,10 @@ export default function EventWorkspacePage() {
     me?.permissions.includes("review_event_registrations") ?? false;
   const canReviewPayments =
     me?.permissions.includes("review_event_payments") ?? false;
+  const canViewAttendance =
+    me?.permissions.includes("view_event_attendance") ?? false;
+  const canScanTickets =
+    me?.permissions.includes("scan_event_tickets") ?? false;
   const isManager =
     me?.roles.includes("Admin") ||
     organizers.data?.some(
@@ -94,11 +99,13 @@ export default function EventWorkspacePage() {
   const visibleSections = sections.filter((item) => {
     if (item.id === "registrations") return canReviewRegistrations;
     if (item.id === "payment") return canManageRegistration;
-    if (["setup", "payment", "registrations", "attendance"].includes(item.id))
+    if (item.id === "attendance")
       return (
-        canManageRegistration &&
-        (item.id !== "attendance" || settings.data?.attendanceEnabled)
+        (canViewAttendance || canScanTickets) &&
+        Boolean(settings.data?.attendanceEnabled)
       );
+    if (["setup", "payment", "registrations"].includes(item.id))
+      return canManageRegistration;
     if (item.id === "packages") return canManagePackages;
     if (item.id === "form") return canManageForm;
     return true;
@@ -208,9 +215,14 @@ export default function EventWorkspacePage() {
         />
       )}
       {active === "attendance" && (
-        <Unavailable
-          title="Attendance is configured"
-          description={`Check-in tracking is enabled${settings.data?.attendanceCheckoutEnabled ? " with check-out tracking" : ""}. Attendance operations are not available yet.`}
+        <EventAttendance
+          eventId={eventId}
+          canCheckIn={canScanTickets}
+          canView={canViewAttendance}
+          checkoutEnabled={
+            Boolean(settings.data?.attendanceCheckoutEnabled) &&
+            Boolean(me?.permissions.includes("correct_event_attendance"))
+          }
         />
       )}
       {active === "review" && (
@@ -343,24 +355,4 @@ function Lifecycle({
       )}
     </div>
   ) : null;
-}
-
-function Unavailable({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="flex min-h-56 flex-col items-center justify-center p-8 text-center">
-        <ClipboardCheck className="mb-3 h-10 w-10 text-muted-foreground" />
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <p className="mt-2 max-w-lg text-sm text-muted-foreground">
-          {description}
-        </p>
-      </CardContent>
-    </Card>
-  );
 }

@@ -56,6 +56,64 @@ const keys = {
   form: (eventId: string) => ["events", eventId, "registration-form"],
   bundles: (eventId: string) => ["events", eventId, "registration-bundles"],
   registrations: (eventId: string) => ["events", eventId, "registrations"],
+  attendance: (eventId: string) => ["events", eventId, "attendance"],
+};
+
+export type AttendanceRoster =
+  operations["listEventAttendance"]["responses"][200]["content"]["application/json"];
+
+export const useEventAttendance = (
+  eventId: string,
+  search: string,
+  enabled = true,
+) =>
+  useQuery({
+    queryKey: [...keys.attendance(eventId), search],
+    queryFn: () =>
+      apiClient
+        .get<AttendanceRoster>(
+          `/api/internal/events/${encodeURIComponent(eventId)}/attendance`,
+          { params: { search, page: 1, limit: 100 } },
+        )
+        .then(({ data }) => data),
+    enabled: Boolean(eventId) && enabled,
+  });
+
+export const useCheckInEventTicket = (eventId: string) => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { credential: string } | { ticketId: string }) =>
+      "credential" in body
+        ? apiClient.post(
+            `/api/internal/events/${encodeURIComponent(eventId)}/tickets/check-in`,
+            body,
+          )
+        : apiClient.post(
+            `/api/internal/events/${encodeURIComponent(eventId)}/tickets/manual-check-in`,
+            body,
+          ),
+    onSuccess: () =>
+      client.invalidateQueries({ queryKey: keys.attendance(eventId) }),
+  });
+};
+
+export const useCheckoutEventAttendance = (eventId: string) => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      attendanceId,
+      expectedRevision,
+    }: {
+      attendanceId: string;
+      expectedRevision: number;
+    }) =>
+      apiClient.post(
+        `/api/internal/events/${encodeURIComponent(eventId)}/attendance/${encodeURIComponent(attendanceId)}/checkout`,
+        { expectedRevision },
+      ),
+    onSuccess: () =>
+      client.invalidateQueries({ queryKey: keys.attendance(eventId) }),
+  });
 };
 
 export const useInternalEventRegistrations = (
