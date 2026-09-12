@@ -1,19 +1,12 @@
-import { useState, useRef, ChangeEvent } from "react";
+import { useRef, ChangeEvent } from "react";
 import { CloudUpload, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCertificateStore } from "../store";
 
 const UploadTemplate = () => {
-    const [tempState, setTempState] = useState<"input" | "review">("input");
     const inputRef = useRef<HTMLInputElement>(null);
-
-    type TemplateInfo = {
-        file: File;
-        url: string;
-        width: number;
-        height: number;
-    };
-
-    const [template, setTemplate] = useState<TemplateInfo | null>(null);
+    const { state, setTemplate } = useCertificateStore();
+    const template = state.template;
 
     const handleInputChange  = (e : ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -24,8 +17,12 @@ const UploadTemplate = () => {
         img.src = url;
 
         img.onload = () => {
-            setTemplate({file, url, width: img.width, height: img.height})
-            setTempState("review");
+            setTemplate({
+                file, 
+                url, 
+                width: img.width, 
+                height: img.height
+            });
         };
     };
 
@@ -38,8 +35,10 @@ const UploadTemplate = () => {
     };
 
     const handleDelete = () => {
-        if (template) URL.revokeObjectURL(template.url);
-        setTempState("input");
+        if (confirm("Apakah Anda yakin ingin menghapus template ini?")) {
+            if (template) URL.revokeObjectURL(template.url);
+            setTemplate(null);
+        }
     };
     
     return (
@@ -52,7 +51,7 @@ const UploadTemplate = () => {
                 onChange={handleInputChange}
             />
 
-            {tempState === "input" ? (
+            {!template ? (
                 <div className="flex min-h-[300px] w-full flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/20 p-8 text-center">
                 <CloudUpload className="mb-3 h-8 w-8 text-muted-foreground" />
     
@@ -69,7 +68,7 @@ const UploadTemplate = () => {
                 <div className="flex w-full flex-col">
                     <div className="mb-4 flex items-center justify-center rounded-lg border border-border bg-muted/10 p-2">
                         <img
-                            src={template?.url}
+                            src={template.url}
                             alt="Certificate Template Preview"
                             className="max-h-[calc(100vh-28rem)] max-w-full object-contain"
                         />
@@ -79,21 +78,21 @@ const UploadTemplate = () => {
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">File:</span>
                                 <span className="font-medium text-foreground">
-                                    {template?.file.name}
+                                    {template.file.name}
                                 </span>
                             </div>
 
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Dimensi:</span>
                                 <span className="font-medium text-foreground">
-                                    {template?.width} x {template?.height} px
+                                    {template.width} x {template.height} px
                                 </span>
                             </div>
 
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Ukuran:</span>
                                 <span className="font-medium text-foreground">
-                                    {formatFileSize(template?.file.size ?? 0)}
+                                    {formatFileSize(template.file.size)}
                                 </span>
                             </div>
                         </div>

@@ -8,8 +8,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import * as XLSX from "xlsx";
+import { useCertificateStore } from "../store";
+import { generateId } from "../utils";
 
 const UploadPanel = () => {
+  const { setNames } = useCertificateStore();
   const [panelState, setPanelState] = useState<"input" | "review" | "edit">("input");
 
   const [showNames, setShowNames] = useState(false);
@@ -115,6 +118,14 @@ const UploadPanel = () => {
       semua_nama,
       jmlh_nama_valid,
     });
+
+    // Save to store
+    const nameEntries = semua_nama.map((name, index) => ({
+      id: generateId(),
+      name: name.trim(),
+      order: index + 1,
+    }));
+    setNames(nameEntries);
 
     setPanelState("review");
   };
@@ -350,7 +361,11 @@ Jad Abyanza Fauzan`}
               <Button
                 variant="ghost"
                 className="rounded-lg px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => setPanelState("input")}
+                onClick={() => {
+                  setNames([]);
+                  setNamesInfo(null);
+                  setPanelState("input");
+                }}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
