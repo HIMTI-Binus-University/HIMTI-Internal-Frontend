@@ -21,6 +21,7 @@ interface ResourceFormDialogProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (payload: CreateHimtiKitResourceInput) => Promise<void>;
   initialData?: HimtiKitResource | null;
+  defaultMajor?: string;
   isLoading?: boolean;
 }
 
@@ -29,6 +30,7 @@ export function ResourceFormDialog({
   onOpenChange,
   onSubmit,
   initialData,
+  defaultMajor,
   isLoading,
 }: ResourceFormDialogProps) {
   const [title, setTitle] = useState("");
@@ -47,13 +49,17 @@ export function ResourceFormDialog({
       setDescription(initialData.description ?? "");
     } else {
       setTitle("");
-      setMajor("Computer Science");
+      setMajor(
+        defaultMajor && defaultMajor !== "ALL" && defaultMajor !== "All Majors"
+          ? defaultMajor
+          : "Computer Science"
+      );
       setCoverImageUrl("");
       setResourceUrl("");
       setDescription("");
     }
     setError(null);
-  }, [initialData, open]);
+  }, [initialData, open, defaultMajor]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

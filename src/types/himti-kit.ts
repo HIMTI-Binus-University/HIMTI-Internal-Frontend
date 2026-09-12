@@ -1,14 +1,33 @@
 export const BINUS_IT_MAJORS = [
   "All Majors",
   "Computer Science",
-  "Cyber Security",
-  "Data Science",
+  "Mobile Application and Technology",
   "Game Application and Technology",
+  "Data Science",
+  "Cyber Security",
+  "Computer Science & Mathematics",
+  "Computer Science & Statistics",
+  "Computer Science - Software Engineering",
   "Artificial Intelligence",
-  "Software Engineering",
+  "Digital Psychology",
 ] as const;
 
 export type BinusItMajor = (typeof BINUS_IT_MAJORS)[number];
+
+export const MAJOR_SHORT_LABELS: Record<string, string> = {
+  "ALL": "All Jurusan",
+  "All Majors": "All Majors",
+  "Computer Science": "Computer Science (CS)",
+  "Mobile Application and Technology": "Mobile (MAT)",
+  "Game Application and Technology": "Game (GAT)",
+  "Data Science": "Data Science",
+  "Cyber Security": "Cyber Security",
+  "Computer Science & Mathematics": "CS & Math",
+  "Computer Science & Statistics": "CS & Stats",
+  "Computer Science - Software Engineering": "Software Eng (SE)",
+  "Artificial Intelligence": "AI",
+  "Digital Psychology": "Digital Psych",
+};
 
 export interface HimtiKitResource {
   id: string;

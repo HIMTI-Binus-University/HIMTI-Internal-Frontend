@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { BookOpen, ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
+import { BookOpen, ExternalLink, Filter, GraduationCap, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import {
   useCreateHimtiKitResource,
   useDeleteHimtiKitResource,
@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   BINUS_IT_MAJORS,
+  MAJOR_SHORT_LABELS,
   type CreateHimtiKitResourceInput,
   type HimtiKitResource,
 } from "@/types/himti-kit";
@@ -40,6 +41,15 @@ export function ResourcesTab() {
   const deleteMutation = useDeleteHimtiKitResource();
 
   const filterOptions = ["ALL", ...BINUS_IT_MAJORS.filter((m) => m !== "All Majors")];
+
+  // Dynamic counts per major
+  const majorCounts = useMemo(() => {
+    const counts: Record<string, number> = { ALL: resources.length };
+    for (const r of resources) {
+      counts[r.major] = (counts[r.major] || 0) + 1;
+    }
+    return counts;
+  }, [resources]);
 
   const filteredResources = useMemo(() => {
     return resources.filter((item) => {
@@ -81,9 +91,10 @@ export function ResourcesTab() {
 
   return (
     <div className="space-y-6">
-      {/* Search and Filters */}
-      <div className="flex flex-col gap-4">
+      {/* Search and Controls Header */}
+      <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {/* Search Box */}
           <div className="w-full sm:max-w-md">
             <SearchField
               id="resource-search"
@@ -95,30 +106,102 @@ export function ResourcesTab() {
             />
           </div>
 
-          <Button size="sm" onClick={handleOpenCreate} className="gap-1.5 self-start sm:self-auto">
-            <Plus className="h-4 w-4" />
-            <span>Add Material</span>
-          </Button>
+          <div className="flex items-center gap-2.5">
+            {/* Quick Dropdown for Direct Access */}
+            <div className="relative flex items-center">
+              <select
+                id="jurusan-dropdown"
+                value={selectedMajor}
+                onChange={(e) => setSelectedMajor(e.target.value)}
+                className="h-9 rounded-lg border border-border bg-card pl-8 pr-3 text-xs font-semibold text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                aria-label="Filter by Jurusan"
+              >
+                {filterOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt === "ALL" ? "All Jurusan" : opt} ({majorCounts[opt] || 0})
+                  </option>
+                ))}
+              </select>
+              <GraduationCap className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            </div>
+
+            {/* Add Material Button */}
+            <Button size="sm" onClick={handleOpenCreate} className="gap-1.5 shrink-0">
+              <Plus className="h-4 w-4" />
+              <span>Add Material</span>
+            </Button>
+          </div>
         </div>
 
-        {/* Major / Jurusan Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-          <span className="shrink-0 font-medium text-muted-foreground mr-1">Jurusan:</span>
-          {filterOptions.map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              onClick={() => setSelectedMajor(opt)}
-              className={`shrink-0 rounded-lg px-3 py-1.5 font-medium transition-all ${
-                selectedMajor === opt
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "border border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
-              }`}
-            >
-              {opt === "ALL" ? "All Jurusan" : opt}
-            </button>
-          ))}
+        {/* Revamped Horizontal Pills Bar with Live Counts */}
+        <div className="relative flex items-center">
+          <div className="flex w-full items-center gap-1.5 overflow-x-auto pb-1.5 pt-0.5 text-xs scrollbar-thin">
+            {filterOptions.map((opt) => {
+              const label = MAJOR_SHORT_LABELS[opt] || opt;
+              const count = majorCounts[opt] || 0;
+              const isSelected = selectedMajor === opt;
+
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setSelectedMajor(opt)}
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                    isSelected
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "border border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-muted/30 hover:text-foreground"
+                  }`}
+                  title={opt === "ALL" ? "All Jurusan" : opt}
+                >
+                  <span>{label}</span>
+                  <span
+                    className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                      isSelected
+                        ? "bg-primary-foreground/20 text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Active Filter Sub-indicator */}
+        {(selectedMajor !== "ALL" || search.trim()) && (
+          <div className="flex items-center justify-between rounded-lg border border-border/80 bg-muted/20 px-3 py-2 text-xs">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Filter className="h-3.5 w-3.5 text-primary" />
+              <span>
+                Filtered by:{" "}
+                <strong className="text-foreground">
+                  {selectedMajor === "ALL" ? "All Jurusan" : selectedMajor}
+                </strong>
+                {search && (
+                  <>
+                    {" "}
+                    • Search: <strong className="text-foreground">&quot;{search}&quot;</strong>
+                  </>
+                )}
+                {" "}({filteredResources.length} {filteredResources.length === 1 ? "material" : "materials"} found)
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedMajor("ALL");
+                setSearch("");
+              }}
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+            >
+              <RotateCcw className="h-3 w-3" />
+              <span>Reset filter</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main List Content */}
@@ -142,15 +225,35 @@ export function ResourcesTab() {
             Failed to load HIMTI KIT learning materials. Please verify the backend is running.
           </div>
         ) : filteredResources.length === 0 ? (
-          <EmptyState
-            icon={BookOpen}
-            title="No learning materials found"
-            description={
-              search || selectedMajor !== "ALL"
-                ? "Try adjusting your search query or jurusan filter."
-                : "No learning materials have been uploaded yet. Click 'Add Material' to create one."
-            }
-          />
+          <div className="space-y-4 py-6 text-center">
+            <EmptyState
+              icon={BookOpen}
+              title={
+                selectedMajor !== "ALL"
+                  ? `No materials found for ${selectedMajor}`
+                  : "No learning materials found"
+              }
+              description={
+                search
+                  ? `No materials matching "${search}". Try clearing your search.`
+                  : selectedMajor !== "ALL"
+                  ? `There are no materials uploaded yet for this jurusan. You can be the first to upload one!`
+                  : "No learning materials have been uploaded yet. Click 'Add Material' to create one."
+              }
+            />
+
+            {selectedMajor !== "ALL" && (
+              <div className="flex items-center justify-center gap-2">
+                <Button size="sm" variant="outline" onClick={() => setSelectedMajor("ALL")}>
+                  View All Jurusan
+                </Button>
+                <Button size="sm" onClick={handleOpenCreate}>
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  Add for {selectedMajor}
+                </Button>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredResources.map((resource) => (
@@ -176,9 +279,10 @@ export function ResourcesTab() {
                       </div>
                     )}
                     <Badge
-                      className="absolute right-3 top-3 border border-border/80 bg-background/90 text-xs font-semibold text-foreground backdrop-blur"
+                      className="absolute right-3 top-3 max-w-[200px] truncate border border-border/80 bg-background/90 text-xs font-semibold text-foreground backdrop-blur"
+                      title={resource.major}
                     >
-                      {resource.major || "General IT"}
+                      {MAJOR_SHORT_LABELS[resource.major] || resource.major || "General IT"}
                     </Badge>
                   </div>
 
@@ -240,6 +344,7 @@ export function ResourcesTab() {
         onOpenChange={setDialogOpen}
         onSubmit={handleSubmit}
         initialData={editingResource}
+        defaultMajor={selectedMajor}
         isLoading={createMutation.isPending || updateMutation.isPending}
       />
 
