@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { CloudUpload, Pencil, Trash2, Upload, Eye } from "lucide-react";
 import {
@@ -12,7 +12,7 @@ import { useCertificateStore } from "../store";
 import { generateId } from "../utils";
 
 const UploadPanel = () => {
-  const { setNames } = useCertificateStore();
+  const { state, setNames } = useCertificateStore();
   const [panelState, setPanelState] = useState<"input" | "review" | "edit">("input");
 
   const [showNames, setShowNames] = useState(false);
@@ -32,6 +32,30 @@ const UploadPanel = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sync state from store when component mounts or state.names changes
+  useEffect(() => {
+    if (state.names.length > 0 && !namesInfo) {
+      // Reconstruct namesInfo from store
+      const semua_nama = state.names.map(entry => entry.name);
+      const nama_terpanjang = semua_nama.reduce((a, b) => a.length > b.length ? a : b, "");
+      
+      setNamesInfo({
+        sumber_data: "Restored from store",
+        baris_kosong: 0,
+        nama_dup: 0,
+        nama_panjang: 0,
+        nama_terpanjang,
+        lima_pertama: semua_nama.slice(0, 5),
+        semua_nama,
+        jmlh_nama_valid: semua_nama.length,
+      });
+      setPanelState("review");
+    } else if (state.names.length === 0 && namesInfo) {
+      setNamesInfo(null);
+      setPanelState("input");
+    }
+  }, [state.names]);
 
   const HandleInputFile = async (
     event: React.ChangeEvent<HTMLInputElement>
