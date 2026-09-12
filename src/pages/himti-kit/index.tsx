@@ -1,12 +1,13 @@
 import { useRef, useState } from "react";
-import { AppWindow, BookOpen, FolderKanban, Palette } from "lucide-react";
+import { AppWindow, BookOpen, FolderKanban, Palette, UserCheck } from "lucide-react";
 import { PageLayout } from "@/components/Utils";
 import { gsap, useGSAP } from "@/lib/motion";
 import { AppearanceTab } from "./components/appearance-tab";
+import { AttendeesTab } from "./components/attendees-tab";
 import { ResourcesTab } from "./components/resources-tab";
 import { SoftwareTab } from "./components/software-tab";
 
-type TabType = "resources" | "software" | "appearance";
+type TabType = "resources" | "software" | "attendees" | "appearance";
 
 export default function HimtiKitDashboardPage() {
   const [activeTab, setActiveTab] = useState<TabType>("resources");
@@ -64,6 +65,19 @@ export default function HimtiKitDashboardPage() {
 
           <button
             type="button"
+            onClick={() => setActiveTab("attendees")}
+            className={`inline-flex shrink-0 items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-all ${
+              activeTab === "attendees"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"
+            }`}
+          >
+            <UserCheck className="h-4 w-4" />
+            <span>TECHNO Attendees</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab("appearance")}
             className={`inline-flex shrink-0 items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-all ${
               activeTab === "appearance"
@@ -80,6 +94,7 @@ export default function HimtiKitDashboardPage() {
         <div data-tab-content key={activeTab}>
           {activeTab === "resources" && <ResourcesTab />}
           {activeTab === "software" && <SoftwareTab />}
+          {activeTab === "attendees" && <AttendeesTab />}
           {activeTab === "appearance" && <AppearanceTab />}
         </div>
       </div>

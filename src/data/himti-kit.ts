@@ -1,4 +1,8 @@
-import type { HimtiKitResource, HimtiKitSoftware } from "@/types/himti-kit";
+import type {
+  HimtiKitAttendee,
+  HimtiKitResource,
+  HimtiKitSoftware,
+} from "@/types/himti-kit";
 
 export const initialHimtiKitResources: HimtiKitResource[] = [
   {
@@ -124,5 +128,35 @@ export const getStoredSoftwares = (): HimtiKitSoftware[] => {
 export const setStoredSoftwares = (data: HimtiKitSoftware[]) => {
   if (typeof window !== "undefined") {
     localStorage.setItem(SOFTWARES_STORAGE_KEY, JSON.stringify(data));
+  }
+};
+
+export const initialHimtiKitAttendees: HimtiKitAttendee[] = [
+  { id: "att-1", name: "Alya Putri", nim: "2602111111", createdAt: "2026-08-15T09:00:00Z" },
+  { id: "att-2", name: "Bima Pratama", nim: "2602111112", createdAt: "2026-08-15T09:05:00Z" },
+  { id: "att-3", name: "Citra Anindita", nim: "2602111113", createdAt: "2026-08-15T09:12:00Z" },
+  { id: "att-4", name: "Daffa Mahendra", nim: "2602111114", createdAt: "2026-08-15T09:20:00Z" },
+  { id: "att-5", name: "Eka Saputra", nim: "2602111115", createdAt: "2026-08-15T09:35:00Z" },
+];
+
+const ATTENDEES_STORAGE_KEY = "himti_kit_mock_attendees";
+
+export const getStoredAttendees = (): HimtiKitAttendee[] => {
+  if (typeof window === "undefined") return initialHimtiKitAttendees;
+  const stored = localStorage.getItem(ATTENDEES_STORAGE_KEY);
+  if (!stored) {
+    localStorage.setItem(ATTENDEES_STORAGE_KEY, JSON.stringify(initialHimtiKitAttendees));
+    return initialHimtiKitAttendees;
+  }
+  try {
+    return JSON.parse(stored) as HimtiKitAttendee[];
+  } catch {
+    return initialHimtiKitAttendees;
+  }
+};
+
+export const setStoredAttendees = (data: HimtiKitAttendee[]) => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(ATTENDEES_STORAGE_KEY, JSON.stringify(data));
   }
 };

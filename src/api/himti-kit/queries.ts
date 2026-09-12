@@ -3,15 +3,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/config/api-client";
 import { Api } from "@/constants/api";
 import {
+  getStoredAttendees,
   getStoredResources,
   getStoredSoftwares,
+  setStoredAttendees,
   setStoredResources,
   setStoredSoftwares,
 } from "@/data/himti-kit";
 import type { ApiDataResponse } from "@/types/batches";
 import type {
+  CreateHimtiKitAttendeeInput,
   CreateHimtiKitResourceInput,
   CreateHimtiKitSoftwareInput,
+  HimtiKitAttendee,
   HimtiKitResource,
   HimtiKitSoftware,
   UpdateHimtiKitResourceInput,
@@ -25,6 +29,7 @@ export const FORCE_MOCK_HIMTI_KIT = true;
 export const himtiKitQueryKeys = {
   resources: (search?: string) => ["himti-kit-resources", search ?? ""] as const,
   softwares: (search?: string) => ["himti-kit-softwares", search ?? ""] as const,
+  attendees: (search?: string) => ["himti-kit-attendees", search ?? ""] as const,
 };
 
 // ==========================================
@@ -280,6 +285,112 @@ export const useDeleteHimtiKitSoftware = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["himti-kit-softwares"] });
+    },
+  });
+};
+
+// ==========================================
+// HIMTI KIT Attendees (TECHNO Access Gate)
+// ==========================================
+
+export const useGetHimtiKitAttendees = (search?: string) =>
+  useQuery({
+    queryKey: himtiKitQueryKeys.attendees(search),
+    queryFn: async () => {
+      if (FORCE_MOCK_HIMTI_KIT) {
+        const data = getStoredAttendees();
+        if (!search) return data;
+        const q = search.toLowerCase().trim();
+        return data.filter(
+          (item) => item.name.toLowerCase().includes(q) || item.nim.toLowerCase().includes(q)
+        );
+      }
+
+      try {
+        const response = await apiClient.get<ApiDataResponse<HimtiKitAttendee[]>>(
+          Api.himtiKitAttendees,
+          { params: search ? { search } : undefined }
+        );
+        return response.data.data;
+      } catch (error) {
+        console.warn("Backend unavailable, falling back to mock attendees:", error);
+        return getStoredAttendees();
+      }
+    },
+  });
+
+export const useAddHimtiKitAttendees = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: CreateHimtiKitAttendeeInput[]) => {
+      if (FORCE_MOCK_HIMTI_KIT) {
+        const current = getStoredAttendees();
+        const existingNims = new Set(current.map((a) => a.nim));
+        const newAttendees: HimtiKitAttendee[] = payload
+          .filter((p) => !existingNims.has(p.nim))
+          .map((p, idx) => ({
+            id: `att-${Date.now()}-${idx}`,
+            name: p.name,
+            nim: p.nim,
+            createdAt: new Date().toISOString(),
+          }));
+
+        const updated = [...newAttendees, ...current];
+        setStoredAttendees(updated);
+        return newAttendees;
+      }
+
+      try {
+        const response = await apiClient.post<ApiDataResponse<HimtiKitAttendee[]>>(
+          Api.himtiKitAttendeeBulk,
+          { attendees: payload }
+        );
+        return response.data.data;
+      } catch (error) {
+        console.warn("Backend unavailable, adding to mock storage:", error);
+        const current = getStoredAttendees();
+        const existingNims = new Set(current.map((a) => a.nim));
+        const newAttendees: HimtiKitAttendee[] = payload
+          .filter((p) => !existingNims.has(p.nim))
+          .map((p, idx) => ({
+            id: `att-${Date.now()}-${idx}`,
+            name: p.name,
+            nim: p.nim,
+            createdAt: new Date().toISOString(),
+          }));
+
+        const updated = [...newAttendees, ...current];
+        setStoredAttendees(updated);
+        return newAttendees;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["himti-kit-attendees"] });
+    },
+  });
+};
+
+export const useDeleteHimtiKitAttendee = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (FORCE_MOCK_HIMTI_KIT) {
+        const current = getStoredAttendees();
+        setStoredAttendees(current.filter((item) => item.id !== id));
+        return;
+      }
+
+      try {
+        const url = Api.himtiKitAttendee.replace(":id", id);
+        await apiClient.delete<ApiDataResponse<void>>(url);
+      } catch (error) {
+        console.warn("Backend unavailable, deleting from mock storage:", error);
+        const current = getStoredAttendees();
+        setStoredAttendees(current.filter((item) => item.id !== id));
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["himti-kit-attendees"] });
     },
   });
 };

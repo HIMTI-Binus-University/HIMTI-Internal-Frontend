@@ -85,4 +85,7 @@ export const Api = {
   himtiKitResource: `${API_URL}/api/v1/admin/himti-kit/resources/:id`,
   himtiKitSoftwares: `${API_URL}/api/v1/admin/himti-kit/softwares`,
   himtiKitSoftware: `${API_URL}/api/v1/admin/himti-kit/softwares/:id`,
+  himtiKitAttendees: `${API_URL}/api/v1/admin/himti-kit/attendees`,
+  himtiKitAttendeeBulk: `${API_URL}/api/v1/admin/himti-kit/attendees/bulk`,
+  himtiKitAttendee: `${API_URL}/api/v1/admin/himti-kit/attendees/:id`,
 };

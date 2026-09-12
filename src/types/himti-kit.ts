@@ -31,8 +31,17 @@ export interface HimtiKitSoftware {
   updatedAt?: string;
 }
 
+export interface HimtiKitAttendee {
+  id: string;
+  name: string;
+  nim: string;
+  createdAt?: string;
+}
+
 export type CreateHimtiKitResourceInput = Omit<HimtiKitResource, "id" | "createdAt" | "updatedAt">;
 export type UpdateHimtiKitResourceInput = Partial<CreateHimtiKitResourceInput>;
 
 export type CreateHimtiKitSoftwareInput = Omit<HimtiKitSoftware, "id" | "createdAt" | "updatedAt">;
 export type UpdateHimtiKitSoftwareInput = Partial<CreateHimtiKitSoftwareInput>;
+
+export type CreateHimtiKitAttendeeInput = Omit<HimtiKitAttendee, "id" | "createdAt">;
