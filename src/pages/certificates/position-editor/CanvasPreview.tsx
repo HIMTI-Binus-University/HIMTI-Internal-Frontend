@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { useCertificateStore } from "../store";
 import type { TextSettings } from "../types";
 
+const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
+
+const roundPosition = (value: number) => Number(value.toFixed(2));
+
 const CanvasPreview = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<Canvas | null>(null);
@@ -13,6 +17,8 @@ const CanvasPreview = () => {
   const textRef = useRef<any>(null);
   const labelRef = useRef<any>(null);
   const isInitializedRef = useRef(false);
+  const isTransformingRef = useRef(false);
+  const renderFrameRef = useRef<number | null>(null);
 
   const { state, updateTextSettings } = useCertificateStore();
   const { template, names, textSettings } = state;
@@ -20,8 +26,21 @@ const CanvasPreview = () => {
   const [zoom, setZoom] = useState(100);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
 
-  const drawGuidelines = (canvas: Canvas) => {
-    // Remove existing guidelines
+  const requestSmoothRender = (canvas: Canvas) => {
+    // Fabric already handles its own transform rendering. This only schedules
+    // our extra render once per animation frame for the linked text/label.
+    if (renderFrameRef.current !== null) return;
+
+    renderFrameRef.current = requestAnimationFrame(() => {
+      renderFrameRef.current = null;
+      canvas.requestRenderAll();
+    });
+  };
+
+  const drawGuidelines = (
+    canvas: Canvas,
+    size: { width: number; height: number }
+  ) => {
     const objects = canvas.getObjects();
     objects.forEach((obj: any) => {
       if (obj.isGuideline) {
@@ -29,13 +48,12 @@ const CanvasPreview = () => {
       }
     });
 
-    // Margin border (dashed blue)
     const margin = 40;
     const marginRect = new Rect({
       left: margin,
       top: margin,
-      width: canvasSize.width - margin * 2,
-      height: canvasSize.height - margin * 2,
+      width: size.width - margin * 2,
+      height: size.height - margin * 2,
       fill: "transparent",
       stroke: "#3b82f6",
       strokeWidth: 2,
@@ -46,9 +64,8 @@ const CanvasPreview = () => {
     (marginRect as any).isGuideline = true;
     canvas.add(marginRect);
 
-    // Vertical center guideline (orange)
     const verticalLine = new Line(
-      [canvasSize.width / 2, 0, canvasSize.width / 2, canvasSize.height],
+      [size.width / 2, 0, size.width / 2, size.height],
       {
         stroke: "#f97316",
         strokeWidth: 1,
@@ -59,9 +76,8 @@ const CanvasPreview = () => {
     (verticalLine as any).isGuideline = true;
     canvas.add(verticalLine);
 
-    // Horizontal center guideline (orange)
     const horizontalLine = new Line(
-      [0, canvasSize.height / 2, canvasSize.width, canvasSize.height / 2],
+      [0, size.height / 2, size.width, size.height / 2],
       {
         stroke: "#f97316",
         strokeWidth: 1,
@@ -78,13 +94,15 @@ const CanvasPreview = () => {
 
     const canvas = new Canvas(canvasRef.current, {
       backgroundColor: "#f3f4f6",
+      renderOnAddRemove: false,
     });
 
     fabricRef.current = canvas;
 
     const updateCanvasSize = () => {
       if (!containerRef.current) return;
-      const containerWidth = containerRef.current.clientWidth - 32;
+
+      const containerWidth = Math.max(1, containerRef.current.clientWidth - 32);
       const aspectRatio = template.height / template.width;
       const newWidth = Math.min(containerWidth, template.width);
       const newHeight = newWidth * aspectRatio;
@@ -105,26 +123,43 @@ const CanvasPreview = () => {
     ).then((img) => {
       if (!img || !fabricRef.current) return;
 
+      // Use the current actual canvas size instead of the initial 800x600 state.
+      const actualWidth = canvas.getWidth();
+      const actualHeight = canvas.getHeight();
+
       img.set({
         left: 0,
         top: 0,
         selectable: false,
         evented: false,
-        scaleX: canvasSize.width / template.width,
-        scaleY: canvasSize.height / template.height,
+        scaleX: actualWidth / template.width,
+        scaleY: actualHeight / template.height,
       });
 
       canvas.add(img);
       canvas.sendObjectToBack(img);
-      drawGuidelines(canvas);
-      renderText(canvas, textSettings);
+      drawGuidelines(canvas, { width: actualWidth, height: actualHeight });
+      renderText(canvas, textSettings, {
+        width: actualWidth,
+        height: actualHeight,
+      });
       isInitializedRef.current = true;
+      canvas.requestRenderAll();
     });
 
     return () => {
       window.removeEventListener("resize", updateCanvasSize);
+
+      if (renderFrameRef.current !== null) {
+        cancelAnimationFrame(renderFrameRef.current);
+        renderFrameRef.current = null;
+      }
+
       canvas.dispose();
       fabricRef.current = null;
+      boundingBoxRef.current = null;
+      textRef.current = null;
+      labelRef.current = null;
       isInitializedRef.current = false;
     };
   }, [template]);
@@ -132,12 +167,14 @@ const CanvasPreview = () => {
   useEffect(() => {
     if (!fabricRef.current || !isInitializedRef.current) return;
 
-    // Update existing objects without recreating
-    if (boundingBoxRef.current && textRef.current && labelRef.current) {
+    // Never overwrite Fabric's live transform while the user is dragging.
+    if (isTransformingRef.current) return;
+
+    if (boundingBoxRef.current && textRef.current && labelRef.current && template) {
       const textX = (textSettings.x / 100) * canvasSize.width;
       const textY = (textSettings.y / 100) * canvasSize.height;
       const textWidth = (textSettings.width / 100) * canvasSize.width;
-      const scaleFactor = canvasSize.width / template!.width;
+      const scaleFactor = canvasSize.width / template.width;
       const scaledFontSize = textSettings.fontSize * scaleFactor;
 
       let displayName = names[0]?.name || "";
@@ -145,10 +182,13 @@ const CanvasPreview = () => {
         displayName = displayName.toUpperCase();
       }
 
-      boundingBoxRef.current.set({
+      const boundingBox = boundingBoxRef.current;
+      boundingBox.set({
         left: textX - textWidth / 2,
         top: textY - 30,
         width: textWidth,
+        scaleX: 1,
+        scaleY: 1,
       });
 
       textRef.current.set({
@@ -169,11 +209,39 @@ const CanvasPreview = () => {
         top: textY - 50,
       });
 
-      fabricRef.current.renderAll();
+      boundingBox.setCoords();
+      textRef.current.setCoords();
+      labelRef.current.setCoords();
+      fabricRef.current.requestRenderAll();
     }
   }, [textSettings, names, canvasSize, template]);
 
-  const renderText = (canvas: Canvas, settings: TextSettings) => {
+  const syncLinkedObjects = (boundingBox: any, text: any, label: any) => {
+    if (boundingBox.left === undefined || boundingBox.top === undefined) return;
+
+    const currentWidth = boundingBox.width * (boundingBox.scaleX || 1);
+    const centerX = boundingBox.left + currentWidth / 2;
+    const centerY = boundingBox.top + 30;
+
+    text.set({
+      left: centerX,
+      top: centerY,
+    });
+
+    label.set({
+      left: boundingBox.left + 5,
+      top: boundingBox.top - 20,
+    });
+
+    text.setCoords();
+    label.setCoords();
+  };
+
+  const renderText = (
+    canvas: Canvas,
+    settings: TextSettings,
+    size: { width: number; height: number }
+  ) => {
     if (!template || names.length === 0) return;
 
     let displayName = names[0].name;
@@ -181,14 +249,13 @@ const CanvasPreview = () => {
       displayName = displayName.toUpperCase();
     }
 
-    const textX = (settings.x / 100) * canvasSize.width;
-    const textY = (settings.y / 100) * canvasSize.height;
-    const textWidth = (settings.width / 100) * canvasSize.width;
+    const textX = (settings.x / 100) * size.width;
+    const textY = (settings.y / 100) * size.height;
+    const textWidth = (settings.width / 100) * size.width;
 
-    const scaleFactor = canvasSize.width / template.width;
+    const scaleFactor = size.width / template.width;
     const scaledFontSize = settings.fontSize * scaleFactor;
 
-    // Label "Area nama"
     const label = new Text("Area nama", {
       left: textX - textWidth / 2 + 5,
       top: textY - 50,
@@ -200,7 +267,6 @@ const CanvasPreview = () => {
     });
     labelRef.current = label;
 
-    // Text object
     const text = new FabricText(displayName, {
       left: textX,
       top: textY,
@@ -218,7 +284,6 @@ const CanvasPreview = () => {
     });
     textRef.current = text;
 
-    // Bounding box (blue rectangle) - draggable
     const boundingBox = new Rect({
       left: textX - textWidth / 2,
       top: textY - 30,
@@ -228,6 +293,7 @@ const CanvasPreview = () => {
       stroke: "#3b82f6",
       strokeWidth: 2,
       selectable: true,
+      evented: true,
       hasControls: true,
       hasBorders: true,
       borderColor: "#3b82f6",
@@ -242,70 +308,57 @@ const CanvasPreview = () => {
     });
     boundingBoxRef.current = boundingBox;
 
+    const handleTransform = () => {
+      syncLinkedObjects(boundingBox, text, label);
+      requestSmoothRender(canvas);
+    };
+
     boundingBox.on("moving", () => {
-      if (boundingBox.left === undefined || boundingBox.top === undefined)
-        return;
-
-      const currentWidth = boundingBox.width! * (boundingBox.scaleX || 1);
-      const newX = ((boundingBox.left + currentWidth / 2) / canvasSize.width) * 100;
-      const newY = ((boundingBox.top + 30) / canvasSize.height) * 100;
-
-      updateTextSettings({
-        x: Math.round(Math.max(0, Math.min(100, newX))),
-        y: Math.round(Math.max(0, Math.min(100, newY))),
-      });
-
-      // Update text and label position
-      text.set({
-        left: boundingBox.left + currentWidth / 2,
-        top: boundingBox.top + 30,
-      });
-      label.set({
-        left: boundingBox.left + 5,
-        top: boundingBox.top - 20,
-      });
+      isTransformingRef.current = true;
+      handleTransform();
     });
 
     boundingBox.on("scaling", () => {
-      if (!boundingBox.scaleX || !boundingBox.width) return;
-
-      const currentWidth = boundingBox.width * boundingBox.scaleX;
-      const newWidth = (currentWidth / canvasSize.width) * 100;
-
-      updateTextSettings({
-        width: Math.round(Math.max(0, Math.min(100, newWidth))),
-      });
-
-      // Update text position to follow center
-      if (boundingBox.left !== undefined && boundingBox.top !== undefined) {
-        text.set({
-          left: boundingBox.left + currentWidth / 2,
-          top: boundingBox.top + 30,
-        });
-        label.set({
-          left: boundingBox.left + 5,
-          top: boundingBox.top - 20,
-        });
-      }
+      isTransformingRef.current = true;
+      handleTransform();
     });
 
     boundingBox.on("modified", () => {
-      // Reset scale to 1 and apply to width
-      if (boundingBox.scaleX && boundingBox.scaleX !== 1) {
-        const newWidth = boundingBox.width! * boundingBox.scaleX;
-        boundingBox.set({
-          width: newWidth,
-          scaleX: 1,
-          scaleY: 1,
-        });
-      }
+      const left = boundingBox.left ?? 0;
+      const top = boundingBox.top ?? 0;
+      const currentWidth = boundingBox.width * (boundingBox.scaleX || 1);
+
+      // Convert the live Fabric position to percentages BEFORE resetting scale.
+      const newX = ((left + currentWidth / 2) / size.width) * 100;
+      const newY = ((top + 30) / size.height) * 100;
+      const newWidth = (currentWidth / size.width) * 100;
+
+      // IMPORTANT: normalize the Fabric object first, then update React/Zustand.
+      // This prevents the store update from fighting with an active Fabric transform.
+      boundingBox.set({
+        width: currentWidth,
+        scaleX: 1,
+        scaleY: 1,
+      });
+      boundingBox.setCoords();
+
+      syncLinkedObjects(boundingBox, text, label);
+      canvas.requestRenderAll();
+
+      isTransformingRef.current = false;
+
+      updateTextSettings({
+        x: roundPosition(clampPercent(newX)),
+        y: roundPosition(clampPercent(newY)),
+        width: roundPosition(clampPercent(newWidth)),
+      });
     });
 
     canvas.add(label);
     canvas.add(text);
     canvas.add(boundingBox);
     canvas.setActiveObject(boundingBox);
-    canvas.renderAll();
+    canvas.requestRenderAll();
   };
 
   const handleZoomIn = () => {
@@ -313,7 +366,7 @@ const CanvasPreview = () => {
       const newZoom = zoom + 10;
       setZoom(newZoom);
       fabricRef.current?.setZoom(newZoom / 100);
-      fabricRef.current?.renderAll();
+      fabricRef.current?.requestRenderAll();
     }
   };
 
@@ -322,14 +375,14 @@ const CanvasPreview = () => {
       const newZoom = zoom - 10;
       setZoom(newZoom);
       fabricRef.current?.setZoom(newZoom / 100);
-      fabricRef.current?.renderAll();
+      fabricRef.current?.requestRenderAll();
     }
   };
 
   const handleFit = () => {
     setZoom(100);
     fabricRef.current?.setZoom(1);
-    fabricRef.current?.renderAll();
+    fabricRef.current?.requestRenderAll();
   };
 
   if (!template) {
@@ -344,7 +397,6 @@ const CanvasPreview = () => {
 
   return (
     <div ref={containerRef} className="flex h-full flex-col">
-      {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-base font-semibold text-foreground">
           Preview editor
@@ -376,14 +428,12 @@ const CanvasPreview = () => {
         </div>
       </div>
 
-      {/* Canvas Area */}
       <div className="flex-1 overflow-auto rounded-lg border border-border bg-gray-200 p-4">
         <div className="flex items-center justify-center">
           <canvas ref={canvasRef} />
         </div>
       </div>
 
-      {/* Footer */}
       <div className="mt-4 text-sm text-muted-foreground">
         <p>
           Geser garis biru untuk memindahkan nama. Tarik titik kanan untuk
