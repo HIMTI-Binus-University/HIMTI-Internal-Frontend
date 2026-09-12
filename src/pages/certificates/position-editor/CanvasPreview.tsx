@@ -9,6 +9,10 @@ const CanvasPreview = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<Canvas | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const boundingBoxRef = useRef<any>(null);
+  const textRef = useRef<any>(null);
+  const labelRef = useRef<any>(null);
+  const isInitializedRef = useRef(false);
 
   const { state, updateTextSettings } = useCertificateStore();
   const { template, names, textSettings } = state;
@@ -74,7 +78,6 @@ const CanvasPreview = () => {
 
     const canvas = new Canvas(canvasRef.current, {
       backgroundColor: "#f3f4f6",
-      selection: false,
     });
 
     fabricRef.current = canvas;
@@ -93,9 +96,13 @@ const CanvasPreview = () => {
     updateCanvasSize();
     window.addEventListener("resize", updateCanvasSize);
 
-    FabricImage.fromURL(template.url, {}, {
-      crossOrigin: "anonymous",
-    }).then((img) => {
+    FabricImage.fromURL(
+      template.url,
+      {},
+      {
+        crossOrigin: "anonymous",
+      }
+    ).then((img) => {
       if (!img || !fabricRef.current) return;
 
       img.set({
@@ -111,31 +118,62 @@ const CanvasPreview = () => {
       canvas.sendObjectToBack(img);
       drawGuidelines(canvas);
       renderText(canvas, textSettings);
+      isInitializedRef.current = true;
     });
 
     return () => {
       window.removeEventListener("resize", updateCanvasSize);
       canvas.dispose();
       fabricRef.current = null;
+      isInitializedRef.current = false;
     };
   }, [template]);
 
   useEffect(() => {
-    if (fabricRef.current) {
-      drawGuidelines(fabricRef.current);
-      renderText(fabricRef.current, textSettings);
+    if (!fabricRef.current || !isInitializedRef.current) return;
+
+    // Update existing objects without recreating
+    if (boundingBoxRef.current && textRef.current && labelRef.current) {
+      const textX = (textSettings.x / 100) * canvasSize.width;
+      const textY = (textSettings.y / 100) * canvasSize.height;
+      const textWidth = (textSettings.width / 100) * canvasSize.width;
+      const scaleFactor = canvasSize.width / template!.width;
+      const scaledFontSize = textSettings.fontSize * scaleFactor;
+
+      let displayName = names[0]?.name || "";
+      if (textSettings.uppercase) {
+        displayName = displayName.toUpperCase();
+      }
+
+      boundingBoxRef.current.set({
+        left: textX - textWidth / 2,
+        top: textY - 30,
+        width: textWidth,
+      });
+
+      textRef.current.set({
+        left: textX,
+        top: textY,
+        text: displayName,
+        fontSize: scaledFontSize,
+        fontFamily: textSettings.fontFamily,
+        fontWeight: textSettings.fontWeight,
+        fill: textSettings.color,
+        textAlign: textSettings.textAlign,
+        charSpacing: textSettings.letterSpacing * 10,
+        lineHeight: textSettings.lineHeight,
+      });
+
+      labelRef.current.set({
+        left: textX - textWidth / 2 + 5,
+        top: textY - 50,
+      });
+
+      fabricRef.current.renderAll();
     }
-  }, [textSettings, names, canvasSize]);
+  }, [textSettings, names, canvasSize, template]);
 
   const renderText = (canvas: Canvas, settings: TextSettings) => {
-    // Remove existing text and bounding box
-    const objects = canvas.getObjects();
-    objects.forEach((obj: any) => {
-      if (obj.isTextArea) {
-        canvas.remove(obj);
-      }
-    });
-
     if (!template || names.length === 0) return;
 
     let displayName = names[0].name;
@@ -150,24 +188,6 @@ const CanvasPreview = () => {
     const scaleFactor = canvasSize.width / template.width;
     const scaledFontSize = settings.fontSize * scaleFactor;
 
-    // Bounding box (blue rectangle)
-    const boundingBox = new Rect({
-      left: textX - textWidth / 2,
-      top: textY - 30,
-      width: textWidth,
-      height: 60,
-      fill: "transparent",
-      stroke: "#3b82f6",
-      strokeWidth: 2,
-      selectable: true,
-      hasControls: true,
-      hasBorders: false,
-      lockRotation: true,
-      lockScalingY: true,
-      lockScalingFlip: true,
-    });
-    (boundingBox as any).isTextArea = true;
-
     // Label "Area nama"
     const label = new Text("Area nama", {
       left: textX - textWidth / 2 + 5,
@@ -178,7 +198,7 @@ const CanvasPreview = () => {
       selectable: false,
       evented: false,
     });
-    (label as any).isTextArea = true;
+    labelRef.current = label;
 
     // Text object
     const text = new FabricText(displayName, {
@@ -196,37 +216,95 @@ const CanvasPreview = () => {
       selectable: false,
       evented: false,
     });
-    (text as any).isTextArea = true;
+    textRef.current = text;
+
+    // Bounding box (blue rectangle) - draggable
+    const boundingBox = new Rect({
+      left: textX - textWidth / 2,
+      top: textY - 30,
+      width: textWidth,
+      height: 60,
+      fill: "transparent",
+      stroke: "#3b82f6",
+      strokeWidth: 2,
+      selectable: true,
+      hasControls: true,
+      hasBorders: true,
+      borderColor: "#3b82f6",
+      cornerColor: "#3b82f6",
+      cornerSize: 8,
+      transparentCorners: false,
+      lockRotation: true,
+      lockScalingY: true,
+      lockScalingFlip: true,
+      lockSkewingX: true,
+      lockSkewingY: true,
+    });
+    boundingBoxRef.current = boundingBox;
 
     boundingBox.on("moving", () => {
-      if (!boundingBox.left || !boundingBox.top) return;
-      const newX = ((boundingBox.left + textWidth / 2) / canvasSize.width) * 100;
+      if (boundingBox.left === undefined || boundingBox.top === undefined)
+        return;
+
+      const currentWidth = boundingBox.width! * (boundingBox.scaleX || 1);
+      const newX = ((boundingBox.left + currentWidth / 2) / canvasSize.width) * 100;
       const newY = ((boundingBox.top + 30) / canvasSize.height) * 100;
-      updateTextSettings({ x: Math.round(newX), y: Math.round(newY) });
-      
+
+      updateTextSettings({
+        x: Math.round(Math.max(0, Math.min(100, newX))),
+        y: Math.round(Math.max(0, Math.min(100, newY))),
+      });
+
       // Update text and label position
       text.set({
-        left: boundingBox.left + textWidth / 2,
+        left: boundingBox.left + currentWidth / 2,
         top: boundingBox.top + 30,
       });
       label.set({
         left: boundingBox.left + 5,
         top: boundingBox.top - 20,
       });
-      canvas.renderAll();
     });
 
     boundingBox.on("scaling", () => {
-      if (!boundingBox.scaleX) return;
-      const newWidth = ((textWidth * boundingBox.scaleX) / canvasSize.width) * 100;
-      updateTextSettings({ width: Math.round(newWidth) });
-      boundingBox.set({ scaleX: 1, width: textWidth * boundingBox.scaleX });
-      canvas.renderAll();
+      if (!boundingBox.scaleX || !boundingBox.width) return;
+
+      const currentWidth = boundingBox.width * boundingBox.scaleX;
+      const newWidth = (currentWidth / canvasSize.width) * 100;
+
+      updateTextSettings({
+        width: Math.round(Math.max(0, Math.min(100, newWidth))),
+      });
+
+      // Update text position to follow center
+      if (boundingBox.left !== undefined && boundingBox.top !== undefined) {
+        text.set({
+          left: boundingBox.left + currentWidth / 2,
+          top: boundingBox.top + 30,
+        });
+        label.set({
+          left: boundingBox.left + 5,
+          top: boundingBox.top - 20,
+        });
+      }
     });
 
-    canvas.add(boundingBox);
+    boundingBox.on("modified", () => {
+      // Reset scale to 1 and apply to width
+      if (boundingBox.scaleX && boundingBox.scaleX !== 1) {
+        const newWidth = boundingBox.width! * boundingBox.scaleX;
+        boundingBox.set({
+          width: newWidth,
+          scaleX: 1,
+          scaleY: 1,
+        });
+      }
+    });
+
     canvas.add(label);
     canvas.add(text);
+    canvas.add(boundingBox);
+    canvas.setActiveObject(boundingBox);
     canvas.renderAll();
   };
 
@@ -268,7 +346,9 @@ const CanvasPreview = () => {
     <div ref={containerRef} className="flex h-full flex-col">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-base font-semibold text-foreground">Preview editor</h3>
+        <h3 className="text-base font-semibold text-foreground">
+          Preview editor
+        </h3>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -306,8 +386,8 @@ const CanvasPreview = () => {
       {/* Footer */}
       <div className="mt-4 text-sm text-muted-foreground">
         <p>
-          Geser garis biru untuk memindahkan nama. Tarik titik kanan untuk mengubah lebar. 
-          Posisi disimpan relatif terhadap ukuran template.
+          Geser garis biru untuk memindahkan nama. Tarik titik kanan untuk
+          mengubah lebar. Posisi disimpan relatif terhadap ukuran template.
         </p>
       </div>
     </div>
