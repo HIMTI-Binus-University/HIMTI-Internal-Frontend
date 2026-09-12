@@ -37,27 +37,12 @@ const defaultTextSettings: TextSettings = {
   },
 };
 
-// 🔧 MOCK DATA UNTUK DEVELOPMENT - UBAH currentStep KE 1 SETELAH SELESAI
+// Initial state - No mock data
 const initialState: CertificateState = {
-  currentStep: 1, // ← UBAH JADI 1 SEBELUM MERGE
-  template: {
-    file: new File([], "mock.png"),
-    url: "https://via.placeholder.com/1200x800/cccccc/000000?text=Certificate+Template",
-    width: 1200,
-    height: 800,
-  },
-  names: [
-    { id: "1", name: "John Doe", order: 1 },
-    { id: "2", name: "Jane Smith", order: 2 },
-    { id: "3", name: "Alexander Hamilton Jr.", order: 3 },
-    { id: "4", name: "Short Name", order: 4 },
-    { id: "5", name: "Muhammad Al-Farabi bin Abdullah", order: 5 },
-  ],
-  textSettings: {
-    ...defaultTextSettings,
-    y: 60,
-    color: "#1a56db",
-  },
+  currentStep: 1,
+  template: null,
+  names: [],
+  textSettings: defaultTextSettings,
 };
 
 const certificateReducer = (
