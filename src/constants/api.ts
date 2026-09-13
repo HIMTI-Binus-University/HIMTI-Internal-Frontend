@@ -81,11 +81,11 @@ export const Api = {
   electionTally: `${API_URL}/api/v1/internal/elections/:electionId/tally`,
 
   // HIMTI KIT administration endpoints
-  himtiKitResources: `${API_URL}/api/v1/admin/himti-kit/resources`,
-  himtiKitResource: `${API_URL}/api/v1/admin/himti-kit/resources/:id`,
-  himtiKitSoftwares: `${API_URL}/api/v1/admin/himti-kit/softwares`,
-  himtiKitSoftware: `${API_URL}/api/v1/admin/himti-kit/softwares/:id`,
-  himtiKitAttendees: `${API_URL}/api/v1/admin/himti-kit/attendees`,
-  himtiKitAttendeeBulk: `${API_URL}/api/v1/admin/himti-kit/attendees/bulk`,
-  himtiKitAttendee: `${API_URL}/api/v1/admin/himti-kit/attendees/:id`,
+  himtiKitResources: `${API_URL}/api/himti-kit/resources`,
+  himtiKitResource: `${API_URL}/api/himti-kit/resources/:id`,
+  himtiKitSoftwares: `${API_URL}/api/himti-kit/software`,
+  himtiKitSoftware: `${API_URL}/api/himti-kit/software/:id`,
+  himtiKitAttendees: `${API_URL}/api/himti-kit/attendees`,
+  himtiKitAttendeeBulk: `${API_URL}/api/himti-kit/attendees/bulk-import`,
+  himtiKitAttendee: `${API_URL}/api/himti-kit/attendees/:id`,
 };

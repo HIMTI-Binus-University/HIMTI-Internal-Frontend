@@ -11,20 +11,101 @@ import {
   setStoredSoftwares,
 } from "@/data/himti-kit";
 import type { ApiDataResponse } from "@/types/batches";
-import type {
-  CreateHimtiKitAttendeeInput,
-  CreateHimtiKitResourceInput,
-  CreateHimtiKitSoftwareInput,
-  HimtiKitAttendee,
-  HimtiKitResource,
-  HimtiKitSoftware,
-  UpdateHimtiKitResourceInput,
-  UpdateHimtiKitSoftwareInput,
+import {
+  BACKEND_ENUM_TO_MAJOR,
+  MAJOR_TO_BACKEND_ENUM,
+  type CreateHimtiKitAttendeeInput,
+  type CreateHimtiKitResourceInput,
+  type CreateHimtiKitSoftwareInput,
+  type HimtiKitAttendee,
+  type HimtiKitResource,
+  type HimtiKitSoftware,
+  type UpdateHimtiKitResourceInput,
+  type UpdateHimtiKitSoftwareInput,
 } from "@/types/himti-kit";
 
-// Set to true while developing frontend independently.
-// Once your backend is running, set this to false!
-export const FORCE_MOCK_HIMTI_KIT = true;
+// Set to false to interact with real backend database.
+// Falls back gracefully to mock storage if backend is offline.
+export const FORCE_MOCK_HIMTI_KIT = false;
+
+// ==========================================
+// Transformers & Payload Mappers
+// ==========================================
+
+export const transformBackendResource = (raw: any): HimtiKitResource => ({
+  id: String(raw.id),
+  title: raw.title,
+  description: raw.description ?? null,
+  major: BACKEND_ENUM_TO_MAJOR[raw.major] || raw.major || "Computer Science",
+  downloadUrl: raw.downloadUrl || raw.resourceUrl || "",
+  resourceUrl: raw.downloadUrl || raw.resourceUrl || "",
+  coverImageUrl: raw.coverImageUrl ?? null,
+  createdAt: raw.createdAt,
+  updatedAt: raw.updatedAt,
+});
+
+export const transformResourceCreatePayload = (payload: CreateHimtiKitResourceInput) => ({
+  title: payload.title.trim(),
+  description: payload.description?.trim() || undefined,
+  major: MAJOR_TO_BACKEND_ENUM[payload.major] || payload.major,
+  downloadUrl: payload.resourceUrl || payload.downloadUrl || "",
+  coverImageUrl: payload.coverImageUrl?.trim() || null,
+});
+
+export const transformResourceUpdatePayload = (payload: UpdateHimtiKitResourceInput) => {
+  const result: Record<string, any> = {};
+  if (payload.title !== undefined) result.title = payload.title.trim();
+  if (payload.description !== undefined) {
+    result.description = payload.description?.trim() || undefined;
+  }
+  if (payload.major !== undefined) {
+    result.major = MAJOR_TO_BACKEND_ENUM[payload.major] || payload.major;
+  }
+  if (payload.resourceUrl !== undefined || payload.downloadUrl !== undefined) {
+    result.downloadUrl = payload.resourceUrl || payload.downloadUrl;
+  }
+  if (payload.coverImageUrl !== undefined) {
+    result.coverImageUrl = payload.coverImageUrl?.trim() || null;
+  }
+  return result;
+};
+
+export const transformBackendSoftware = (raw: any): HimtiKitSoftware => ({
+  id: String(raw.id),
+  name: raw.name,
+  description: raw.description,
+  downloadUrl: raw.downloadUrl,
+  logoUrl: raw.coverImageUrl || raw.logoUrl || null,
+  coverImageUrl: raw.coverImageUrl || raw.logoUrl || null,
+  createdAt: raw.createdAt,
+  updatedAt: raw.updatedAt,
+});
+
+export const transformSoftwareCreatePayload = (payload: CreateHimtiKitSoftwareInput) => ({
+  name: payload.name.trim(),
+  description: payload.description.trim(),
+  downloadUrl: payload.downloadUrl.trim(),
+  coverImageUrl: payload.logoUrl?.trim() || payload.coverImageUrl?.trim() || null,
+});
+
+export const transformSoftwareUpdatePayload = (payload: UpdateHimtiKitSoftwareInput) => {
+  const result: Record<string, any> = {};
+  if (payload.name !== undefined) result.name = payload.name.trim();
+  if (payload.description !== undefined) result.description = payload.description.trim();
+  if (payload.downloadUrl !== undefined) result.downloadUrl = payload.downloadUrl.trim();
+  if (payload.logoUrl !== undefined || payload.coverImageUrl !== undefined) {
+    result.coverImageUrl = payload.logoUrl?.trim() || payload.coverImageUrl?.trim() || null;
+  }
+  return result;
+};
+
+export const transformBackendAttendee = (raw: any): HimtiKitAttendee => ({
+  id: String(raw.id),
+  name: raw.name,
+  nim: raw.nim,
+  createdAt: raw.createdAt,
+  updatedAt: raw.updatedAt,
+});
 
 export const himtiKitQueryKeys = {
   resources: (search?: string) => ["himti-kit-resources", search ?? ""] as const,
@@ -51,11 +132,11 @@ export const useGetHimtiKitResources = (search?: string) =>
       }
 
       try {
-        const response = await apiClient.get<ApiDataResponse<HimtiKitResource[]>>(
+        const response = await apiClient.get<ApiDataResponse<any[]>>(
           Api.himtiKitResources,
           { params: search ? { search } : undefined }
         );
-        return response.data.data;
+        return (response.data?.data || []).map(transformBackendResource);
       } catch (error) {
         console.warn("Backend unavailable, falling back to mock resources:", error);
         return getStoredResources();
@@ -79,11 +160,12 @@ export const useCreateHimtiKitResource = () => {
       }
 
       try {
-        const response = await apiClient.post<ApiDataResponse<HimtiKitResource>>(
+        const backendPayload = transformResourceCreatePayload(payload);
+        const response = await apiClient.post<ApiDataResponse<any>>(
           Api.himtiKitResources,
-          payload
+          backendPayload
         );
-        return response.data.data;
+        return transformBackendResource(response.data?.data);
       } catch (error) {
         console.warn("Backend unavailable, creating in mock storage:", error);
         const current = getStoredResources();
@@ -117,8 +199,9 @@ export const useUpdateHimtiKitResource = () => {
 
       try {
         const url = Api.himtiKitResource.replace(":id", id);
-        const response = await apiClient.put<ApiDataResponse<HimtiKitResource>>(url, payload);
-        return response.data.data;
+        const backendPayload = transformResourceUpdatePayload(payload);
+        const response = await apiClient.patch<ApiDataResponse<any>>(url, backendPayload);
+        return transformBackendResource(response.data?.data);
       } catch (error) {
         console.warn("Backend unavailable, updating in mock storage:", error);
         const current = getStoredResources();
@@ -180,11 +263,11 @@ export const useGetHimtiKitSoftwares = (search?: string) =>
       }
 
       try {
-        const response = await apiClient.get<ApiDataResponse<HimtiKitSoftware[]>>(
+        const response = await apiClient.get<ApiDataResponse<any[]>>(
           Api.himtiKitSoftwares,
           { params: search ? { search } : undefined }
         );
-        return response.data.data;
+        return (response.data?.data || []).map(transformBackendSoftware);
       } catch (error) {
         console.warn("Backend unavailable, falling back to mock softwares:", error);
         return getStoredSoftwares();
@@ -208,11 +291,12 @@ export const useCreateHimtiKitSoftware = () => {
       }
 
       try {
-        const response = await apiClient.post<ApiDataResponse<HimtiKitSoftware>>(
+        const backendPayload = transformSoftwareCreatePayload(payload);
+        const response = await apiClient.post<ApiDataResponse<any>>(
           Api.himtiKitSoftwares,
-          payload
+          backendPayload
         );
-        return response.data.data;
+        return transformBackendSoftware(response.data?.data);
       } catch (error) {
         console.warn("Backend unavailable, creating in mock storage:", error);
         const current = getStoredSoftwares();
@@ -246,8 +330,9 @@ export const useUpdateHimtiKitSoftware = () => {
 
       try {
         const url = Api.himtiKitSoftware.replace(":id", id);
-        const response = await apiClient.put<ApiDataResponse<HimtiKitSoftware>>(url, payload);
-        return response.data.data;
+        const backendPayload = transformSoftwareUpdatePayload(payload);
+        const response = await apiClient.patch<ApiDataResponse<any>>(url, backendPayload);
+        return transformBackendSoftware(response.data?.data);
       } catch (error) {
         console.warn("Backend unavailable, updating in mock storage:", error);
         const current = getStoredSoftwares();
@@ -307,11 +392,11 @@ export const useGetHimtiKitAttendees = (search?: string) =>
       }
 
       try {
-        const response = await apiClient.get<ApiDataResponse<HimtiKitAttendee[]>>(
+        const response = await apiClient.get<ApiDataResponse<any[]>>(
           Api.himtiKitAttendees,
           { params: search ? { search } : undefined }
         );
-        return response.data.data;
+        return (response.data?.data || []).map(transformBackendAttendee);
       } catch (error) {
         console.warn("Backend unavailable, falling back to mock attendees:", error);
         return getStoredAttendees();
@@ -341,11 +426,16 @@ export const useAddHimtiKitAttendees = () => {
       }
 
       try {
-        const response = await apiClient.post<ApiDataResponse<HimtiKitAttendee[]>>(
+        const sanitizedAttendees = payload.map((p) => ({
+          name: p.name.trim(),
+          nim: p.nim.trim(),
+        }));
+
+        const response = await apiClient.post<ApiDataResponse<any>>(
           Api.himtiKitAttendeeBulk,
-          { attendees: payload }
+          { attendees: sanitizedAttendees }
         );
-        return response.data.data;
+        return response.data?.data;
       } catch (error) {
         console.warn("Backend unavailable, adding to mock storage:", error);
         const current = getStoredAttendees();
@@ -394,3 +484,4 @@ export const useDeleteHimtiKitAttendee = () => {
     },
   });
 };
+

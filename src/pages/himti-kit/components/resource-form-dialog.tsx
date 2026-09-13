@@ -138,7 +138,7 @@ export function ResourceFormDialog({
                   onChange={(e) => setMajor(e.target.value)}
                   required
                 >
-                  {BINUS_IT_MAJORS.map((m) => (
+                  {BINUS_IT_MAJORS.filter((m) => m !== "All Majors").map((m) => (
                     <option key={m} value={m}>
                       {m}
                     </option>
