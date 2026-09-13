@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Canvas, FabricImage, FabricText } from "fabric";
+import { Canvas, FabricImage, Textbox } from "fabric";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -87,7 +87,7 @@ const CertificatePreview = () => {
   const renderText = (canvas: Canvas, settings: TextSettings, index: number) => {
     const objects = canvas.getObjects();
     objects.forEach((obj) => {
-      if (obj.type === "text") {
+      if (obj.type === "textbox" || obj.type === "text") {
         canvas.remove(obj);
       }
     });
@@ -99,15 +99,19 @@ const CertificatePreview = () => {
       displayName = displayName.toUpperCase();
     }
 
-    const textX = (settings.x / 100) * canvasSize.width;
-    const textY = (settings.y / 100) * canvasSize.height;
+    const centerX = (settings.x / 100) * canvasSize.width;
+    const centerY = (settings.y / 100) * canvasSize.height;
 
     const scaleFactor = canvasSize.width / template.width;
     const scaledFontSize = settings.fontSize * scaleFactor;
+    const textWidth = Math.max(40, (settings.width / 100) * canvasSize.width);
 
-    const text = new FabricText(displayName, {
-      left: textX,
-      top: textY,
+    const textbox = new Textbox(displayName, {
+      left: centerX,
+      top: centerY,
+      originX: "center",
+      originY: "center",
+      width: textWidth,
       fontSize: scaledFontSize,
       fontFamily: settings.fontFamily,
       fontWeight: settings.fontWeight,
@@ -115,13 +119,37 @@ const CertificatePreview = () => {
       textAlign: settings.textAlign as "left" | "center" | "right",
       charSpacing: settings.letterSpacing * 10,
       lineHeight: settings.lineHeight,
-      originX: "center",
-      originY: "center",
+      angle: settings.rotation,
+      opacity: settings.opacity / 100,
       selectable: false,
       evented: false,
+      editable: false,
+      splitByGrapheme: false,
     });
 
-    canvas.add(text);
+    if (settings.shadow.enabled) {
+      textbox.set({
+        shadow: {
+          color: settings.shadow.color,
+          blur: settings.shadow.blur,
+          offsetX: settings.shadow.offsetX,
+          offsetY: settings.shadow.offsetY,
+        } as any,
+      });
+    }
+
+    if (settings.stroke.enabled) {
+      textbox.set({
+        stroke: settings.stroke.color,
+        strokeWidth: settings.stroke.width,
+        paintFirst: "stroke",
+      });
+    }
+
+    textbox.initDimensions();
+    textbox.setCoords();
+
+    canvas.add(textbox);
     canvas.renderAll();
   };
 

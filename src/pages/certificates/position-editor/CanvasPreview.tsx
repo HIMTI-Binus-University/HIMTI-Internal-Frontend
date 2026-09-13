@@ -122,10 +122,7 @@ const CanvasPreview = () => {
       (settings.width / 100) * size.width
     );
 
-    let displayName = names[0]?.name || "";
-    if (settings.uppercase) {
-      displayName = displayName.toUpperCase();
-    }
+    const displayName = getDisplayName();
 
     textbox.set({
       left: centerX,
