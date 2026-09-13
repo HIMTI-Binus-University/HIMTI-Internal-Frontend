@@ -23,7 +23,6 @@ const CertificatePreview = () => {
 
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [displayMode, setDisplayMode] = useState("as");
 
   useEffect(() => {
     if (!canvasRef.current || !template) return;
@@ -244,13 +243,21 @@ const CertificatePreview = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-blue-900">Preview canvas</h3>
-        <Select value={displayMode} onValueChange={(value) => setDisplayMode(value || "as")}>
-          <SelectTrigger className="w-[100px]">
-            <SelectValue />
+        <Select 
+          value={currentIndex.toString()} 
+          onValueChange={(value) => setCurrentIndex(parseInt(value || "0"))}
+        >
+          <SelectTrigger className="w-[250px]">
+            <SelectValue>
+              {names[currentIndex]?.name || "Select name"}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="as">as</SelectItem>
-            <SelectItem value="other">other</SelectItem>
+            {names.map((name, index) => (
+              <SelectItem key={name.id} value={index.toString()}>
+                {name.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

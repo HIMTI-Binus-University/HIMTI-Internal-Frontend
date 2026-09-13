@@ -17,7 +17,7 @@ const ResultInspection: React.FC<ResultInspectionProps> = ({
 }) => {
   return (
     <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold mb-4">Pemeriksaan hasil</h3>
+      <h3 className="text-lg font-semibold mb-4">Result inspection</h3>
       
       <div className="space-y-1.5 mb-6">
         {stats.map((stat) => (

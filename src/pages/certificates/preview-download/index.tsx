@@ -3,7 +3,6 @@ import { Container, ContainerHeader } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import { useCertificateStore } from "../store";
 import CertificatePreview from "./CertificatePreview";
-import DownloadPanel from "./DownloadPanel";
 import ResultInspection from './components/result-inspection';
 import OutputFormat from './components/output-format';
 import { useState } from "react";
@@ -100,7 +99,6 @@ const PreviewDownload = () => {
       <div className="flex gap-6 p-6">
         <div className="flex-1 flex flex-col gap-6">
           <CertificatePreview />
-          <DownloadPanel />
         </div>
 
         <div className="w-[400px] flex flex-col gap-6">
