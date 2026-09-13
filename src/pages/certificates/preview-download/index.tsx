@@ -7,8 +7,8 @@ import DownloadPanel from "./DownloadPanel";
 import ResultInspection from './components/result-inspection';
 import OutputFormat from './components/output-format';
 import { useState } from "react";
+import { generateCertificates } from "../utils/generateCertificates";
 
-// Add these interfaces
 interface StatItem {
   label: string;
   value: number;
@@ -22,55 +22,75 @@ interface OutputOption {
 }
 
 const PreviewDownload = () => {
-  const { setStep } = useCertificateStore();
+  const { state, setStep } = useCertificateStore();
+  const { template, names, textSettings } = state;
   
-  // Add state for generation
   const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
 
-  // Add your stats data
   const stats: StatItem[] = [
-    { label: 'Sertifikat siap', value: 1, type: 'positive' },
-    { label: 'Menggunakan nama lengkap', value: 1, type: 'positive' },
-    { label: 'Menggunakan ukuran lebih kecil', value: 0, type: 'info' },
-    { label: 'Menggunakan nama dipersingkat', value: 0, type: 'info' },
-    { label: 'Override manual', value: 0, type: 'info' },
-    { label: 'Mencapai ukuran minimum', value: 0, type: 'info' },
-    { label: 'Perlu ditinjau', value: 0, type: 'info' },
-    { label: 'Nama duplikat', value: 0, type: 'info' },
-    { label: 'Estimasi file', value: 1, type: 'positive' },
+    { label: 'Certificates ready', value: names.length, type: 'positive' },
+    { label: 'Using full name', value: names.length, type: 'positive' },
+    { label: 'Using smaller size', value: 0, type: 'info' },
+    { label: 'Using abbreviated name', value: 0, type: 'info' },
+    { label: 'Manual override', value: 0, type: 'info' },
+    { label: 'Reached minimum size', value: 0, type: 'info' },
+    { label: 'Needs review', value: 0, type: 'info' },
+    { label: 'Duplicate names', value: 0, type: 'info' },
+    { label: 'Estimated files', value: names.length, type: 'positive' },
   ];
 
   const highlightedStats: StatItem[] = [
-    { label: 'Nama dipersingkat', value: 0, type: 'info' },
-    { label: 'Nama mencapai font minimum', value: 0, type: 'info' },
-    { label: 'Nama masih overflow', value: 0, type: 'info' },
-    { label: 'Nama dengan override manual', value: 0, type: 'info' },
+    { label: 'Abbreviated names', value: 0, type: 'info' },
+    { label: 'Names at minimum font', value: 0, type: 'info' },
+    { label: 'Names still overflow', value: 0, type: 'info' },
+    { label: 'Names with manual override', value: 0, type: 'info' },
   ];
 
   const outputOptions: OutputOption[] = [
     { 
       id: 'png-zip', 
-      label: 'PNG per peserta dalam ZIP',
-      description: 'Resolusi asli template.'
+      label: 'PNG per participant in ZIP',
+      description: 'Original template resolution.'
     },
     { 
       id: 'pdf-zip', 
-      label: 'PDF per peserta dalam ZIP',
-      description: 'Satu halaman per file.'
+      label: 'PDF per participant in ZIP',
+      description: 'One page per file.'
     },
     { 
       id: 'pdf-multi', 
-      label: 'Satu PDF multi-halaman',
-      description: 'Satu peserta per halaman.'
+      label: 'Single multi-page PDF',
+      description: 'One participant per page.'
     },
   ];
 
-  const handleDownload = (optionId: string) => {
+  const handleDownload = async (optionId: string) => {
+    if (!template) {
+      alert("No template loaded");
+      return;
+    }
+
     setIsGenerating(true);
-    setTimeout(() => {
+    setProgress({ current: 0, total: names.length });
+
+    try {
+      await generateCertificates({
+        template,
+        names,
+        textSettings,
+        format: optionId as "png-zip" | "pdf-zip" | "pdf-multi",
+        onProgress: (current, total) => {
+          setProgress({ current, total });
+        },
+      });
+    } catch (error) {
+      console.error("Failed to generate certificates:", error);
+      alert("Failed to generate certificates. Please try again.");
+    } finally {
       setIsGenerating(false);
-      alert(`Downloading: ${optionId}`);
-    }, 2000);
+      setProgress({ current: 0, total: 0 });
+    }
   };
 
   return (
@@ -92,6 +112,8 @@ const PreviewDownload = () => {
             options={outputOptions}
             onDownload={handleDownload}
             isGenerating={isGenerating}
+            totalCertificates={names.length}
+            progress={progress}
           />
         </div>
       </div>
