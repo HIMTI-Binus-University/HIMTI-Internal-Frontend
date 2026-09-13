@@ -24,7 +24,7 @@ const PreviewDownload = () => {
       <div className="flex justify-start border-t border-border px-6 py-4">
         <Button variant="outline" onClick={() => setStep(2)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Kembali
+          Back
         </Button>
       </div>
     </Container>

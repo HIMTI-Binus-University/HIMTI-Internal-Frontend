@@ -271,11 +271,11 @@ const CertificatePreview = () => {
           className="text-muted-foreground"
         >
           <ChevronLeft className="mr-2 h-4 w-4" />
-          Sebelumnya
+          Previous
         </Button>
 
         <Button variant="outline" onClick={handleLongestName}>
-          Nama terpanjang
+          Longest name
         </Button>
 
         <Button
@@ -284,7 +284,7 @@ const CertificatePreview = () => {
           disabled={currentIndex === names.length - 1}
           className="text-muted-foreground"
         >
-          Berikutnya
+          Next
           <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
       </div>

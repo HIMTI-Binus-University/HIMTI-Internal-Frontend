@@ -11,11 +11,17 @@ import * as XLSX from "xlsx";
 import { useCertificateStore } from "../store";
 import { generateId } from "../utils";
 
-const UploadPanel = () => {
+const UploadPanel = ({ onEditStateChange }: { onEditStateChange?: (isEditing: boolean) => void }) => {
   const { state, setNames } = useCertificateStore();
   const [panelState, setPanelState] = useState<"input" | "review" | "edit">("input");
 
   const [showNames, setShowNames] = useState(false);
+
+  useEffect(() => {
+    if (onEditStateChange) {
+      onEditStateChange(panelState === "edit");
+    }
+  }, [panelState, onEditStateChange]);
 
   type NamesInfo = {
     sumber_data: string;
@@ -400,7 +406,7 @@ Jad Abyanza Fauzan`}
           <Dialog open={showNames} onOpenChange={setShowNames}>
             <DialogContent className="max-h-[80vh] overflow-hidden rounded-2xl">
               <DialogHeader>
-                <DialogTitle>Seluruh daftar peserta</DialogTitle>
+                <DialogTitle>All participant list</DialogTitle>
               </DialogHeader>
 
               <p className="text-sm text-muted-foreground">

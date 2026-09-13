@@ -14,7 +14,7 @@ const CertificateWizard = () => {
     state.currentStep === 1
       ? "Data & Template"
       : state.currentStep === 2
-      ? "Atur Posisi"
+      ? "Set Position"
       : "Preview & Download",
   ];
 

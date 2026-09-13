@@ -310,7 +310,7 @@ const CanvasPreview = () => {
 
     textRef.current = textbox;
 
-    const label = new Text("Area nama", {
+    const label = new Text("Name area", {
       left: centerX,
       top: centerY,
       fontSize: 12,
@@ -659,7 +659,7 @@ const CanvasPreview = () => {
           >
             <SelectTrigger className="h-8 w-[250px] text-xs">
               <SelectValue>
-                {names[previewNameIndex]?.name || "Pilih nama"}
+                {names[previewNameIndex]?.name || "Select name"}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -681,9 +681,9 @@ const CanvasPreview = () => {
 
       <div className="mt-4 text-sm text-muted-foreground">
         <p>
-          <strong>Drag kotak</strong> untuk pindah posisi. 
-          <strong>Drag 4 pojok</strong> untuk ubah ukuran font.
-          <strong>Drag pojok kiri/kanan</strong> untuk ubah lebar area (text auto-wrap).
+          <strong>Drag box</strong> to move position. 
+          <strong>Drag 4 corners</strong> to resize font.
+          <strong>Drag left/right corners</strong> to change area width (text auto-wrap).
         </p>
       </div>
     </div>

@@ -33,7 +33,7 @@ const SettingsPanel = () => {
     if (!file) return;
 
     if (!isFont(file)) {
-      alert("File harus berformat .ttf atau .otf");
+      alert("File must be in .ttf or .otf format");
       return;
     }
 
@@ -48,9 +48,9 @@ const SettingsPanel = () => {
         { label: fontName, value: fontName },
       ]);
       updateTextSettings({ fontFamily: fontName });
-      alert(`Font "${fontName}" berhasil dimuat!`);
+      alert(`Font "${fontName}" loaded successfully!`);
     } catch (error) {
-      alert("Gagal memuat font. Silakan coba lagi.");
+      alert("Failed to load font. Please try again.");
       console.error(error);
     }
   };
@@ -59,7 +59,7 @@ const SettingsPanel = () => {
     <div className="flex h-full flex-col gap-4 overflow-auto">
       {/* Section 1: Posisi & Dimensi */}
       <Card className="p-4">
-        <h3 className="mb-3 text-sm font-semibold">Posisi & Dimensi</h3>
+        <h3 className="mb-3 text-sm font-semibold">Position & Dimensions</h3>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor="x" className="text-xs">
@@ -133,7 +133,7 @@ const SettingsPanel = () => {
             className="flex-1 text-xs"
             onClick={() => updateTextSettings({ x: 50 })}
           >
-            Tengah Horizontal
+            Center Horizontal
           </Button>
           <Button
             variant="outline"
@@ -141,7 +141,7 @@ const SettingsPanel = () => {
             className="flex-1 text-xs"
             onClick={() => updateTextSettings({ y: 50 })}
           >
-            Tengah Vertikal
+            Center Vertical
           </Button>
         </div>
         <div className="mt-3">
@@ -200,7 +200,7 @@ const SettingsPanel = () => {
 
       {/* Section 2: Tipografi */}
       <Card className="p-4">
-        <h3 className="mb-3 text-sm font-semibold">Tipografi</h3>
+        <h3 className="mb-3 text-sm font-semibold">Typography</h3>
         <div className="space-y-3">
           <div>
             <Label htmlFor="fontFamily" className="text-xs">
@@ -354,7 +354,7 @@ const SettingsPanel = () => {
 
       {/* Section NEW: Efek Text */}
       <Card className="p-4">
-        <h3 className="mb-3 text-sm font-semibold">Efek Text</h3>
+        <h3 className="mb-3 text-sm font-semibold">Text Effects</h3>
         <div className="space-y-3">
           {/* Text Shadow */}
           <div>
@@ -559,7 +559,7 @@ const SettingsPanel = () => {
 
       {/* Section 3: Pengaturan Lanjutan */}
       <Card className="p-4">
-        <h3 className="mb-3 text-sm font-semibold">Pengaturan Lanjutan</h3>
+        <h3 className="mb-3 text-sm font-semibold">Advanced Settings</h3>
         <div className="space-y-3">
           <div>
             <Label htmlFor="letterSpacing" className="text-xs">
@@ -620,7 +620,7 @@ const SettingsPanel = () => {
               htmlFor="uppercase"
               className="text-xs font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              Tampilkan UPPERCASE
+              Display UPPERCASE
             </Label>
           </div>
         </div>
@@ -628,7 +628,7 @@ const SettingsPanel = () => {
 
       {/* Section 4: Nama Panjang */}
       <Card className="p-4">
-        <h3 className="mb-3 text-sm font-semibold">Nama Panjang</h3>
+        <h3 className="mb-3 text-sm font-semibold">Long Names</h3>
         <div className="space-y-3">
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -642,14 +642,14 @@ const SettingsPanel = () => {
               htmlFor="autoFit"
               className="text-xs font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              Aktifkan Auto Fit
+              Enable Auto Fit
             </Label>
           </div>
 
           {!textSettings.autoFit && (
             <div className="space-y-2 border-t pt-3">
               <p className="text-xs text-muted-foreground">
-                Singkat nama panjang:
+                Abbreviate long names:
               </p>
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -668,7 +668,7 @@ const SettingsPanel = () => {
                   htmlFor="abbrevFirst"
                   className="text-xs font-normal leading-none"
                 >
-                  Nama pertama
+                  First name
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
@@ -688,7 +688,7 @@ const SettingsPanel = () => {
                   htmlFor="abbrevMiddle"
                   className="text-xs font-normal leading-none"
                 >
-                  Nama tengah
+                  Middle name
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
@@ -708,7 +708,7 @@ const SettingsPanel = () => {
                   htmlFor="abbrevLast"
                   className="text-xs font-normal leading-none"
                 >
-                  Nama terakhir
+                  Last name
                 </Label>
               </div>
             </div>
@@ -722,7 +722,7 @@ const SettingsPanel = () => {
         onClick={resetTextSettings}
         className="mt-2"
       >
-        Reset Pengaturan
+        Reset Settings
       </Button>
     </div>
   );

@@ -35,7 +35,7 @@ const UploadTemplate = () => {
     };
 
     const handleDelete = () => {
-        if (confirm("Apakah Anda yakin ingin menghapus template ini?")) {
+        if (confirm("Are you sure you want to delete this template?")) {
             if (template) URL.revokeObjectURL(template.url);
             setTemplate(null);
         }
@@ -56,13 +56,13 @@ const UploadTemplate = () => {
                 <CloudUpload className="mb-3 h-8 w-8 text-muted-foreground" />
     
                 <p className="text-sm font-medium text-foreground">
-                    Unggah template sertifikat
+                    Upload certificate template
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    Rasio dan transparansi PNG dipertahankan.
+                    PNG ratio and transparency will be preserved.
                 </p>
     
-                <Button className="mt-4" onClick={() => inputRef.current?.click()}>Pilih template</Button>
+                <Button className="mt-4" onClick={() => inputRef.current?.click()}>Choose template</Button>
                 </div>
             ) : (
                 <div className="flex w-full flex-col">
@@ -83,14 +83,14 @@ const UploadTemplate = () => {
                             </div>
 
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Dimensi:</span>
+                                <span className="text-muted-foreground">Dimensions:</span>
                                 <span className="font-medium text-foreground">
                                     {template.width} x {template.height} px
                                 </span>
                             </div>
 
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Ukuran:</span>
+                                <span className="text-muted-foreground">Size:</span>
                                 <span className="font-medium text-foreground">
                                     {formatFileSize(template.file.size)}
                                 </span>
@@ -99,8 +99,8 @@ const UploadTemplate = () => {
                     </div>
         
                     <div className="flex gap-2">
-                        <Button variant="outline" className="flex-1 text-blue-900" onClick={() => inputRef.current?.click()}><RefreshCw className="mr-2 h-4 w-4" /> Ganti</Button>
-                        <Button variant="outline" className="flex-1 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleDelete()}><Trash2 className="mr-2 h-4 w-4" />Hapus</Button>
+                        <Button variant="outline" className="flex-1 text-blue-900" onClick={() => inputRef.current?.click()}><RefreshCw className="mr-2 h-4 w-4" /> Replace</Button>
+                        <Button variant="outline" className="flex-1 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleDelete()}><Trash2 className="mr-2 h-4 w-4" />Delete</Button>
                     </div>
                 </div>
             )}
