@@ -17,7 +17,7 @@ import { findLongestName } from "./utils";
 const defaultTextSettings: TextSettings = {
   x: 50,
   y: 50,
-  width: 50,
+  width: 30,
   height: 20,
   fontFamily: "Plus Jakarta Sans",
   fontSize: 72,

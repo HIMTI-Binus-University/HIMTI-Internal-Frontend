@@ -448,7 +448,7 @@ const CanvasPreview = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto rounded-lg border border-border bg-gray-200 p-4">
+      <div className="overflow-auto rounded-lg border border-border bg-gray-200 p-4">
         <div className="flex items-center justify-center">
           <canvas ref={canvasRef} />
         </div>
