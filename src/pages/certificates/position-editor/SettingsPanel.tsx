@@ -59,7 +59,7 @@ const SettingsPanel = () => {
     <div className="flex h-full flex-col gap-4 overflow-auto">
       {/* Section 1: Posisi & Dimensi */}
       <Card className="p-4">
-        <h3 className="mb-3 text-sm font-semibold">📍 Posisi & Dimensi</h3>
+        <h3 className="mb-3 text-sm font-semibold">Posisi & Dimensi</h3>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor="x" className="text-xs">
@@ -148,7 +148,7 @@ const SettingsPanel = () => {
 
       {/* Section 2: Tipografi */}
       <Card className="p-4">
-        <h3 className="mb-3 text-sm font-semibold">🔤 Tipografi</h3>
+        <h3 className="mb-3 text-sm font-semibold">Tipografi</h3>
         <div className="space-y-3">
           <div>
             <Label htmlFor="fontFamily" className="text-xs">
@@ -302,7 +302,7 @@ const SettingsPanel = () => {
 
       {/* Section 3: Pengaturan Lanjutan */}
       <Card className="p-4">
-        <h3 className="mb-3 text-sm font-semibold">⚙️ Pengaturan Lanjutan</h3>
+        <h3 className="mb-3 text-sm font-semibold">Pengaturan Lanjutan</h3>
         <div className="space-y-3">
           <div>
             <Label htmlFor="letterSpacing" className="text-xs">
@@ -371,7 +371,7 @@ const SettingsPanel = () => {
 
       {/* Section 4: Nama Panjang */}
       <Card className="p-4">
-        <h3 className="mb-3 text-sm font-semibold">📏 Nama Panjang</h3>
+        <h3 className="mb-3 text-sm font-semibold">Nama Panjang</h3>
         <div className="space-y-3">
           <div className="flex items-center space-x-2">
             <Checkbox
