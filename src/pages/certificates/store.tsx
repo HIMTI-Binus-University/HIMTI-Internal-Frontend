@@ -52,8 +52,23 @@ const certificateReducer = (
   switch (action.type) {
     case "SET_STEP":
       return { ...state, currentStep: action.payload };
-    case "SET_TEMPLATE":
-      return { ...state, template: action.payload };
+    case "SET_TEMPLATE": {
+      const template = action.payload;
+      if (template) {
+        const calculatedFontSize = Math.round(template.height * 0.06);
+        const fontSize = Math.max(24, Math.min(200, calculatedFontSize));
+        
+        return {
+          ...state,
+          template,
+          textSettings: {
+            ...state.textSettings,
+            fontSize,
+          },
+        };
+      }
+      return { ...state, template: null };
+    }
     case "SET_NAMES":
       return { ...state, names: action.payload };
     case "UPDATE_TEXT_SETTINGS":
