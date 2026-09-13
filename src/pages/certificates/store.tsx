@@ -20,7 +20,7 @@ const defaultTextSettings: TextSettings = {
   width: 50,
   height: 20,
   fontFamily: "Plus Jakarta Sans",
-  fontSize: 48,
+  fontSize: 72,
   minFontSize: 24,
   fontWeight: "bold",
   textAlign: "center",

@@ -182,15 +182,6 @@ const CanvasPreview = () => {
         displayName = displayName.toUpperCase();
       }
 
-      const boundingBox = boundingBoxRef.current;
-      boundingBox.set({
-        left: textX - textWidth / 2,
-        top: textY - 30,
-        width: textWidth,
-        scaleX: 1,
-        scaleY: 1,
-      });
-
       textRef.current.set({
         left: textX,
         top: textY,
@@ -204,9 +195,23 @@ const CanvasPreview = () => {
         lineHeight: textSettings.lineHeight,
       });
 
+      const textHeight = textRef.current.height || scaledFontSize;
+      const boxPadding = 4;
+      const boxHeight = textHeight + boxPadding * 2;
+
+      const boundingBox = boundingBoxRef.current;
+      boundingBox.set({
+        left: textX - textWidth / 2,
+        top: textY - boxHeight / 2,
+        width: textWidth,
+        height: boxHeight,
+        scaleX: 1,
+        scaleY: 1,
+      });
+
       labelRef.current.set({
         left: textX - textWidth / 2 + 5,
-        top: textY - 50,
+        top: textY - boxHeight / 2 - 20,
       });
 
       boundingBox.setCoords();
@@ -220,8 +225,9 @@ const CanvasPreview = () => {
     if (boundingBox.left === undefined || boundingBox.top === undefined) return;
 
     const currentWidth = boundingBox.width * (boundingBox.scaleX || 1);
+    const currentHeight = boundingBox.height * (boundingBox.scaleY || 1);
     const centerX = boundingBox.left + currentWidth / 2;
-    const centerY = boundingBox.top + 30;
+    const centerY = boundingBox.top + currentHeight / 2;
 
     text.set({
       left: centerX,
@@ -256,17 +262,6 @@ const CanvasPreview = () => {
     const scaleFactor = size.width / template.width;
     const scaledFontSize = settings.fontSize * scaleFactor;
 
-    const label = new Text("Area nama", {
-      left: textX - textWidth / 2 + 5,
-      top: textY - 50,
-      fontSize: 12,
-      fill: "#3b82f6",
-      fontFamily: "Plus Jakarta Sans",
-      selectable: false,
-      evented: false,
-    });
-    labelRef.current = label;
-
     const text = new FabricText(displayName, {
       left: textX,
       top: textY,
@@ -284,11 +279,26 @@ const CanvasPreview = () => {
     });
     textRef.current = text;
 
+    const textHeight = text.height || scaledFontSize;
+    const boxPadding = 4;
+    const boxHeight = textHeight + boxPadding * 2;
+
+    const label = new Text("Area nama", {
+      left: textX - textWidth / 2 + 5,
+      top: textY - boxHeight / 2 - 20,
+      fontSize: 12,
+      fill: "#3b82f6",
+      fontFamily: "Plus Jakarta Sans",
+      selectable: false,
+      evented: false,
+    });
+    labelRef.current = label;
+
     const boundingBox = new Rect({
       left: textX - textWidth / 2,
-      top: textY - 30,
+      top: textY - boxHeight / 2,
       width: textWidth,
-      height: 60,
+      height: boxHeight,
       fill: "transparent",
       stroke: "#3b82f6",
       strokeWidth: 2,
@@ -301,7 +311,6 @@ const CanvasPreview = () => {
       cornerSize: 8,
       transparentCorners: false,
       lockRotation: true,
-      lockScalingY: true,
       lockScalingFlip: true,
       lockSkewingX: true,
       lockSkewingY: true,
@@ -327,16 +336,26 @@ const CanvasPreview = () => {
       const left = boundingBox.left ?? 0;
       const top = boundingBox.top ?? 0;
       const currentWidth = boundingBox.width * (boundingBox.scaleX || 1);
+      const currentHeight = boundingBox.height * (boundingBox.scaleY || 1);
 
       // Convert the live Fabric position to percentages BEFORE resetting scale.
       const newX = ((left + currentWidth / 2) / size.width) * 100;
-      const newY = ((top + 30) / size.height) * 100;
+      const newY = ((top + currentHeight / 2) / size.height) * 100;
       const newWidth = (currentWidth / size.width) * 100;
+
+      // Calculate new font size based on average of width and height change
+      const originalWidth = textWidth;
+      const originalHeight = (text.height || scaledFontSize) + 8;
+      const scaleRatioWidth = currentWidth / originalWidth;
+      const scaleRatioHeight = currentHeight / originalHeight;
+      const scaleRatio = Math.sqrt(scaleRatioWidth * scaleRatioHeight);
+      const newFontSize = Math.round(settings.fontSize * scaleRatio);
 
       // IMPORTANT: normalize the Fabric object first, then update React/Zustand.
       // This prevents the store update from fighting with an active Fabric transform.
       boundingBox.set({
         width: currentWidth,
+        height: currentHeight,
         scaleX: 1,
         scaleY: 1,
       });
@@ -351,6 +370,7 @@ const CanvasPreview = () => {
         x: roundPosition(clampPercent(newX)),
         y: roundPosition(clampPercent(newY)),
         width: roundPosition(clampPercent(newWidth)),
+        fontSize: Math.max(12, Math.min(500, newFontSize)),
       });
     });
 
