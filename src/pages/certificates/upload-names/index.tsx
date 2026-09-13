@@ -31,7 +31,7 @@ const UploadNames = () => {
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100">
                 <FileImage className="h-5 w-5 text-blue-600" />
               </div>
-              <div className="flex-1">
+              <div className="flex flex-col ml-5">
                 <h3 className="text-base font-semibold text-blue-900">Certificate template</h3>
                 <p className="mt-1 text-sm text-gray-500">PNG or JPG/JPEG, maximum 15 MB.</p>
               </div>

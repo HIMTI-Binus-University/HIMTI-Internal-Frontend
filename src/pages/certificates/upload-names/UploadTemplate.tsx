@@ -65,7 +65,7 @@ const UploadTemplate = () => {
                 <Button className="mt-4" onClick={() => inputRef.current?.click()}>Choose template</Button>
                 </div>
             ) : (
-                <div className="flex w-full flex-col">
+                <div className="flex w-full m-2 flex-col">
                     <div className="mb-4 flex items-center justify-center rounded-lg border border-border bg-muted/10 p-2">
                         <img
                             src={template.url}

@@ -167,7 +167,7 @@ const UploadPanel = ({ onEditStateChange }: { onEditStateChange?: (isEditing: bo
     case "input":
       return (
         <div className="w-full">
-          <div className="mt-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="mt-5 rounded-2xl bg-card shadow-sm">
             <div className="mb-6">
               <h2 className="text-lg font-semibold text-foreground">
                 Add participant list
@@ -248,7 +248,7 @@ Jad Abyanza Fauzan`}
 
     case "review":
       return (
-        <div className="w-full">
+        <div className="w-full h-full">
           <input
             ref={fileInputRef}
             type="file"
@@ -257,7 +257,7 @@ Jad Abyanza Fauzan`}
             onChange={HandleInputFile}
           />
 
-          <div className="mt-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="mt-5 rounded-2xl bg-card shadow-sm">
             <div className="mb-6">
               <h2 className="text-lg font-semibold text-foreground">
                 Check list name
@@ -330,8 +330,8 @@ Jad Abyanza Fauzan`}
                 First five names
               </p>
 
-              <div className="mt-2 overflow-hidden rounded-xl border border-border">
-                {namesInfo?.lima_pertama.map((nama, i) => (
+              <div className="mt-2 max-h-[250px] overflow-y-auto rounded-xl border border-border">
+                {namesInfo?.semua_nama.map((nama, i) => (
                   <div
                     key={i}
                     className="border-b border-border px-4 py-3 text-sm last:border-b-0"
@@ -435,7 +435,7 @@ Jad Abyanza Fauzan`}
     case "edit":
       return (
         <div className="w-full">
-          <div className="mt-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="mt-5 rounded-2xl bg-card shadow-sm">
             <div className="mb-5">
               <h2 className="text-lg font-semibold text-foreground">
                 Edit list names
