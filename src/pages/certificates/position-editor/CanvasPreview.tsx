@@ -74,8 +74,8 @@ const CanvasPreview = () => {
     textbox.setControlsVisibility({
       mt: false,
       mb: false,
-      ml: false,
-      mr: false,
+      ml: true,
+      mr: true,
       mtr: false,
       tl: true,
       tr: true,
@@ -86,8 +86,9 @@ const CanvasPreview = () => {
     textbox.set({
       lockRotation: true,
       lockScalingFlip: true,
-      lockSkewingX: true,
+      lockSkewingX: false,
       lockSkewingY: true,
+      lockUniScaling: false,
       hasBorders: true,
       borderColor: "#3b82f6",
       cornerColor: "#3b82f6",
@@ -288,8 +289,10 @@ const CanvasPreview = () => {
     // ---------------------------------------------
     const scalingStartSize = { width: 0, height: 0, fontSize: 0, centerX: 0, centerY: 0 };
     
-    textbox.on("scaling", () => {
+    textbox.on("scaling", (e: any) => {
       isTransformingRef.current = true;
+
+      const corner = e.transform?.corner;
 
       if (!scalingStartSize.fontSize) {
         const center = textbox.getCenterPoint();
@@ -303,24 +306,47 @@ const CanvasPreview = () => {
       const scaleX = textbox.scaleX || 1;
       const scaleY = textbox.scaleY || 1;
 
-      const avgScale = Math.sqrt(scaleX * scaleY);
-      const newFontSize = Math.max(12, Math.min(500, Math.round(scalingStartSize.fontSize * avgScale)));
-      
-      textbox.set({
-        fontSize: newFontSize,
-        scaleX: 1,
-        scaleY: 1,
-      });
+      const isCorner = corner === 'tl' || corner === 'tr' || corner === 'bl' || corner === 'br';
+      const isSide = corner === 'ml' || corner === 'mr';
 
-      textbox.initDimensions();
-      
-      const centerAfter = textbox.getCenterPoint();
-      textbox.set({
-        left: textbox.left! + (scalingStartSize.centerX - centerAfter.x),
-        top: textbox.top! + (scalingStartSize.centerY - centerAfter.y),
-      });
-      
-      textbox.setCoords();
+      if (isCorner) {
+        const avgScale = Math.sqrt(scaleX * scaleY);
+        const newFontSize = Math.max(12, Math.min(500, Math.round(scalingStartSize.fontSize * avgScale)));
+        
+        textbox.set({
+          fontSize: newFontSize,
+          scaleX: 1,
+          scaleY: 1,
+        });
+
+        textbox.initDimensions();
+        
+        const centerAfter = textbox.getCenterPoint();
+        textbox.set({
+          left: textbox.left! + (scalingStartSize.centerX - centerAfter.x),
+          top: textbox.top! + (scalingStartSize.centerY - centerAfter.y),
+        });
+        
+        textbox.setCoords();
+      } else if (isSide) {
+        const newWidth = Math.max(MIN_TEXT_WIDTH, scalingStartSize.width * scaleX);
+        
+        textbox.set({
+          width: newWidth,
+          scaleX: 1,
+          scaleY: 1,
+        });
+
+        textbox.initDimensions();
+        
+        const centerAfter = textbox.getCenterPoint();
+        textbox.set({
+          left: textbox.left! + (scalingStartSize.centerX - centerAfter.x),
+          top: textbox.top! + (scalingStartSize.centerY - centerAfter.y),
+        });
+        
+        textbox.setCoords();
+      }
 
       updateLabelPosition(textbox);
       requestSmoothRender(canvas);
@@ -578,7 +604,8 @@ const CanvasPreview = () => {
       <div className="mt-4 text-sm text-muted-foreground">
         <p>
           <strong>Drag kotak</strong> untuk pindah posisi. 
-          <strong>Drag 4 pojok biru</strong> untuk memperbesar/memperkecil ukuran font.
+          <strong>Drag 4 pojok</strong> untuk ubah ukuran font.
+          <strong>Drag pojok kiri/kanan</strong> untuk ubah lebar area (text auto-wrap).
         </p>
       </div>
     </div>
