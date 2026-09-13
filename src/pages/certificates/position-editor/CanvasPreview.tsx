@@ -1,21 +1,24 @@
 import { useEffect, useRef, useState } from "react";
-import { Canvas, FabricImage, FabricText, Line, Rect, Text } from "fabric";
+import { Canvas, FabricImage, Line, Rect, Textbox, Text } from "fabric";
 import { Minus, Plus, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCertificateStore } from "../store";
 import type { TextSettings } from "../types";
 
 const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
-
 const roundPosition = (value: number) => Number(value.toFixed(2));
+
+const MIN_TEXT_WIDTH = 40;
 
 const CanvasPreview = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<Canvas | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const boundingBoxRef = useRef<any>(null);
-  const textRef = useRef<any>(null);
-  const labelRef = useRef<any>(null);
+
+  // The Textbox itself is the editable text area.
+  const textRef = useRef<Textbox | null>(null);
+  const labelRef = useRef<Text | null>(null);
+
   const isInitializedRef = useRef(false);
   const isTransformingRef = useRef(false);
   const renderFrameRef = useRef<number | null>(null);
@@ -27,8 +30,6 @@ const CanvasPreview = () => {
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
 
   const requestSmoothRender = (canvas: Canvas) => {
-    // Fabric already handles its own transform rendering. This only schedules
-    // our extra render once per animation frame for the linked text/label.
     if (renderFrameRef.current !== null) return;
 
     renderFrameRef.current = requestAnimationFrame(() => {
@@ -37,23 +38,132 @@ const CanvasPreview = () => {
     });
   };
 
+  const getDisplayName = () => {
+    let name = names[0]?.name || "";
+
+    if (textSettings.uppercase) {
+      name = name.toUpperCase();
+    }
+
+    return name;
+  };
+
+  const getScaledFontSize = (
+    settings: TextSettings,
+    width: number
+  ) => {
+    const scaleFactor = width / template!.width;
+    return settings.fontSize * scaleFactor;
+  };
+
+  const updateLabelPosition = (textbox: Textbox) => {
+    const label = labelRef.current;
+    if (!label) return;
+
+    const bounds = textbox.getBoundingRect();
+
+    label.set({
+      left: bounds.left + 5,
+      top: bounds.top - 20,
+    });
+
+    label.setCoords();
+  };
+
+  const configureCornerControls = (textbox: Textbox) => {
+    // Fabric normally shows 8 scale handles + rotation.
+    // Keep only the four corner handles like Canva.
+    textbox.setControlsVisibility({
+      mt: false,
+      mb: false,
+      ml: false,
+      mr: false,
+      mtr: false,
+      tl: true,
+      tr: true,
+      bl: true,
+      br: true,
+    });
+
+    textbox.set({
+      lockRotation: true,
+      lockScalingFlip: true,
+      lockSkewingX: true,
+      lockSkewingY: true,
+      hasBorders: true,
+      borderColor: "#3b82f6",
+      cornerColor: "#3b82f6",
+      cornerSize: 8,
+      transparentCorners: false,
+    });
+  };
+
+  const applyTextSettingsToFabric = (
+    textbox: Textbox,
+    settings: TextSettings,
+    size: { width: number; height: number }
+  ) => {
+    if (!template) return;
+
+    const centerX = (settings.x / 100) * size.width;
+    const centerY = (settings.y / 100) * size.height;
+
+    const scaledFontSize = getScaledFontSize(settings, size.width);
+
+    const textWidth = Math.max(
+      MIN_TEXT_WIDTH,
+      (settings.width / 100) * size.width
+    );
+
+    let displayName = names[0]?.name || "";
+    if (settings.uppercase) {
+      displayName = displayName.toUpperCase();
+    }
+
+    textbox.set({
+      left: centerX,
+      top: centerY,
+      originX: "center",
+      originY: "center",
+      text: displayName,
+      width: textWidth,
+      fontSize: scaledFontSize,
+      fontFamily: settings.fontFamily,
+      fontWeight: settings.fontWeight,
+      fill: settings.color,
+      textAlign: settings.textAlign as "left" | "center" | "right",
+      charSpacing: settings.letterSpacing * 10,
+      lineHeight: settings.lineHeight,
+      scaleX: 1,
+      scaleY: 1,
+      selectable: true,
+      evented: true,
+      editable: false,
+      splitByGrapheme: false,
+    });
+
+    textbox.initDimensions();
+    textbox.setCoords();
+
+    updateLabelPosition(textbox);
+  };
+
   const drawGuidelines = (
     canvas: Canvas,
     size: { width: number; height: number }
   ) => {
-    const objects = canvas.getObjects();
-    objects.forEach((obj: any) => {
-      if (obj.isGuideline) {
-        canvas.remove(obj);
-      }
-    });
+    canvas
+      .getObjects()
+      .filter((obj: any) => obj.isGuideline)
+      .forEach((obj: any) => canvas.remove(obj));
 
     const margin = 40;
+
     const marginRect = new Rect({
       left: margin,
       top: margin,
-      width: size.width - margin * 2,
-      height: size.height - margin * 2,
+      width: Math.max(0, size.width - margin * 2),
+      height: Math.max(0, size.height - margin * 2),
       fill: "transparent",
       stroke: "#3b82f6",
       strokeWidth: 2,
@@ -61,6 +171,7 @@ const CanvasPreview = () => {
       selectable: false,
       evented: false,
     });
+
     (marginRect as any).isGuideline = true;
     canvas.add(marginRect);
 
@@ -73,6 +184,7 @@ const CanvasPreview = () => {
         evented: false,
       }
     );
+
     (verticalLine as any).isGuideline = true;
     canvas.add(verticalLine);
 
@@ -85,16 +197,166 @@ const CanvasPreview = () => {
         evented: false,
       }
     );
+
     (horizontalLine as any).isGuideline = true;
     canvas.add(horizontalLine);
   };
 
+  const createTextArea = (
+    canvas: Canvas,
+    settings: TextSettings,
+    size: { width: number; height: number }
+  ) => {
+    if (!template || names.length === 0) return;
+
+    const centerX = (settings.x / 100) * size.width;
+    const centerY = (settings.y / 100) * size.height;
+    const scaledFontSize = getScaledFontSize(settings, size.width);
+
+    const initialWidth = Math.max(
+      MIN_TEXT_WIDTH,
+      (settings.width / 100) * size.width
+    );
+
+    const textbox = new Textbox(getDisplayName(), {
+      left: centerX,
+      top: centerY,
+      originX: "center",
+      originY: "center",
+
+      width: initialWidth,
+      fontSize: scaledFontSize,
+      fontFamily: settings.fontFamily,
+      fontWeight: settings.fontWeight,
+      fill: settings.color,
+      textAlign: settings.textAlign as "left" | "center" | "right",
+      charSpacing: settings.letterSpacing * 10,
+      lineHeight: settings.lineHeight,
+
+      // This makes the width an actual text area.
+      // Fabric automatically wraps when the text reaches the width.
+      splitByGrapheme: false,
+
+      selectable: true,
+      evented: true,
+      editable: false,
+
+      hasBorders: true,
+      borderColor: "#3b82f6",
+      cornerColor: "#3b82f6",
+      cornerSize: 8,
+      transparentCorners: false,
+
+      lockRotation: true,
+      lockScalingFlip: true,
+      lockSkewingX: true,
+      lockSkewingY: true,
+    });
+
+    textbox.initDimensions();
+    configureCornerControls(textbox);
+    textbox.setCoords();
+
+    textRef.current = textbox;
+
+    const label = new Text("Area nama", {
+      left: centerX,
+      top: centerY,
+      fontSize: 12,
+      fill: "#3b82f6",
+      fontFamily: "Plus Jakarta Sans",
+      selectable: false,
+      evented: false,
+    });
+
+    labelRef.current = label;
+    updateLabelPosition(textbox);
+
+    // ---------------------------------------------
+    // MOVING
+    // ---------------------------------------------
+    textbox.on("moving", () => {
+      isTransformingRef.current = true;
+
+      // Let Fabric move the textbox naturally.
+      // Only the label follows the textbox.
+      updateLabelPosition(textbox);
+
+      requestSmoothRender(canvas);
+    });
+
+    // ---------------------------------------------
+    // SCALING / RESIZING
+    // ---------------------------------------------
+    textbox.on("scaling", () => {
+      isTransformingRef.current = true;
+
+      const oldWidth = textbox.width || MIN_TEXT_WIDTH;
+      const scaleX = textbox.scaleX || 1;
+
+      // Convert Fabric's temporary scale into the actual textbox width.
+      // Font size stays exactly the same.
+      const newWidth = Math.max(
+        MIN_TEXT_WIDTH,
+        oldWidth * scaleX
+      );
+
+      textbox.set({
+        width: newWidth,
+        scaleX: 1,
+        // Textbox height is calculated automatically from wrapped lines.
+        scaleY: 1,
+      });
+
+      textbox.initDimensions();
+      textbox.setCoords();
+
+      updateLabelPosition(textbox);
+      requestSmoothRender(canvas);
+    });
+
+    // ---------------------------------------------
+    // MOUSE RELEASE / SAVE
+    // ---------------------------------------------
+    textbox.on("modified", () => {
+      // The textbox is already normalized to scale = 1 by the scaling handler.
+      const center = textbox.getCenterPoint();
+      const finalWidth = textbox.width || MIN_TEXT_WIDTH;
+
+      const newX = (center.x / size.width) * 100;
+      const newY = (center.y / size.height) * 100;
+      const newWidth = (finalWidth / size.width) * 100;
+
+      isTransformingRef.current = false;
+
+      updateTextSettings({
+        x: roundPosition(clampPercent(newX)),
+        y: roundPosition(clampPercent(newY)),
+        width: roundPosition(clampPercent(newWidth)),
+        // IMPORTANT: fontSize is NOT changed by canvas resize.
+      });
+
+      updateLabelPosition(textbox);
+      canvas.requestRenderAll();
+    });
+
+    canvas.add(label);
+    canvas.add(textbox);
+
+    canvas.setActiveObject(textbox);
+    canvas.requestRenderAll();
+  };
+
+  // ------------------------------------------------
+  // INITIALIZE FABRIC
+  // ------------------------------------------------
   useEffect(() => {
     if (!canvasRef.current || !template) return;
 
     const canvas = new Canvas(canvasRef.current, {
       backgroundColor: "#f3f4f6",
       renderOnAddRemove: false,
+      selection: false,
     });
 
     fabricRef.current = canvas;
@@ -102,13 +364,24 @@ const CanvasPreview = () => {
     const updateCanvasSize = () => {
       if (!containerRef.current) return;
 
-      const containerWidth = Math.max(1, containerRef.current.clientWidth - 32);
+      const containerWidth = Math.max(
+        1,
+        containerRef.current.clientWidth - 32
+      );
+
       const aspectRatio = template.height / template.width;
       const newWidth = Math.min(containerWidth, template.width);
       const newHeight = newWidth * aspectRatio;
 
-      setCanvasSize({ width: newWidth, height: newHeight });
-      canvas.setDimensions({ width: newWidth, height: newHeight });
+      setCanvasSize({
+        width: newWidth,
+        height: newHeight,
+      });
+
+      canvas.setDimensions({
+        width: newWidth,
+        height: newHeight,
+      });
     };
 
     updateCanvasSize();
@@ -117,13 +390,10 @@ const CanvasPreview = () => {
     FabricImage.fromURL(
       template.url,
       {},
-      {
-        crossOrigin: "anonymous",
-      }
+      { crossOrigin: "anonymous" }
     ).then((img) => {
-      if (!img || !fabricRef.current) return;
+      if (!fabricRef.current) return;
 
-      // Use the current actual canvas size instead of the initial 800x600 state.
       const actualWidth = canvas.getWidth();
       const actualHeight = canvas.getHeight();
 
@@ -138,11 +408,17 @@ const CanvasPreview = () => {
 
       canvas.add(img);
       canvas.sendObjectToBack(img);
-      drawGuidelines(canvas, { width: actualWidth, height: actualHeight });
-      renderText(canvas, textSettings, {
+
+      drawGuidelines(canvas, {
         width: actualWidth,
         height: actualHeight,
       });
+
+      createTextArea(canvas, textSettings, {
+        width: actualWidth,
+        height: actualHeight,
+      });
+
       isInitializedRef.current = true;
       canvas.requestRenderAll();
     });
@@ -156,247 +432,64 @@ const CanvasPreview = () => {
       }
 
       canvas.dispose();
+
       fabricRef.current = null;
-      boundingBoxRef.current = null;
       textRef.current = null;
       labelRef.current = null;
       isInitializedRef.current = false;
+      isTransformingRef.current = false;
     };
   }, [template]);
 
+  // ------------------------------------------------
+  // STORE -> FABRIC
+  // ------------------------------------------------
   useEffect(() => {
-    if (!fabricRef.current || !isInitializedRef.current) return;
-
-    // Never overwrite Fabric's live transform while the user is dragging.
-    if (isTransformingRef.current) return;
-
-    if (boundingBoxRef.current && textRef.current && labelRef.current && template) {
-      const textX = (textSettings.x / 100) * canvasSize.width;
-      const textY = (textSettings.y / 100) * canvasSize.height;
-      const textWidth = (textSettings.width / 100) * canvasSize.width;
-      const scaleFactor = canvasSize.width / template.width;
-      const scaledFontSize = textSettings.fontSize * scaleFactor;
-
-      let displayName = names[0]?.name || "";
-      if (textSettings.uppercase) {
-        displayName = displayName.toUpperCase();
-      }
-
-      textRef.current.set({
-        left: textX,
-        top: textY,
-        text: displayName,
-        fontSize: scaledFontSize,
-        fontFamily: textSettings.fontFamily,
-        fontWeight: textSettings.fontWeight,
-        fill: textSettings.color,
-        textAlign: textSettings.textAlign,
-        charSpacing: textSettings.letterSpacing * 10,
-        lineHeight: textSettings.lineHeight,
-      });
-
-      const textHeight = textRef.current.height || scaledFontSize;
-      const boxPadding = 4;
-      const boxHeight = textHeight + boxPadding * 2;
-
-      const boundingBox = boundingBoxRef.current;
-      boundingBox.set({
-        left: textX - textWidth / 2,
-        top: textY - boxHeight / 2,
-        width: textWidth,
-        height: boxHeight,
-        scaleX: 1,
-        scaleY: 1,
-      });
-
-      labelRef.current.set({
-        left: textX - textWidth / 2 + 5,
-        top: textY - boxHeight / 2 - 20,
-      });
-
-      boundingBox.setCoords();
-      textRef.current.setCoords();
-      labelRef.current.setCoords();
-      fabricRef.current.requestRenderAll();
-    }
-  }, [textSettings, names, canvasSize, template]);
-
-  const syncLinkedObjects = (boundingBox: any, text: any, label: any) => {
-    if (boundingBox.left === undefined || boundingBox.top === undefined) return;
-
-    const currentWidth = boundingBox.width * (boundingBox.scaleX || 1);
-    const currentHeight = boundingBox.height * (boundingBox.scaleY || 1);
-    const centerX = boundingBox.left + currentWidth / 2;
-    const centerY = boundingBox.top + currentHeight / 2;
-
-    text.set({
-      left: centerX,
-      top: centerY,
-    });
-
-    label.set({
-      left: boundingBox.left + 5,
-      top: boundingBox.top - 20,
-    });
-
-    text.setCoords();
-    label.setCoords();
-  };
-
-  const renderText = (
-    canvas: Canvas,
-    settings: TextSettings,
-    size: { width: number; height: number }
-  ) => {
-    if (!template || names.length === 0) return;
-
-    let displayName = names[0].name;
-    if (settings.uppercase) {
-      displayName = displayName.toUpperCase();
+    if (!fabricRef.current || !isInitializedRef.current || !template) {
+      return;
     }
 
-    const textX = (settings.x / 100) * size.width;
-    const textY = (settings.y / 100) * size.height;
-    const textWidth = (settings.width / 100) * size.width;
+    // Never overwrite the live Fabric object during drag/resize.
+    if (isTransformingRef.current) {
+      return;
+    }
 
-    const scaleFactor = size.width / template.width;
-    const scaledFontSize = settings.fontSize * scaleFactor;
+    const textbox = textRef.current;
 
-    const text = new FabricText(displayName, {
-      left: textX,
-      top: textY,
-      fontSize: scaledFontSize,
-      fontFamily: settings.fontFamily,
-      fontWeight: settings.fontWeight,
-      fill: settings.color,
-      textAlign: settings.textAlign as "left" | "center" | "right",
-      charSpacing: settings.letterSpacing * 10,
-      lineHeight: settings.lineHeight,
-      originX: "center",
-      originY: "center",
-      selectable: false,
-      evented: false,
-    });
-    textRef.current = text;
+    if (!textbox) return;
 
-    const textHeight = text.height || scaledFontSize;
-    const boxPadding = 4;
-    const boxHeight = textHeight + boxPadding * 2;
+    applyTextSettingsToFabric(
+      textbox,
+      textSettings,
+      canvasSize
+    );
 
-    const label = new Text("Area nama", {
-      left: textX - textWidth / 2 + 5,
-      top: textY - boxHeight / 2 - 20,
-      fontSize: 12,
-      fill: "#3b82f6",
-      fontFamily: "Plus Jakarta Sans",
-      selectable: false,
-      evented: false,
-    });
-    labelRef.current = label;
-
-    const boundingBox = new Rect({
-      left: textX - textWidth / 2,
-      top: textY - boxHeight / 2,
-      width: textWidth,
-      height: boxHeight,
-      fill: "transparent",
-      stroke: "#3b82f6",
-      strokeWidth: 2,
-      selectable: true,
-      evented: true,
-      hasControls: true,
-      hasBorders: true,
-      borderColor: "#3b82f6",
-      cornerColor: "#3b82f6",
-      cornerSize: 8,
-      transparentCorners: false,
-      lockRotation: true,
-      lockScalingFlip: true,
-      lockSkewingX: true,
-      lockSkewingY: true,
-    });
-    boundingBoxRef.current = boundingBox;
-
-    const handleTransform = () => {
-      syncLinkedObjects(boundingBox, text, label);
-      requestSmoothRender(canvas);
-    };
-
-    boundingBox.on("moving", () => {
-      isTransformingRef.current = true;
-      handleTransform();
-    });
-
-    boundingBox.on("scaling", () => {
-      isTransformingRef.current = true;
-      handleTransform();
-    });
-
-    boundingBox.on("modified", () => {
-      const left = boundingBox.left ?? 0;
-      const top = boundingBox.top ?? 0;
-      const currentWidth = boundingBox.width * (boundingBox.scaleX || 1);
-      const currentHeight = boundingBox.height * (boundingBox.scaleY || 1);
-
-      // Convert the live Fabric position to percentages BEFORE resetting scale.
-      const newX = ((left + currentWidth / 2) / size.width) * 100;
-      const newY = ((top + currentHeight / 2) / size.height) * 100;
-      const newWidth = (currentWidth / size.width) * 100;
-
-      // Calculate new font size based on average of width and height change
-      const originalWidth = textWidth;
-      const originalHeight = (text.height || scaledFontSize) + 8;
-      const scaleRatioWidth = currentWidth / originalWidth;
-      const scaleRatioHeight = currentHeight / originalHeight;
-      const scaleRatio = Math.sqrt(scaleRatioWidth * scaleRatioHeight);
-      const newFontSize = Math.round(settings.fontSize * scaleRatio);
-
-      // IMPORTANT: normalize the Fabric object first, then update React/Zustand.
-      // This prevents the store update from fighting with an active Fabric transform.
-      boundingBox.set({
-        width: currentWidth,
-        height: currentHeight,
-        scaleX: 1,
-        scaleY: 1,
-      });
-      boundingBox.setCoords();
-
-      syncLinkedObjects(boundingBox, text, label);
-      canvas.requestRenderAll();
-
-      isTransformingRef.current = false;
-
-      updateTextSettings({
-        x: roundPosition(clampPercent(newX)),
-        y: roundPosition(clampPercent(newY)),
-        width: roundPosition(clampPercent(newWidth)),
-        fontSize: Math.max(12, Math.min(500, newFontSize)),
-      });
-    });
-
-    canvas.add(label);
-    canvas.add(text);
-    canvas.add(boundingBox);
-    canvas.setActiveObject(boundingBox);
-    canvas.requestRenderAll();
-  };
+    fabricRef.current.requestRenderAll();
+  }, [
+    textSettings,
+    names,
+    canvasSize,
+    template,
+  ]);
 
   const handleZoomIn = () => {
-    if (zoom < 200) {
-      const newZoom = zoom + 10;
-      setZoom(newZoom);
-      fabricRef.current?.setZoom(newZoom / 100);
-      fabricRef.current?.requestRenderAll();
-    }
+    if (zoom >= 200) return;
+
+    const newZoom = zoom + 10;
+    setZoom(newZoom);
+
+    fabricRef.current?.setZoom(newZoom / 100);
+    fabricRef.current?.requestRenderAll();
   };
 
   const handleZoomOut = () => {
-    if (zoom > 50) {
-      const newZoom = zoom - 10;
-      setZoom(newZoom);
-      fabricRef.current?.setZoom(newZoom / 100);
-      fabricRef.current?.requestRenderAll();
-    }
+    if (zoom <= 50) return;
+
+    const newZoom = zoom - 10;
+    setZoom(newZoom);
+
+    fabricRef.current?.setZoom(newZoom / 100);
+    fabricRef.current?.requestRenderAll();
   };
 
   const handleFit = () => {
@@ -421,6 +514,7 @@ const CanvasPreview = () => {
         <h3 className="text-base font-semibold text-foreground">
           Preview editor
         </h3>
+
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -430,9 +524,11 @@ const CanvasPreview = () => {
           >
             <Minus className="h-4 w-4" />
           </Button>
+
           <span className="min-w-[60px] text-center text-sm font-medium">
             {zoom}%
           </span>
+
           <Button
             variant="outline"
             size="icon"
@@ -441,7 +537,12 @@ const CanvasPreview = () => {
           >
             <Plus className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={handleFit}>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleFit}
+          >
             <Maximize2 className="mr-2 h-4 w-4" />
             Fit
           </Button>
@@ -456,8 +557,9 @@ const CanvasPreview = () => {
 
       <div className="mt-4 text-sm text-muted-foreground">
         <p>
-          Geser garis biru untuk memindahkan nama. Tarik titik kanan untuk
-          mengubah lebar. Posisi disimpan relatif terhadap ukuran template.
+          Geser text area biru untuk memindahkan nama. Gunakan empat sudut
+          untuk mengubah lebar area teks. Ukuran font tetap, dan teks otomatis
+          turun ke baris berikutnya ketika memenuhi lebar area.
         </p>
       </div>
     </div>
