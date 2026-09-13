@@ -16,6 +16,7 @@ import FormEditorPage from "@/pages/events/subevents/form-editor";
 import RegistrationReviewPage from "@/pages/events/subevents/registration-review";
 import BatchesPage from "@/pages/batches";
 import CompleteRegistrationPage from "@/pages/complete-registration";
+import CertificateGeneratorPage from "@/pages/certificates";
 
 export const publicRoutes: Route[] = [
   {
@@ -66,6 +67,17 @@ export const publicRoutes: Route[] = [
     isEnabled: true,
     isProtected: true,
     requiredPermission: "manage_batch",
+    group: "Tools",
+  },
+  {
+    key: "router-certificate-generator",
+    title: "Certificate Generator",
+    description: "Batch Certificate Generator",
+    component: CertificateGeneratorPage,
+    path: "/certificates/generator",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_certificates",
     group: "Tools",
   },
   {
