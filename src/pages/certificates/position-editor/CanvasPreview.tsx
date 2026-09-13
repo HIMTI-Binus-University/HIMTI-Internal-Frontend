@@ -312,9 +312,11 @@ const CanvasPreview = () => {
       if (isCorner) {
         const avgScale = Math.sqrt(scaleX * scaleY);
         const newFontSize = Math.max(12, Math.min(500, Math.round(scalingStartSize.fontSize * avgScale)));
+        const newWidth = Math.max(MIN_TEXT_WIDTH, scalingStartSize.width * avgScale);
         
         textbox.set({
           fontSize: newFontSize,
+          width: newWidth,
           scaleX: 1,
           scaleY: 1,
         });
