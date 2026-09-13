@@ -21,9 +21,9 @@ const UploadNames = () => {
   return (
     <Container>
       <ContainerHeader>Upload Template & Input Nama</ContainerHeader>
-      <div className="flex min-h-[calc(100vh-12rem)] gap-6 p-6">
+      <div className="flex gap-6 p-6">
         <div className="w-1/2">
-          <div className="mb-4 flex items-start gap-3 border border-border rounded-lg p-4 flex flex-col justify-center">
+          <div className="flex items-start gap-3 border border-border rounded-lg p-4 flex flex-col justify-center">
 
             <div className="flex w-full items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100">
@@ -41,7 +41,7 @@ const UploadNames = () => {
         </div>
 
         <div className="w-1/2">
-           <div className="mb-4 flex flex-col items-center rounded-lg border border-border p-4">  
+           <div className="flex flex-col items-center rounded-lg border border-border p-4">  
 
             <div className="flex w-full items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100">
