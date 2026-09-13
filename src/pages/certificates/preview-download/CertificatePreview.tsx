@@ -16,6 +16,7 @@ const CertificatePreview = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<Canvas | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const textboxRef = useRef<Textbox | null>(null);
 
   const { state, getLongestName } = useCertificateStore();
   const { template, names, textSettings } = state;
@@ -57,54 +58,106 @@ const CertificatePreview = () => {
     ).then((img) => {
       if (!img || !fabricRef.current) return;
 
+      const actualWidth = canvas.getWidth();
+      const actualHeight = canvas.getHeight();
+
       img.set({
         left: 0,
         top: 0,
         selectable: false,
         evented: false,
-        scaleX: canvasSize.width / template.width,
-        scaleY: canvasSize.height / template.height,
+        scaleX: actualWidth / template.width,
+        scaleY: actualHeight / template.height,
       });
 
       canvas.add(img);
       canvas.sendObjectToBack(img);
-      renderText(canvas, textSettings, currentIndex);
+      renderText(canvas, textSettings, { width: actualWidth, height: actualHeight });
     });
 
     return () => {
       window.removeEventListener("resize", updateCanvasSize);
       canvas.dispose();
       fabricRef.current = null;
+      textboxRef.current = null;
     };
   }, [template]);
 
+  // Update textbox when settings change (but keep position)
   useEffect(() => {
-    if (fabricRef.current) {
-      renderText(fabricRef.current, textSettings, currentIndex);
-    }
-  }, [textSettings, names, canvasSize, currentIndex]);
+    if (!textboxRef.current || !fabricRef.current || !template) return;
 
-  const renderText = (canvas: Canvas, settings: TextSettings, index: number) => {
-    const objects = canvas.getObjects();
-    objects.forEach((obj) => {
-      if (obj.type === "textbox" || obj.type === "text") {
-        canvas.remove(obj);
-      }
-    });
+    const textbox = textboxRef.current;
+    const settings = textSettings;
 
-    if (!template || names.length === 0) return;
-
-    let displayName = names[index]?.name || names[0].name;
+    let displayName = names[currentIndex]?.name || names[0].name;
     if (settings.uppercase) {
       displayName = displayName.toUpperCase();
     }
 
-    const centerX = (settings.x / 100) * canvasSize.width;
-    const centerY = (settings.y / 100) * canvasSize.height;
-
     const scaleFactor = canvasSize.width / template.width;
     const scaledFontSize = settings.fontSize * scaleFactor;
     const textWidth = Math.max(40, (settings.width / 100) * canvasSize.width);
+
+    textbox.set({
+      text: displayName,
+      width: textWidth,
+      fontSize: scaledFontSize,
+      fontFamily: settings.fontFamily,
+      fontWeight: settings.fontWeight,
+      fill: settings.color,
+      textAlign: settings.textAlign as "left" | "center" | "right",
+      charSpacing: settings.letterSpacing * 10,
+      lineHeight: settings.lineHeight,
+      angle: settings.rotation,
+      opacity: settings.opacity / 100,
+    });
+
+    if (settings.shadow.enabled) {
+      textbox.set({
+        shadow: {
+          color: settings.shadow.color,
+          blur: settings.shadow.blur,
+          offsetX: settings.shadow.offsetX,
+          offsetY: settings.shadow.offsetY,
+        } as any,
+      });
+    } else {
+      textbox.set({ shadow: null });
+    }
+
+    if (settings.stroke.enabled) {
+      textbox.set({
+        stroke: settings.stroke.color,
+        strokeWidth: settings.stroke.width,
+        paintFirst: "stroke",
+      });
+    } else {
+      textbox.set({
+        stroke: undefined,
+        strokeWidth: 0,
+      });
+    }
+
+    textbox.initDimensions();
+    textbox.setCoords();
+    fabricRef.current.requestRenderAll();
+  }, [textSettings, names, canvasSize, currentIndex, template]);
+
+  const renderText = (canvas: Canvas, settings: TextSettings, size: { width: number; height: number }) => {
+    if (!template || names.length === 0) return;
+
+    let displayName = names[currentIndex]?.name || names[0].name;
+    if (settings.uppercase) {
+      displayName = displayName.toUpperCase();
+    }
+
+    const centerX = (settings.x / 100) * size.width;
+    const centerY = (settings.y / 100) * size.height;
+
+    const scaleFactor = size.width / template.width;
+    const scaledFontSize = settings.fontSize * scaleFactor;
+    const textWidth = Math.max(40, (settings.width / 100) * size.width);
 
     const textbox = new Textbox(displayName, {
       left: centerX,
@@ -149,6 +202,7 @@ const CertificatePreview = () => {
     textbox.initDimensions();
     textbox.setCoords();
 
+    textboxRef.current = textbox;
     canvas.add(textbox);
     canvas.renderAll();
   };
