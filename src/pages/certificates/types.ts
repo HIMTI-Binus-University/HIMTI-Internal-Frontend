@@ -22,6 +22,7 @@ export interface TextSettings {
   y: number;
   width: number;
   height: number;
+  rotation: number;
   fontFamily: string;
   customFont?: CustomFont;
   fontSize: number;
@@ -38,6 +39,18 @@ export interface TextSettings {
     firstName: boolean;
     middleName: boolean;
     lastName: boolean;
+  };
+  shadow: {
+    enabled: boolean;
+    color: string;
+    blur: number;
+    offsetX: number;
+    offsetY: number;
+  };
+  stroke: {
+    enabled: boolean;
+    color: string;
+    width: number;
   };
 }
 

@@ -144,6 +144,58 @@ const SettingsPanel = () => {
             Tengah Vertikal
           </Button>
         </div>
+        <div className="mt-3">
+          <Label htmlFor="rotation" className="text-xs">
+            Rotation (°)
+          </Label>
+          <div className="mt-1 flex gap-2">
+            <Input
+              id="rotation"
+              type="number"
+              min={-180}
+              max={180}
+              value={textSettings.rotation}
+              onChange={(e) =>
+                updateTextSettings({ rotation: Number(e.target.value) })
+              }
+              className="flex-1"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => updateTextSettings({ rotation: 0 })}
+            >
+              Reset
+            </Button>
+          </div>
+          <div className="mt-2 flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 text-xs"
+              onClick={() => updateTextSettings({ rotation: -45 })}
+            >
+              -45°
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 text-xs"
+              onClick={() => updateTextSettings({ rotation: 45 })}
+            >
+              45°
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 text-xs"
+              onClick={() => updateTextSettings({ rotation: 90 })}
+            >
+              90°
+            </Button>
+          </div>
+        </div>
       </Card>
 
       {/* Section 2: Tipografi */}
@@ -296,6 +348,179 @@ const SettingsPanel = () => {
                 onChange={(color) => updateTextSettings({ color })}
               />
             </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Section NEW: Efek Text */}
+      <Card className="p-4">
+        <h3 className="mb-3 text-sm font-semibold">Efek Text</h3>
+        <div className="space-y-3">
+          {/* Text Shadow */}
+          <div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="shadowEnabled"
+                checked={textSettings.shadow.enabled}
+                onCheckedChange={(checked) =>
+                  updateTextSettings({
+                    shadow: { ...textSettings.shadow, enabled: checked as boolean },
+                  })
+                }
+              />
+              <Label
+                htmlFor="shadowEnabled"
+                className="text-xs font-normal leading-none"
+              >
+                Text Shadow
+              </Label>
+            </div>
+
+            {textSettings.shadow.enabled && (
+              <div className="mt-3 space-y-3 border-l-2 border-blue-200 pl-3">
+                <div>
+                  <Label className="text-xs">Shadow Color</Label>
+                  <div className="mt-1">
+                    <ColorPicker
+                      value={textSettings.shadow.color}
+                      onChange={(color) =>
+                        updateTextSettings({
+                          shadow: { ...textSettings.shadow, color },
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="shadowBlur" className="text-xs">
+                      Blur (px)
+                    </Label>
+                    <Input
+                      id="shadowBlur"
+                      type="number"
+                      min={0}
+                      max={20}
+                      value={textSettings.shadow.blur}
+                      onChange={(e) =>
+                        updateTextSettings({
+                          shadow: {
+                            ...textSettings.shadow,
+                            blur: Number(e.target.value),
+                          },
+                        })
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="shadowOffsetX" className="text-xs">
+                      Offset X (px)
+                    </Label>
+                    <Input
+                      id="shadowOffsetX"
+                      type="number"
+                      min={-10}
+                      max={10}
+                      value={textSettings.shadow.offsetX}
+                      onChange={(e) =>
+                        updateTextSettings({
+                          shadow: {
+                            ...textSettings.shadow,
+                            offsetX: Number(e.target.value),
+                          },
+                        })
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="shadowOffsetY" className="text-xs">
+                    Offset Y (px)
+                  </Label>
+                  <Input
+                    id="shadowOffsetY"
+                    type="number"
+                    min={-10}
+                    max={10}
+                    value={textSettings.shadow.offsetY}
+                    onChange={(e) =>
+                      updateTextSettings({
+                        shadow: {
+                          ...textSettings.shadow,
+                          offsetY: Number(e.target.value),
+                        },
+                      })
+                    }
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Text Stroke/Outline */}
+          <div className="pt-3 border-t">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="strokeEnabled"
+                checked={textSettings.stroke.enabled}
+                onCheckedChange={(checked) =>
+                  updateTextSettings({
+                    stroke: { ...textSettings.stroke, enabled: checked as boolean },
+                  })
+                }
+              />
+              <Label
+                htmlFor="strokeEnabled"
+                className="text-xs font-normal leading-none"
+              >
+                Text Outline
+              </Label>
+            </div>
+
+            {textSettings.stroke.enabled && (
+              <div className="mt-3 space-y-3 border-l-2 border-blue-200 pl-3">
+                <div>
+                  <Label className="text-xs">Outline Color</Label>
+                  <div className="mt-1">
+                    <ColorPicker
+                      value={textSettings.stroke.color}
+                      onChange={(color) =>
+                        updateTextSettings({
+                          stroke: { ...textSettings.stroke, color },
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="strokeWidth" className="text-xs">
+                    Width (px)
+                  </Label>
+                  <Input
+                    id="strokeWidth"
+                    type="number"
+                    min={0}
+                    max={10}
+                    value={textSettings.stroke.width}
+                    onChange={(e) =>
+                      updateTextSettings({
+                        stroke: {
+                          ...textSettings.stroke,
+                          width: Number(e.target.value),
+                        },
+                      })
+                    }
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </Card>

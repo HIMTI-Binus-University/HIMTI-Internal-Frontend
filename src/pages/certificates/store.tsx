@@ -19,6 +19,7 @@ const defaultTextSettings: TextSettings = {
   y: 50,
   width: 30,
   height: 20,
+  rotation: 0,
   fontFamily: "Plus Jakarta Sans",
   fontSize: 72,
   minFontSize: 24,
@@ -34,6 +35,18 @@ const defaultTextSettings: TextSettings = {
     firstName: false,
     middleName: false,
     lastName: false,
+  },
+  shadow: {
+    enabled: false,
+    color: "#000000",
+    blur: 4,
+    offsetX: 2,
+    offsetY: 2,
+  },
+  stroke: {
+    enabled: false,
+    color: "#ffffff",
+    width: 2,
   },
 };
 

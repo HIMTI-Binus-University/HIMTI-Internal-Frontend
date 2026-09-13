@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Canvas, FabricImage, Line, Rect, Textbox, Text } from "fabric";
 import { Minus, Plus, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCertificateStore } from "../store";
 import type { TextSettings } from "../types";
 
@@ -28,6 +35,7 @@ const CanvasPreview = () => {
 
   const [zoom, setZoom] = useState(100);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
+  const [previewNameIndex, setPreviewNameIndex] = useState(0);
 
   const requestSmoothRender = (canvas: Canvas) => {
     if (renderFrameRef.current !== null) return;
@@ -39,7 +47,7 @@ const CanvasPreview = () => {
   };
 
   const getDisplayName = () => {
-    let name = names[0]?.name || "";
+    let name = names[previewNameIndex]?.name || names[0]?.name || "";
 
     if (textSettings.uppercase) {
       name = name.toUpperCase();
@@ -133,6 +141,7 @@ const CanvasPreview = () => {
       textAlign: settings.textAlign as "left" | "center" | "right",
       charSpacing: settings.letterSpacing * 10,
       lineHeight: settings.lineHeight,
+      angle: settings.rotation,
       scaleX: 1,
       scaleY: 1,
       selectable: true,
@@ -140,6 +149,32 @@ const CanvasPreview = () => {
       editable: false,
       splitByGrapheme: false,
     });
+
+    if (settings.shadow.enabled) {
+      textbox.set({
+        shadow: {
+          color: settings.shadow.color,
+          blur: settings.shadow.blur,
+          offsetX: settings.shadow.offsetX,
+          offsetY: settings.shadow.offsetY,
+        } as any,
+      });
+    } else {
+      textbox.set({ shadow: null });
+    }
+
+    if (settings.stroke.enabled) {
+      textbox.set({
+        stroke: settings.stroke.color,
+        strokeWidth: settings.stroke.width,
+        paintFirst: "stroke",
+      });
+    } else {
+      textbox.set({
+        stroke: undefined,
+        strokeWidth: 0,
+      });
+    }
 
     textbox.initDimensions();
     textbox.setCoords();
@@ -231,9 +266,8 @@ const CanvasPreview = () => {
       textAlign: settings.textAlign as "left" | "center" | "right",
       charSpacing: settings.letterSpacing * 10,
       lineHeight: settings.lineHeight,
+      angle: settings.rotation,
 
-      // This makes the width an actual text area.
-      // Fabric automatically wraps when the text reaches the width.
       splitByGrapheme: false,
 
       selectable: true,
@@ -251,6 +285,25 @@ const CanvasPreview = () => {
       lockSkewingX: true,
       lockSkewingY: true,
     });
+
+    if (settings.shadow.enabled) {
+      textbox.set({
+        shadow: {
+          color: settings.shadow.color,
+          blur: settings.shadow.blur,
+          offsetX: settings.shadow.offsetX,
+          offsetY: settings.shadow.offsetY,
+        } as any,
+      });
+    }
+
+    if (settings.stroke.enabled) {
+      textbox.set({
+        stroke: settings.stroke.color,
+        strokeWidth: settings.stroke.width,
+        paintFirst: "stroke",
+      });
+    }
 
     textbox.initDimensions();
     configureCornerControls(textbox);
@@ -518,6 +571,7 @@ const CanvasPreview = () => {
     names,
     canvasSize,
     template,
+    previewNameIndex,
   ]);
 
   const handleZoomIn = () => {
@@ -596,6 +650,27 @@ const CanvasPreview = () => {
           </Button>
         </div>
       </div>
+
+      {names.length > 0 && (
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Preview:</span>
+          <Select
+            value={previewNameIndex.toString()}
+            onValueChange={(value) => setPreviewNameIndex(Number(value))}
+          >
+            <SelectTrigger className="h-8 w-[200px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {names.map((name, index) => (
+                <SelectItem key={name.id} value={index.toString()}>
+                  {name.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="overflow-auto rounded-lg border border-border bg-gray-200 p-4">
         <div className="flex items-center justify-center">
