@@ -142,6 +142,7 @@ const CanvasPreview = () => {
       charSpacing: settings.letterSpacing * 10,
       lineHeight: settings.lineHeight,
       angle: settings.rotation,
+      opacity: settings.opacity / 100,
       scaleX: 1,
       scaleY: 1,
       selectable: true,
@@ -267,6 +268,7 @@ const CanvasPreview = () => {
       charSpacing: settings.letterSpacing * 10,
       lineHeight: settings.lineHeight,
       angle: settings.rotation,
+      opacity: settings.opacity / 100,
 
       splitByGrapheme: false,
 
@@ -658,8 +660,10 @@ const CanvasPreview = () => {
             value={previewNameIndex.toString()}
             onValueChange={(value) => setPreviewNameIndex(Number(value))}
           >
-            <SelectTrigger className="h-8 w-[200px] text-xs">
-              <SelectValue />
+            <SelectTrigger className="h-8 w-[250px] text-xs">
+              <SelectValue>
+                {names[previewNameIndex]?.name || "Pilih nama"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {names.map((name, index) => (

@@ -20,6 +20,7 @@ const defaultTextSettings: TextSettings = {
   width: 30,
   height: 20,
   rotation: 0,
+  opacity: 100,
   fontFamily: "Plus Jakarta Sans",
   fontSize: 72,
   minFontSize: 24,

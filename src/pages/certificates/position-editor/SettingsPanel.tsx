@@ -522,6 +522,38 @@ const SettingsPanel = () => {
               </div>
             )}
           </div>
+
+          {/* Opacity */}
+          <div className="pt-3 border-t">
+            <Label htmlFor="opacity" className="text-xs">
+              Opacity (%)
+            </Label>
+            <div className="mt-1 flex items-center gap-3">
+              <div className="flex-1">
+                <input
+                  id="opacity"
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={textSettings.opacity}
+                  onChange={(e) =>
+                    updateTextSettings({ opacity: Number(e.target.value) })
+                  }
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                />
+              </div>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={textSettings.opacity}
+                onChange={(e) =>
+                  updateTextSettings({ opacity: Number(e.target.value) })
+                }
+                className="w-16"
+              />
+            </div>
+          </div>
         </div>
       </Card>
 

@@ -23,6 +23,7 @@ export interface TextSettings {
   width: number;
   height: number;
   rotation: number;
+  opacity: number;
   fontFamily: string;
   customFont?: CustomFont;
   fontSize: number;
