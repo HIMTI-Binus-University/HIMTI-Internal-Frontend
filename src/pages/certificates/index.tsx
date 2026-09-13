@@ -3,7 +3,7 @@ import { PageLayout } from "@/components/Utils";
 import { CertificateProvider, useCertificateStore } from "./store";
 import UploadNames from "./upload-names";
 import PositionEditor from "./position-editor";
-import PreviewDownload from "./preview-download";
+import PreviewDownload from "./preview-download"
 
 const CertificateWizard = () => {
   const { state } = useCertificateStore();
