@@ -71,8 +71,6 @@ const CanvasPreview = () => {
   };
 
   const configureCornerControls = (textbox: Textbox) => {
-    // Fabric normally shows 8 scale handles + rotation.
-    // Keep only the four corner handles like Canva.
     textbox.setControlsVisibility({
       mt: false,
       mb: false,
@@ -93,7 +91,7 @@ const CanvasPreview = () => {
       hasBorders: true,
       borderColor: "#3b82f6",
       cornerColor: "#3b82f6",
-      cornerSize: 8,
+      cornerSize: 12,
       transparentCorners: false,
     });
   };
@@ -288,27 +286,40 @@ const CanvasPreview = () => {
     // ---------------------------------------------
     // SCALING / RESIZING
     // ---------------------------------------------
+    const scalingStartSize = { width: 0, height: 0, fontSize: 0, centerX: 0, centerY: 0 };
+    
     textbox.on("scaling", () => {
       isTransformingRef.current = true;
 
-      const oldWidth = textbox.width || MIN_TEXT_WIDTH;
+      if (!scalingStartSize.fontSize) {
+        const center = textbox.getCenterPoint();
+        scalingStartSize.width = textbox.width || MIN_TEXT_WIDTH;
+        scalingStartSize.height = textbox.calcTextHeight() || 0;
+        scalingStartSize.fontSize = textbox.fontSize || 72;
+        scalingStartSize.centerX = center.x;
+        scalingStartSize.centerY = center.y;
+      }
+
       const scaleX = textbox.scaleX || 1;
+      const scaleY = textbox.scaleY || 1;
 
-      // Convert Fabric's temporary scale into the actual textbox width.
-      // Font size stays exactly the same.
-      const newWidth = Math.max(
-        MIN_TEXT_WIDTH,
-        oldWidth * scaleX
-      );
-
+      const avgScale = Math.sqrt(scaleX * scaleY);
+      const newFontSize = Math.max(12, Math.min(500, Math.round(scalingStartSize.fontSize * avgScale)));
+      
       textbox.set({
-        width: newWidth,
+        fontSize: newFontSize,
         scaleX: 1,
-        // Textbox height is calculated automatically from wrapped lines.
         scaleY: 1,
       });
 
       textbox.initDimensions();
+      
+      const centerAfter = textbox.getCenterPoint();
+      textbox.set({
+        left: textbox.left! + (scalingStartSize.centerX - centerAfter.x),
+        top: textbox.top! + (scalingStartSize.centerY - centerAfter.y),
+      });
+      
       textbox.setCoords();
 
       updateLabelPosition(textbox);
@@ -319,13 +330,22 @@ const CanvasPreview = () => {
     // MOUSE RELEASE / SAVE
     // ---------------------------------------------
     textbox.on("modified", () => {
-      // The textbox is already normalized to scale = 1 by the scaling handler.
+      scalingStartSize.width = 0;
+      scalingStartSize.height = 0;
+      scalingStartSize.fontSize = 0;
+      scalingStartSize.centerX = 0;
+      scalingStartSize.centerY = 0;
+
       const center = textbox.getCenterPoint();
       const finalWidth = textbox.width || MIN_TEXT_WIDTH;
+      const finalFontSize = textbox.fontSize || 72;
 
       const newX = (center.x / size.width) * 100;
       const newY = (center.y / size.height) * 100;
       const newWidth = (finalWidth / size.width) * 100;
+      
+      const scaleFactor = size.width / template!.width;
+      const originalFontSize = Math.round(finalFontSize / scaleFactor);
 
       isTransformingRef.current = false;
 
@@ -333,7 +353,7 @@ const CanvasPreview = () => {
         x: roundPosition(clampPercent(newX)),
         y: roundPosition(clampPercent(newY)),
         width: roundPosition(clampPercent(newWidth)),
-        // IMPORTANT: fontSize is NOT changed by canvas resize.
+        fontSize: Math.max(12, Math.min(500, originalFontSize)),
       });
 
       updateLabelPosition(textbox);
@@ -557,9 +577,8 @@ const CanvasPreview = () => {
 
       <div className="mt-4 text-sm text-muted-foreground">
         <p>
-          Geser text area biru untuk memindahkan nama. Gunakan empat sudut
-          untuk mengubah lebar area teks. Ukuran font tetap, dan teks otomatis
-          turun ke baris berikutnya ketika memenuhi lebar area.
+          <strong>Drag kotak</strong> untuk pindah posisi. 
+          <strong>Drag 4 pojok biru</strong> untuk memperbesar/memperkecil ukuran font.
         </p>
       </div>
     </div>
