@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { isAxiosError } from "axios";
 import { useParams } from "react-router-dom";
 import { useGetUrlByShortCode } from "@/api/url-shortener/queries";
-import HimtiLogo from "@/components/logos/HimtiLogo";
 import { runtimeConfig } from "@/config/runtime";
 import { Button } from "@/components/ui/button";
 import { gsap, useGSAP } from "@/lib/motion";
@@ -18,7 +17,14 @@ const StatusCard = ({ title, description, children }: StatusCardProps) => {
     <div className="w-full max-w-xl rounded-[32px] border border-semantic-border/70 bg-white px-8 py-10 shadow-xl shadow-black/5 max-md:px-6 max-md:py-8">
       <div className="flex flex-col items-center text-center">
         <div className="mb-8 flex items-center gap-4 rounded-2xl bg-brand-primary-1 px-6 py-4 text-white shadow-lg shadow-brand-primary-1/15 max-md:flex-col max-md:gap-3">
-          <HimtiLogo width={58} height={68} className="shrink-0" />
+          <img
+            data-himti-brand-target
+            src="/logo-himti.png"
+            width={68}
+            height={68}
+            alt=""
+            className="shrink-0 brightness-0 invert"
+          />
           <div className="flex flex-col items-start text-left leading-none max-md:items-center max-md:text-center">
             <span className="text-ds-h2 font-bold text-white">HIMTI</span>
             <span className="text-ds-h3 font-light text-white/80">

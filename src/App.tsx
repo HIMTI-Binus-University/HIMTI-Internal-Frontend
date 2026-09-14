@@ -1,8 +1,10 @@
+import { useSyncExternalStore } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { publicRoutes, linkRoutes } from "./config/routes";
 import { ProtectedRoute } from "@/components/Utils/ProtectedRoute";
 import { routeMode } from "@/config/runtime";
 import { NotificationProvider } from "@/components/notification";
+import { AppOpening } from "@/components/app-motion";
 
 const isLinkSubdomain = routeMode.isLinkHost(window.location.hostname);
 const activeRoutes = isLinkSubdomain ? linkRoutes : publicRoutes;
@@ -41,8 +43,15 @@ const router = createBrowserRouter(
 );
 
 function App() {
+  const path = useSyncExternalStore(
+    router.subscribe,
+    () => router.state.location.pathname,
+    () => router.state.location.pathname,
+  );
+
   return (
     <NotificationProvider>
+      <AppOpening path={path} />
       <RouterProvider router={router} />
     </NotificationProvider>
   );

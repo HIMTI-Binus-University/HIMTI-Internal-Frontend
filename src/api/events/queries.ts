@@ -100,6 +100,16 @@ export const useTransitionEvent = () => {
     onSuccess: () => client.invalidateQueries({ queryKey: keys.all }),
   });
 };
+export const useDeleteEvent = () => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiClient.delete(url(Api.event, id)),
+    onSuccess: (_data, id) => {
+      client.removeQueries({ queryKey: keys.detail(id) });
+      client.invalidateQueries({ queryKey: keys.all });
+    },
+  });
+};
 export const useEventOrganizers = (id: string) =>
   useQuery({
     queryKey: [...keys.detail(id), "organizers"],

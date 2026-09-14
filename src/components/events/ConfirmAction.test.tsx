@@ -84,3 +84,35 @@ test("failure remains in the dialog and permits retry", async () => {
   );
   expect(request).toHaveBeenCalledTimes(2);
 });
+
+test("typed confirmation requires an exact match", async () => {
+  const request = vi.fn().mockResolvedValue(undefined);
+  render(
+    <NotificationProvider>
+      <ConfirmAction
+        label="Delete event"
+        description={'Delete "Workshop".'}
+        confirmationText="Workshop"
+        onConfirm={request}
+      >
+        <Button>Delete event</Button>
+      </ConfirmAction>
+    </NotificationProvider>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Delete event" }));
+  const confirm = within(screen.getByRole("alertdialog")).getByRole("button", {
+    name: "Delete event",
+  });
+  expect(confirm).toBeDisabled();
+  fireEvent.change(screen.getByLabelText(/Type Workshop to confirm/), {
+    target: { value: "workshop" },
+  });
+  expect(confirm).toBeDisabled();
+  fireEvent.change(screen.getByLabelText(/Type Workshop to confirm/), {
+    target: { value: "Workshop" },
+  });
+  expect(confirm).toBeEnabled();
+  fireEvent.click(confirm);
+  await waitFor(() => expect(request).toHaveBeenCalledOnce());
+});

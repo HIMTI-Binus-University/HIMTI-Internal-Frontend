@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { CalendarDays, Layers3, Plus, Search } from "lucide-react";
+import {
+  CalendarDays,
+  ImageOff,
+  Layers3,
+  Plus,
+  Search,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { useGetMe } from "@/api/auth/queries";
 import { useEventGroups } from "@/api/event-groups/queries";
@@ -9,6 +15,35 @@ import { StatusBadge } from "@/components/events/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+
+const EventThumbnail = ({
+  src,
+  name,
+}: {
+  src: string | null;
+  name: string;
+}) => {
+  const [failed, setFailed] = useState(false);
+
+  return (
+    <div className="relative size-16 shrink-0 overflow-hidden rounded-xl border border-border bg-muted text-muted-foreground">
+      {src && !failed ? (
+      <img
+        src={src}
+        alt={`${name} thumbnail`}
+        loading="lazy"
+          className="size-full object-cover"
+          onError={() => setFailed(true)}
+      />
+      ) : (
+        <ImageOff
+          aria-hidden="true"
+          className="absolute left-1/2 top-1/2 size-5 -translate-x-1/2 -translate-y-1/2"
+        />
+      )}
+    </div>
+  );
+};
 
 export default function EventsPage() {
   const [search, setSearch] = useState("");
@@ -75,8 +110,12 @@ export default function EventsPage() {
               <div className="grid gap-3 md:grid-cols-2">
                 {groupsQuery.data.map((group) => (
                   <Card key={group.id}>
-                    <CardContent className="flex items-center justify-between gap-4 p-5">
-                      <div className="min-w-0">
+                    <CardContent className="flex items-center gap-4 p-4 sm:p-5">
+                      <EventThumbnail
+                        src={group.coverImageUrl}
+                        name={group.name}
+                      />
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <h3 className="truncate font-bold">{group.name}</h3>
                           <StatusBadge status={group.status} />
@@ -85,7 +124,7 @@ export default function EventsPage() {
                           {group.publicDescription || "No public description."}
                         </p>
                       </div>
-                      <Button variant="secondary" asChild>
+                      <Button className="shrink-0" variant="secondary" asChild>
                         <Link to={`/event-groups/${group.id}`}>View</Link>
                       </Button>
                     </CardContent>
@@ -136,8 +175,12 @@ export default function EventsPage() {
             <div className="grid gap-3">
               {query.data.map((event) => (
                 <Card key={event.id}>
-                  <CardContent className="flex items-center justify-between gap-4 p-5">
-                    <div className="min-w-0">
+                  <CardContent className="flex items-center gap-4 p-4 sm:p-5">
+                    <EventThumbnail
+                      src={event.coverImageUrl}
+                      name={event.name}
+                    />
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="truncate font-bold">{event.name}</h3>
                         <StatusBadge status={event.status} />
@@ -149,7 +192,7 @@ export default function EventsPage() {
                           : ""}
                       </p>
                     </div>
-                    <Button variant="secondary" asChild>
+                    <Button className="shrink-0" variant="secondary" asChild>
                       <Link to={`/events/${event.id}`}>View</Link>
                     </Button>
                   </CardContent>
