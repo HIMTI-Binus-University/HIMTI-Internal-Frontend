@@ -330,8 +330,8 @@ Jad Abyanza Fauzan`}
                 First five names
               </p>
 
-              <div className="mt-2 max-h-[250px] overflow-y-auto rounded-xl border border-border">
-                {namesInfo?.semua_nama.map((nama, i) => (
+              <div className="mt-2 max-h-[250px] rounded-xl border border-border">
+                {namesInfo?.lima_pertama.map((nama, i) => (
                   <div
                     key={i}
                     className="border-b border-border px-4 py-3 text-sm last:border-b-0"
