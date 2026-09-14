@@ -1,140 +1,132 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import apiClient from "@/config/api-client";
 import { Api } from "@/constants/api";
+import type { operations } from "@/generated/openapi";
 import type {
-  ApiItemResponse,
-  EventListItem,
+  DataResponse,
+  CreateEventPayload,
+  EventItem,
   EventPayload,
-  EventStatus,
-  PaginatedResponse,
-  Subevent,
-  SubeventPayload,
-  SubeventStatus,
+  Organizer,
+  OrganizerRole,
 } from "@/types/events";
 
-const pathUrl = (template: string, id: string) =>
+const url = (template: string, id: string) =>
   template.replace(":id", encodeURIComponent(id));
-
-export const eventKeys = {
+const keys = {
   all: ["events"] as const,
-  list: (search = "", status = "") =>
-    ["events", "list", search, status] as const,
-  subevents: (eventId: string) => ["events", eventId, "subevents"] as const,
-  subevent: (id: string) => ["subevents", id] as const,
+  detail: (id: string) => ["events", id] as const,
 };
+type EventGroupOptionsResponse =
+  operations["getEventGroupOptions"]["responses"][200]["content"]["application/json"];
 
-export const useGetEvents = (search = "", status?: EventStatus) =>
+export const useGetEvents = (search = "", status = "") =>
   useQuery({
-    queryKey: eventKeys.list(search, status ?? ""),
+    queryKey: [...keys.all, search, status],
     queryFn: () =>
       apiClient
-        .get<PaginatedResponse<EventListItem>>(Api.eventList, {
-          params: { page: 1, limit: 100, search: search || undefined, status },
+        .get<DataResponse<EventItem[]>>(Api.events, {
+          params: {
+            page: 1,
+            limit: 100,
+            search: search || undefined,
+            status: status || undefined,
+          },
         })
-        .then((response) => response.data),
-    staleTime: 5 * 60 * 1000,
+        .then((r) => r.data.data),
   });
-
+export const useGetEvent = (id: string) =>
+  useQuery({
+    queryKey: keys.detail(id),
+    queryFn: () =>
+      apiClient
+        .get<DataResponse<EventItem>>(url(Api.event, id))
+        .then((r) => r.data.data),
+    enabled: !!id,
+  });
+export const useEventGroupOptions = () =>
+  useQuery({
+    queryKey: [...keys.all, "event-group-options"],
+    queryFn: () =>
+      apiClient
+        .get<EventGroupOptionsResponse>(Api.eventGroupOptions)
+        .then((r) => r.data.data),
+  });
 export const useCreateEvent = () => {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (payload: EventPayload) =>
+    mutationFn: (body: CreateEventPayload) =>
       apiClient
-        .post<ApiItemResponse<EventListItem>>(Api.eventCreate, {
-          ...payload,
-          status: "DRAFT",
-        })
-        .then((response) => response.data.data),
-    onSuccess: () => client.invalidateQueries({ queryKey: eventKeys.all }),
+        .post<DataResponse<EventItem>>(Api.events, body)
+        .then((r) => r.data.data),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.all }),
   });
 };
-
 export const useUpdateEvent = () => {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      ...payload
-    }: Partial<EventPayload> & { id: string; status?: EventStatus }) =>
+    mutationFn: ({ id, ...body }: Partial<EventPayload> & { id: string }) =>
       apiClient
-        .patch<ApiItemResponse<EventListItem>>(
-          pathUrl(Api.eventUpdate, id),
-          payload,
-        )
-        .then((response) => response.data.data),
-    onSuccess: () => client.invalidateQueries({ queryKey: eventKeys.all }),
+        .patch<DataResponse<EventItem>>(url(Api.event, id), body)
+        .then((r) => r.data.data),
+    onSuccess: (event) => {
+      client.invalidateQueries({ queryKey: keys.all });
+      client.setQueryData(keys.detail(event.id), event);
+    },
   });
 };
-
-export const useGetSubevents = (eventId: string) =>
-  useQuery({
-    queryKey: eventKeys.subevents(eventId),
-    queryFn: () =>
+export const useTransitionEvent = () => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      action,
+    }: {
+      id: string;
+      action: "publish" | "close" | "cancel";
+    }) =>
       apiClient
-        .get<PaginatedResponse<Subevent>>(Api.subeventList, {
-          params: { eventId, page: 1, limit: 100, sort: "position:asc" },
-        })
-        .then((response) => response.data.data),
-    enabled: !!eventId,
-    staleTime: 5 * 60 * 1000,
+        .post<DataResponse<EventItem>>(
+          url(
+            {
+              publish: Api.eventPublish,
+              close: Api.eventClose,
+              cancel: Api.eventCancel,
+            }[action],
+            id,
+          ),
+        )
+        .then((r) => r.data.data),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.all }),
   });
-
-export const useGetSubevent = (id: string) =>
+};
+export const useDeleteEvent = () => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiClient.delete(url(Api.event, id)),
+    onSuccess: (_data, id) => {
+      client.removeQueries({ queryKey: keys.detail(id) });
+      client.invalidateQueries({ queryKey: keys.all });
+    },
+  });
+};
+export const useEventOrganizers = (id: string) =>
   useQuery({
-    queryKey: eventKeys.subevent(id),
+    queryKey: [...keys.detail(id), "organizers"],
     queryFn: () =>
       apiClient
-        .get<ApiItemResponse<Subevent>>(pathUrl(Api.subeventDetail, id))
-        .then((response) => response.data.data),
+        .get<DataResponse<Organizer[]>>(url(Api.eventOrganizers, id))
+        .then((r) => r.data.data),
     enabled: !!id,
   });
-
-const invalidateSubevents = (
-  client: ReturnType<typeof useQueryClient>,
-  eventId: string,
-  id?: string,
-) => {
-  client.invalidateQueries({ queryKey: eventKeys.subevents(eventId) });
-  client.invalidateQueries({ queryKey: eventKeys.all });
-  if (id) client.invalidateQueries({ queryKey: eventKeys.subevent(id) });
-};
-
-export const useCreateSubevent = (eventId: string) => {
+export const useAddEventOrganizer = (id: string) => {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (payload: SubeventPayload) =>
-      apiClient
-        .post<ApiItemResponse<Subevent>>(Api.subeventCreate, payload)
-        .then((response) => response.data.data),
-    onSuccess: () => invalidateSubevents(client, eventId),
-  });
-};
-
-export const useUpdateSubevent = (eventId: string) => {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      ...payload
-    }: Partial<SubeventPayload> & { id: string; status?: SubeventStatus }) =>
-      apiClient
-        .patch<ApiItemResponse<Subevent>>(
-          pathUrl(Api.subeventUpdate, id),
-          payload,
-        )
-        .then((response) => response.data.data),
-    onSuccess: (subevent) => invalidateSubevents(client, eventId, subevent.id),
-  });
-};
-
-export const useOrderSubevents = (eventId: string) => {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (subEventIds: string[]) =>
-      apiClient
-        .put(pathUrl(Api.eventSubeventOrder, eventId), { subEventIds })
-        .then((response) => response.data),
-    onSuccess: () => invalidateSubevents(client, eventId),
+    mutationFn: (body: { userId: string; role: OrganizerRole }) =>
+      apiClient.post(url(Api.eventOrganizers, id), body),
+    onSuccess: () =>
+      client.invalidateQueries({
+        queryKey: [...keys.detail(id), "organizers"],
+      }),
   });
 };

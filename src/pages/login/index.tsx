@@ -154,7 +154,8 @@ export const LoginPage = () => {
           >
             <div className="mb-8 flex items-center gap-3">
               <img
-                src="/icon-primary.svg"
+                data-himti-brand-target
+                src="/logo-himti.png"
                 alt=""
                 className="size-12 shrink-0 object-contain"
               />

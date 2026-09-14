@@ -35,6 +35,7 @@ type SidebarProps = {
 const routeIconMap: Record<string, LucideIcon> = {
   "router-url-shortener": Link2,
   "router-events": CalendarDays,
+  "router-event-groups": Layers3,
   "router-elections": Vote,
   "router-batches": Layers3,
   "router-rbac-permissions": KeyRound,
@@ -150,7 +151,8 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <div className="flex items-center justify-between">
             <div className="flex min-w-0 items-center gap-3 px-1">
               <img
-                src="/icon-primary.svg"
+                data-himti-brand-target
+                src="/logo-himti.png"
                 alt=""
                 width={40}
                 height={46}
