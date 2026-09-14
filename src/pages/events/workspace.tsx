@@ -14,6 +14,7 @@ import { useGetMe } from "@/api/auth/queries";
 import { useRegistrationSettings } from "@/api/event-registration/queries";
 import {
   useAddEventOrganizer,
+  useDeleteEvent,
   useEventOrganizers,
   useGetEvent,
   useTransitionEvent,
@@ -35,7 +36,13 @@ import { cn } from "@/lib/utils";
 import { backendMessage, useNotification } from "@/components/notification";
 import type { UserMeResponse } from "@/types/auth";
 import type { EventItem } from "@/types/events";
-import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  Navigate,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 
 const sections = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -54,6 +61,8 @@ export default function EventWorkspacePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const detail = useGetEvent(eventId);
   const transition = useTransitionEvent();
+  const remove = useDeleteEvent();
+  const navigate = useNavigate();
   const organizers = useEventOrganizers(eventId);
   const add = useAddEventOrganizer(eventId);
   const notify = useNotification();
@@ -243,6 +252,8 @@ export default function EventWorkspacePage() {
             action={action}
             canEdit={canEditEvent}
             transition={transition}
+            remove={remove}
+            onDeleted={() => navigate("/events", { replace: true })}
           />
         </ReviewSettings>
       )}
@@ -313,11 +324,15 @@ function Lifecycle({
   action,
   canEdit,
   transition,
+  remove,
+  onDeleted,
 }: {
   event: EventItem;
   action: "publish" | "close" | null;
   canEdit: boolean;
   transition: ReturnType<typeof useTransitionEvent>;
+  remove: ReturnType<typeof useDeleteEvent>;
+  onDeleted: () => void;
 }) {
   return canEdit ? (
     <div className="mt-5 flex flex-wrap gap-2">
@@ -336,6 +351,22 @@ function Lifecycle({
         >
           <Button disabled={transition.isPending}>
             {action === "publish" ? "Publish" : "Close event"}
+          </Button>
+        </ConfirmAction>
+      )}
+      {event.status === "DRAFT" && (
+        <ConfirmAction
+          label="Delete event"
+          successMessage="Event deleted."
+          confirmationText={event.name}
+          description={`Delete "${event.name}". This is only allowed before the event is published or receives any registration.`}
+          onConfirm={async () => {
+            await remove.mutateAsync(event.id);
+            onDeleted();
+          }}
+        >
+          <Button variant="destructive" disabled={remove.isPending}>
+            Delete event
           </Button>
         </ConfirmAction>
       )}
