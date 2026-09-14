@@ -20,6 +20,7 @@ describe("HIMTI-KIT API Constants", () => {
     expect(Api.himtiKitAttendees).toMatch(/\/api\/himti-kit\/attendees$/);
     expect(Api.himtiKitAttendeeBulk).toMatch(/\/api\/himti-kit\/attendees\/bulk-import$/);
     expect(Api.himtiKitAttendee).toMatch(/\/api\/himti-kit\/attendees\/:id$/);
+    expect(Api.himtiKitAppearance).toMatch(/\/api\/himti-kit\/appearance$/);
   });
 });
 

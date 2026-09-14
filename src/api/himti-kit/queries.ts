@@ -22,6 +22,7 @@ import {
   type HimtiKitSoftware,
   type UpdateHimtiKitResourceInput,
   type UpdateHimtiKitSoftwareInput,
+  type HimtiKitAppearanceConfig,
 } from "@/types/himti-kit";
 
 // Set to false to interact with real backend database.
@@ -111,6 +112,7 @@ export const himtiKitQueryKeys = {
   resources: (search?: string) => ["himti-kit-resources", search ?? ""] as const,
   softwares: (search?: string) => ["himti-kit-softwares", search ?? ""] as const,
   attendees: (search?: string) => ["himti-kit-attendees", search ?? ""] as const,
+  appearance: () => ["himti-kit-appearance"] as const,
 };
 
 // ==========================================
@@ -481,6 +483,90 @@ export const useDeleteHimtiKitAttendee = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["himti-kit-attendees"] });
+    },
+  });
+};
+
+// ==========================================
+// HIMTI KIT Appearance (Public Portal Branding)
+// ==========================================
+
+export const DEFAULT_APPEARANCE_CONFIG: HimtiKitAppearanceConfig = {
+  backgroundUrl:
+    "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1600&auto=format&fit=crop&q=80",
+  primaryColor: "#0284c7",
+  enableOverlay: true,
+  overlayOpacity: 65,
+  enableBlur: true,
+  blurLevel: 4,
+};
+
+const APPEARANCE_STORAGE_KEY = "himti_kit_appearance_config_v4";
+
+export const getStoredAppearanceConfig = (): HimtiKitAppearanceConfig => {
+  if (typeof window === "undefined") return DEFAULT_APPEARANCE_CONFIG;
+  const stored = localStorage.getItem(APPEARANCE_STORAGE_KEY);
+  if (!stored) return DEFAULT_APPEARANCE_CONFIG;
+  try {
+    return { ...DEFAULT_APPEARANCE_CONFIG, ...JSON.parse(stored) };
+  } catch {
+    return DEFAULT_APPEARANCE_CONFIG;
+  }
+};
+
+export const setStoredAppearanceConfig = (config: HimtiKitAppearanceConfig) => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(config));
+  }
+};
+
+export const useGetHimtiKitAppearance = () =>
+  useQuery({
+    queryKey: himtiKitQueryKeys.appearance(),
+    queryFn: async (): Promise<HimtiKitAppearanceConfig> => {
+      if (FORCE_MOCK_HIMTI_KIT) {
+        return getStoredAppearanceConfig();
+      }
+
+      try {
+        const response = await apiClient.get<ApiDataResponse<HimtiKitAppearanceConfig>>(
+          Api.himtiKitAppearance
+        );
+        if (response.data?.data) {
+          setStoredAppearanceConfig(response.data.data);
+          return response.data.data;
+        }
+        return getStoredAppearanceConfig();
+      } catch (error) {
+        console.warn("Backend appearance endpoint unavailable, falling back to local storage:", error);
+        return getStoredAppearanceConfig();
+      }
+    },
+  });
+
+export const useUpdateHimtiKitAppearance = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: HimtiKitAppearanceConfig): Promise<HimtiKitAppearanceConfig> => {
+      setStoredAppearanceConfig(payload);
+
+      if (FORCE_MOCK_HIMTI_KIT) {
+        return payload;
+      }
+
+      try {
+        const response = await apiClient.patch<ApiDataResponse<HimtiKitAppearanceConfig>>(
+          Api.himtiKitAppearance,
+          payload
+        );
+        return response.data?.data || payload;
+      } catch (error) {
+        console.warn("Backend appearance endpoint unavailable, saved to local storage:", error);
+        return payload;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: himtiKitQueryKeys.appearance() });
     },
   });
 };

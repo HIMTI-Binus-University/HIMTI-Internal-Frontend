@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Check,
   Copy,
@@ -13,31 +13,18 @@ import {
   Sliders,
   Sparkles,
 } from "lucide-react";
+import {
+  DEFAULT_APPEARANCE_CONFIG,
+  useGetHimtiKitAppearance,
+  useUpdateHimtiKitAppearance,
+} from "@/api/himti-kit/queries";
 import { Container } from "@/components/Utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-
-interface AppearanceConfig {
-  backgroundUrl: string;
-  primaryColor: string;
-  enableOverlay: boolean;
-  overlayOpacity: number; // 0 - 100
-  enableBlur: boolean;
-  blurLevel: number; // 0 - 24
-}
-
-const DEFAULT_CONFIG: AppearanceConfig = {
-  backgroundUrl:
-    "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1600&auto=format&fit=crop&q=80",
-  primaryColor: "#0284c7",
-  enableOverlay: true,
-  overlayOpacity: 65,
-  enableBlur: true,
-  blurLevel: 4,
-};
+import type { HimtiKitAppearanceConfig } from "@/types/himti-kit";
 
 const PRESET_COLORS = [
   "#0284c7", // Sky Blue
@@ -54,45 +41,43 @@ const PRESET_COLORS = [
   "#0891b2", // Cyber Teal
 ];
 
-const STORAGE_KEY = "himti_kit_appearance_config_v4";
-
 export function AppearanceTab() {
-  const [config, setConfig] = useState<AppearanceConfig>(() => {
-    if (typeof window === "undefined") return DEFAULT_CONFIG;
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return DEFAULT_CONFIG;
-    try {
-      return { ...DEFAULT_CONFIG, ...JSON.parse(stored) };
-    } catch {
-      return DEFAULT_CONFIG;
-    }
-  });
+  const { data: initialData } = useGetHimtiKitAppearance();
+  const updateMutation = useUpdateHimtiKitAppearance();
 
-  const [previewBgUrl, setPreviewBgUrl] = useState(config.backgroundUrl);
+  const [config, setConfig] = useState<HimtiKitAppearanceConfig>(
+    initialData || DEFAULT_APPEARANCE_CONFIG
+  );
+  const [previewBgUrl, setPreviewBgUrl] = useState(
+    initialData?.backgroundUrl || DEFAULT_APPEARANCE_CONFIG.backgroundUrl
+  );
   const [isSaved, setIsSaved] = useState(false);
   const [copiedTokens, setCopiedTokens] = useState(false);
 
+  useEffect(() => {
+    if (initialData) {
+      setConfig(initialData);
+      setPreviewBgUrl(initialData.backgroundUrl || DEFAULT_APPEARANCE_CONFIG.backgroundUrl);
+    }
+  }, [initialData]);
+
   const handleApplyBgPreview = () => {
-    setPreviewBgUrl(config.backgroundUrl.trim() || DEFAULT_CONFIG.backgroundUrl);
+    setPreviewBgUrl(config.backgroundUrl.trim() || DEFAULT_APPEARANCE_CONFIG.backgroundUrl);
     setIsSaved(false);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPreviewBgUrl(config.backgroundUrl.trim() || DEFAULT_CONFIG.backgroundUrl);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    }
+    setPreviewBgUrl(config.backgroundUrl.trim() || DEFAULT_APPEARANCE_CONFIG.backgroundUrl);
+    await updateMutation.mutateAsync(config);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
   };
 
-  const handleReset = () => {
-    setConfig(DEFAULT_CONFIG);
-    setPreviewBgUrl(DEFAULT_CONFIG.backgroundUrl);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_CONFIG));
-    }
+  const handleReset = async () => {
+    setConfig(DEFAULT_APPEARANCE_CONFIG);
+    setPreviewBgUrl(DEFAULT_APPEARANCE_CONFIG.backgroundUrl);
+    await updateMutation.mutateAsync(DEFAULT_APPEARANCE_CONFIG);
     setIsSaved(false);
   };
 
@@ -494,9 +479,14 @@ export function AppearanceTab() {
 
             {/* Actions */}
             <div className="flex items-center gap-2 pt-1">
-              <Button type="submit" size="sm" className="gap-1.5 flex-1">
+              <Button
+                type="submit"
+                size="sm"
+                disabled={updateMutation.isPending}
+                className="gap-1.5 flex-1"
+              >
                 <Save className="h-4 w-4" />
-                <span>Save Appearance</span>
+                <span>{updateMutation.isPending ? "Saving..." : "Save Appearance"}</span>
               </Button>
 
               <Button

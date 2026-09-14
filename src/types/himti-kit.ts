@@ -105,3 +105,12 @@ export type UpdateHimtiKitSoftwareInput = Partial<CreateHimtiKitSoftwareInput>;
 
 export type CreateHimtiKitAttendeeInput = Omit<HimtiKitAttendee, "id" | "createdAt" | "updatedAt">;
 
+export interface HimtiKitAppearanceConfig {
+  backgroundUrl: string;
+  primaryColor: string;
+  enableOverlay: boolean;
+  overlayOpacity: number;
+  enableBlur: boolean;
+  blurLevel: number;
+  updatedAt?: string;
+}

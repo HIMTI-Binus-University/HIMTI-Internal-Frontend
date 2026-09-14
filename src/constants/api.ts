@@ -88,4 +88,5 @@ export const Api = {
   himtiKitAttendees: `${API_URL}/api/himti-kit/attendees`,
   himtiKitAttendeeBulk: `${API_URL}/api/himti-kit/attendees/bulk-import`,
   himtiKitAttendee: `${API_URL}/api/himti-kit/attendees/:id`,
+  himtiKitAppearance: `${API_URL}/api/himti-kit/appearance`,
 };
