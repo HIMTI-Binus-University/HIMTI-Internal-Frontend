@@ -720,7 +720,7 @@ const SettingsPanel = () => {
       <Button
         variant="destructive"
         onClick={resetTextSettings}
-        className="mt-2"
+        className="mt-2 py-5"
       >
         Reset Settings
       </Button>
