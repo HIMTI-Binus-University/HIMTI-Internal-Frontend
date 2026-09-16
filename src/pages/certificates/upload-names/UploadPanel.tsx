@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { CloudUpload, Pencil, Trash2, Upload, Eye } from "lucide-react";
+import { CloudUpload, Pencil, Upload, Eye } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -257,7 +257,7 @@ Jad Abyanza Fauzan`}
             onChange={HandleInputFile}
           />
 
-          <div className="mt-5 rounded-2xl bg-card shadow-sm">
+          <div className="mt-5 pb-5 rounded-2xl bg-card shadow-sm">
             <div className="mb-6">
               <h2 className="text-lg font-semibold text-foreground">
                 Check list name
@@ -268,31 +268,27 @@ Jad Abyanza Fauzan`}
               </p>
             </div>
 
-            <div className="rounded-xl border border-border bg-muted/30 p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Data Source
-                  </p>
+            <div className="flex w-full flex-row items-center justify-between px-2">
+              <p className="font-medium text-foreground">
+                Data Source
+              </p>
 
-                  <p className="mt-1 font-medium text-foreground">
-                    {namesInfo?.sumber_data}
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-primary">
-                    {namesInfo?.jmlh_nama_valid}
-                  </p>
-
-                  <p className="text-xs text-muted-foreground">
-                    Valid name
-                  </p>
-                </div>
-              </div>
+              <p className="text-l text-foreground">
+                {namesInfo?.sumber_data}
+              </p>
             </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="mt-4 grid gap-3 sm:grid-cols-4">
+              <div className="rounded-xl border border-border bg-background p-4">
+                <p className="text-2xl font-semibold text-primary">
+                  {namesInfo?.jmlh_nama_valid}
+                </p>
+
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Valid name
+                </p>
+              </div>
+
               <div className="rounded-xl border border-border bg-background p-4">
                 <p className="text-2xl font-semibold text-foreground">
                   {namesInfo?.baris_kosong}
@@ -319,7 +315,7 @@ Jad Abyanza Fauzan`}
                 </p>
 
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Overly long names
+                  Oversized names
                 </p>
               </div>
             </div>
@@ -330,8 +326,8 @@ Jad Abyanza Fauzan`}
                 First five names
               </p>
 
-              <div className="mt-2 max-h-[250px] rounded-xl border border-border">
-                {namesInfo?.lima_pertama.map((nama, i) => (
+              <div className="mt-2 flex-1 min-h-[120px] max-h-[250px] min-h-0 overflow-y-auto rounded-xl border border-border">
+                {namesInfo?.semua_nama.map((nama, i) => (
                   <div
                     key={i}
                     className="border-b border-border px-4 py-3 text-sm last:border-b-0"
@@ -358,46 +354,45 @@ Jad Abyanza Fauzan`}
             </div>
 
             {/* Actions */}
-            <div className="mt-6 flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                className="rounded-full"
-                onClick={() => setShowNames(true)}
-              >
-                <Eye className="mr-2 h-4 w-4"/>
-                View full list
-              </Button>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-2 rounded-full px-3.5 text-sm [&_svg]:size-[16px]"
+                  onClick={() => setShowNames(true)}
+                >
+                  <Eye className="mr-1 h-4 w-4"/>
+                  View full list
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="h-9 gap-2 rounded-full px-3.5 text-sm [&_svg]:size-[16px]"
+                  onClick={() => setPanelState("edit")}
+                >
+                  <Pencil className="mr-1 h-4 w-4"/>
+                  Edit list
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="h-9 gap-2 rounded-full px-3.5 text-sm [&_svg]:size-[16px]"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="mr-1 h-4 w-4"/>
+                  Change data
+                </Button>
+              </div>
 
               <Button
                 variant="outline"
-                className="rounded-full"
-                onClick={() => setPanelState("edit")}
-              >
-                <Pencil className="mr-2 h-4 w-4"/>
-                Edit list
-              </Button>
-
-              <Button
-                variant="outline"
-                className="rounded-full"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="mr-2 h-4 w-4"/>
-                Change data
-              </Button>
-            </div>
-
-            <div className="mt-4 border-t border-border pt-4">
-              <Button
-                variant="ghost"
-                className="rounded-lg px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => {
+                className="ml-auto h-9 gap-2 rounded-full px-3.5 text-sm text-destructive hover:bg-destructive/10 hover:text-destructive [&_svg]:size-[16px]"                onClick={() => {
                   setNames([]);
                   setNamesInfo(null);
                   setPanelState("input");
                 }}
               >
-                <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </Button>
             </div>
@@ -435,7 +430,7 @@ Jad Abyanza Fauzan`}
     case "edit":
       return (
         <div className="w-full">
-          <div className="mt-5 rounded-2xl bg-card shadow-sm">
+          <div className="mt-5 pb-5 rounded-2xl bg-card shadow-sm">
             <div className="mb-5">
               <h2 className="text-lg font-semibold text-foreground">
                 Edit list names
