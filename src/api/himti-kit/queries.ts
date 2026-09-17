@@ -501,6 +501,26 @@ export const DEFAULT_APPEARANCE_CONFIG: HimtiKitAppearanceConfig = {
   blurLevel: 4,
 };
 
+export const transformBackendAppearance = (raw: any): HimtiKitAppearanceConfig => ({
+  backgroundUrl:
+    raw?.backgroundImageUrl || raw?.backgroundUrl || DEFAULT_APPEARANCE_CONFIG.backgroundUrl,
+  primaryColor: raw?.accentColor || raw?.primaryColor || DEFAULT_APPEARANCE_CONFIG.primaryColor,
+  enableOverlay: raw?.overlayEnabled ?? raw?.enableOverlay ?? true,
+  overlayOpacity: raw?.overlayDarkness ?? raw?.overlayOpacity ?? 65,
+  enableBlur: raw?.blurEnabled ?? raw?.enableBlur ?? true,
+  blurLevel: raw?.blurIntensity ?? raw?.blurLevel ?? 4,
+  updatedAt: raw?.updatedAt,
+});
+
+export const transformAppearancePayload = (payload: HimtiKitAppearanceConfig) => ({
+  accentColor: payload.primaryColor,
+  backgroundImageUrl: payload.backgroundUrl,
+  overlayEnabled: payload.enableOverlay,
+  overlayDarkness: Math.round(payload.overlayOpacity),
+  blurEnabled: payload.enableBlur,
+  blurIntensity: Math.round(payload.blurLevel),
+});
+
 const APPEARANCE_STORAGE_KEY = "himti_kit_appearance_config_v4";
 
 export const getStoredAppearanceConfig = (): HimtiKitAppearanceConfig => {
@@ -529,12 +549,13 @@ export const useGetHimtiKitAppearance = () =>
       }
 
       try {
-        const response = await apiClient.get<ApiDataResponse<HimtiKitAppearanceConfig>>(
+        const response = await apiClient.get<ApiDataResponse<any>>(
           Api.himtiKitAppearance
         );
         if (response.data?.data) {
-          setStoredAppearanceConfig(response.data.data);
-          return response.data.data;
+          const transformed = transformBackendAppearance(response.data.data);
+          setStoredAppearanceConfig(transformed);
+          return transformed;
         }
         return getStoredAppearanceConfig();
       } catch (error) {
@@ -555,11 +576,13 @@ export const useUpdateHimtiKitAppearance = () => {
       }
 
       try {
-        const response = await apiClient.patch<ApiDataResponse<HimtiKitAppearanceConfig>>(
+        const backendPayload = transformAppearancePayload(payload);
+        const response = await apiClient.patch<ApiDataResponse<any>>(
           Api.himtiKitAppearance,
-          payload
+          backendPayload
         );
-        return response.data?.data || payload;
+        const transformed = transformBackendAppearance(response.data?.data);
+        return transformed;
       } catch (error) {
         console.warn("Backend appearance endpoint unavailable, saved to local storage:", error);
         return payload;
@@ -570,4 +593,32 @@ export const useUpdateHimtiKitAppearance = () => {
     },
   });
 };
+
+export const useResetHimtiKitAppearance = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (): Promise<HimtiKitAppearanceConfig> => {
+      setStoredAppearanceConfig(DEFAULT_APPEARANCE_CONFIG);
+
+      if (FORCE_MOCK_HIMTI_KIT) {
+        return DEFAULT_APPEARANCE_CONFIG;
+      }
+
+      try {
+        const response = await apiClient.post<ApiDataResponse<any>>(
+          Api.himtiKitAppearanceReset
+        );
+        const transformed = transformBackendAppearance(response.data?.data);
+        return transformed;
+      } catch (error) {
+        console.warn("Backend appearance reset unavailable, reset in local storage:", error);
+        return DEFAULT_APPEARANCE_CONFIG;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: himtiKitQueryKeys.appearance() });
+    },
+  });
+};
+
 

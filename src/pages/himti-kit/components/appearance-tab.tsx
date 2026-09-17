@@ -16,6 +16,7 @@ import {
 import {
   DEFAULT_APPEARANCE_CONFIG,
   useGetHimtiKitAppearance,
+  useResetHimtiKitAppearance,
   useUpdateHimtiKitAppearance,
 } from "@/api/himti-kit/queries";
 import { Container } from "@/components/Utils";
@@ -44,6 +45,7 @@ const PRESET_COLORS = [
 export function AppearanceTab() {
   const { data: initialData } = useGetHimtiKitAppearance();
   const updateMutation = useUpdateHimtiKitAppearance();
+  const resetMutation = useResetHimtiKitAppearance();
 
   const [config, setConfig] = useState<HimtiKitAppearanceConfig>(
     initialData || DEFAULT_APPEARANCE_CONFIG
@@ -77,7 +79,7 @@ export function AppearanceTab() {
   const handleReset = async () => {
     setConfig(DEFAULT_APPEARANCE_CONFIG);
     setPreviewBgUrl(DEFAULT_APPEARANCE_CONFIG.backgroundUrl);
-    await updateMutation.mutateAsync(DEFAULT_APPEARANCE_CONFIG);
+    await resetMutation.mutateAsync();
     setIsSaved(false);
   };
 

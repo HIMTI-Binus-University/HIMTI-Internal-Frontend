@@ -112,5 +112,13 @@ export interface HimtiKitAppearanceConfig {
   overlayOpacity: number;
   enableBlur: boolean;
   blurLevel: number;
+  // Backend field aliases for bidirectional compatibility
+  backgroundImageUrl?: string;
+  accentColor?: string;
+  overlayEnabled?: boolean;
+  overlayDarkness?: number;
+  blurEnabled?: boolean;
+  blurIntensity?: number;
   updatedAt?: string;
 }
+

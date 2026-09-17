@@ -3,7 +3,10 @@ import { Api } from "@/constants/api";
 import {
   transformBackendAttendee,
   transformBackendResource,
+  DEFAULT_APPEARANCE_CONFIG,
   transformBackendSoftware,
+  transformBackendAppearance,
+  transformAppearancePayload,
   transformResourceCreatePayload,
   transformResourceUpdatePayload,
   transformSoftwareCreatePayload,
@@ -21,6 +24,7 @@ describe("HIMTI-KIT API Constants", () => {
     expect(Api.himtiKitAttendeeBulk).toMatch(/\/api\/himti-kit\/attendees\/bulk-import$/);
     expect(Api.himtiKitAttendee).toMatch(/\/api\/himti-kit\/attendees\/:id$/);
     expect(Api.himtiKitAppearance).toMatch(/\/api\/himti-kit\/appearance$/);
+    expect(Api.himtiKitAppearanceReset).toMatch(/\/api\/himti-kit\/appearance\/reset$/);
   });
 });
 
@@ -180,6 +184,61 @@ describe("HIMTI-KIT Data Transformers", () => {
         nim: "2602111111",
         createdAt: "2026-03-01T00:00:00Z",
         updatedAt: "2026-03-02T00:00:00Z",
+      });
+    });
+  });
+
+  describe("Appearance", () => {
+    it("transforms backend appearance to frontend config model", () => {
+      const backendRow = {
+        id: "app-1",
+        backgroundImageUrl: "https://images.unsplash.com/photo-custom",
+        accentColor: "#ec4899",
+        overlayEnabled: true,
+        overlayDarkness: 75,
+        blurEnabled: false,
+        blurIntensity: 8,
+        updatedAt: "2026-03-01T00:00:00Z",
+      };
+
+      const transformed = transformBackendAppearance(backendRow);
+      expect(transformed).toEqual({
+        backgroundUrl: "https://images.unsplash.com/photo-custom",
+        primaryColor: "#ec4899",
+        enableOverlay: true,
+        overlayOpacity: 75,
+        enableBlur: false,
+        blurLevel: 8,
+        updatedAt: "2026-03-01T00:00:00Z",
+      });
+    });
+
+    it("falls back to default config if backend fields are missing", () => {
+      const transformed = transformBackendAppearance({});
+      expect(transformed).toEqual({
+        ...DEFAULT_APPEARANCE_CONFIG,
+        updatedAt: undefined,
+      });
+    });
+
+    it("transforms frontend appearance payload to backend schema", () => {
+      const frontendConfig = {
+        backgroundUrl: "https://example.com/bg.png",
+        primaryColor: "#3b82f6",
+        enableOverlay: false,
+        overlayOpacity: 40.4,
+        enableBlur: true,
+        blurLevel: 12.8,
+      };
+
+      const payload = transformAppearancePayload(frontendConfig);
+      expect(payload).toEqual({
+        backgroundImageUrl: "https://example.com/bg.png",
+        accentColor: "#3b82f6",
+        overlayEnabled: false,
+        overlayDarkness: 40,
+        blurEnabled: true,
+        blurIntensity: 13,
       });
     });
   });
