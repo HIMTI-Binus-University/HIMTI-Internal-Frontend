@@ -396,7 +396,7 @@ function Overview({
   endsAt: string;
   debateAt: string | null;
 }) {
-  const turnout = useGetElectionTurnout(id);
+  const turnout = useGetElectionTurnout(id, status === "OPEN");
   const start = new Date(startsAt).getTime();
   const end = new Date(endsAt).getTime();
   const progress = Math.max(
@@ -404,6 +404,9 @@ function Overview({
     Math.min(100, ((Date.now() - start) / (end - start)) * 100),
   );
   const countsMatch = turnout.data?.valid;
+  const turnoutPercentage = turnout.data?.eligibleVoterCount
+    ? (turnout.data.participationCount / turnout.data.eligibleVoterCount) * 100
+    : 0;
   return (
     <div className="space-y-5">
       <Container>
@@ -427,19 +430,35 @@ function Overview({
           )}
         </div>
       </Container>
+      {status === "OPEN" && (
+        <p className="text-xs text-muted-foreground" aria-live="polite">
+          {turnout.isFetching
+            ? "Updating live turnout..."
+            : "Live turnout refreshes every 10 seconds."}
+        </p>
+      )}
       <div className="grid gap-3 sm:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-start justify-between space-y-0">
             <div>
-              <CardTitle className="text-base">Voters recorded</CardTitle>
+              <CardTitle className="text-base">Voter turnout</CardTitle>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Accounts that have completed voting.
+                Votes cast out of currently eligible voters.
               </p>
             </div>
             <Users className="size-5 text-primary" aria-hidden="true" />
           </CardHeader>
-          <CardContent className="text-3xl font-bold">
-            {turnout.data?.participationCount ?? "-"}
+          <CardContent>
+            <p className="text-3xl font-bold">
+              {turnout.data
+                ? `${turnout.data.participationCount} / ${turnout.data.eligibleVoterCount}`
+                : "-"}
+            </p>
+            {turnout.data && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {turnoutPercentage.toFixed(1)}% turnout
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -585,7 +604,6 @@ function CandidateForm({
       videoUrl: optional(data.get("videoUrl")),
       workPrograms: lines(data.get("workPrograms")),
       experiences: lines(data.get("experiences")),
-      position: Number(data.get("position")),
       isActive: data.get("isActive") === "on",
     };
     const options = {
@@ -622,16 +640,6 @@ function CandidateForm({
             min={1}
             required
             defaultValue={candidate?.ballotNumber}
-          />
-        </label>
-        <label className="space-y-1">
-          <span className="text-sm">Position *</span>
-          <Input
-            name="position"
-            type="number"
-            min={0}
-            required
-            defaultValue={candidate?.position ?? 0}
           />
         </label>
         <label className="space-y-1">
@@ -764,7 +772,7 @@ function Candidates({
       )}
       {candidates
         .slice()
-        .sort((a, b) => a.position - b.position)
+        .sort((a, b) => a.ballotNumber - b.ballotNumber)
         .map((candidate) => (
           <Card key={candidate.id}>
             <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start">
@@ -1057,12 +1065,12 @@ export default function ElectionWorkspacePage() {
   const election = query.data;
   const actions =
     election.status === "DRAFT" ? (
-      <>
+      <div className="flex gap-2">
         <Button variant="secondary" asChild>
           <Link to={`/elections/${election.id}/edit`}>Edit draft</Link>
         </Button>
         <LifecycleAction id={election.id} action="open" label="Open election" />
-      </>
+      </div>
     ) : election.status === "OPEN" ? (
       <LifecycleAction id={election.id} action="close" label="Close election" />
     ) : election.status === "CLOSED" ? (

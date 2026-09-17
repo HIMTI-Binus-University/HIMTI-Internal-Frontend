@@ -148,7 +148,7 @@ export const useTransitionElection = (
     id,
   );
 
-export const useGetElectionTurnout = (id: string) =>
+export const useGetElectionTurnout = (id: string, live = false) =>
   useQuery({
     queryKey: electionKeys.turnout(id),
     queryFn: () =>
@@ -158,6 +158,7 @@ export const useGetElectionTurnout = (id: string) =>
         )
         .then((response) => response.data.data),
     enabled: !!id,
+    refetchInterval: live ? 10_000 : false,
   });
 
 export const useGetElectionTally = (id: string, enabled: boolean) =>
