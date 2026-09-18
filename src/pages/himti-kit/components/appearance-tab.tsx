@@ -71,16 +71,26 @@ export function AppearanceTab() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setPreviewBgUrl(config.backgroundUrl.trim() || DEFAULT_APPEARANCE_CONFIG.backgroundUrl);
-    await updateMutation.mutateAsync(config);
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3000);
+    console.log("%c[HIMTI-KIT:Dashboard] Save Changes triggered with settings:", "font-weight: bold; color: #0284c7;", config);
+    try {
+      await updateMutation.mutateAsync(config);
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
+    } catch (err) {
+      console.error("%c[HIMTI-KIT:Dashboard] Error during save:", "color: red;", err);
+    }
   };
 
   const handleReset = async () => {
+    console.log("%c[HIMTI-KIT:Dashboard] Reset to Default triggered", "font-weight: bold; color: #f59e0b;");
     setConfig(DEFAULT_APPEARANCE_CONFIG);
     setPreviewBgUrl(DEFAULT_APPEARANCE_CONFIG.backgroundUrl);
-    await resetMutation.mutateAsync();
-    setIsSaved(false);
+    try {
+      await resetMutation.mutateAsync();
+      setIsSaved(false);
+    } catch (err) {
+      console.error("%c[HIMTI-KIT:Dashboard] Error during reset:", "color: red;", err);
+    }
   };
 
   const handleCopyCssTokens = () => {

@@ -555,11 +555,20 @@ export const useGetHimtiKitAppearance = () =>
         if (response.data?.data) {
           const transformed = transformBackendAppearance(response.data.data);
           setStoredAppearanceConfig(transformed);
+          console.log(
+            "%c[HIMTI-KIT:Appearance] Loaded from Backend API:",
+            "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+            response.data.data
+          );
           return transformed;
         }
         return getStoredAppearanceConfig();
       } catch (error) {
-        console.warn("Backend appearance endpoint unavailable, falling back to local storage:", error);
+        console.warn(
+          "%c[HIMTI-KIT:Appearance] Backend GET unavailable, using local storage:",
+          "color: #f59e0b; font-weight: bold;",
+          error
+        );
         return getStoredAppearanceConfig();
       }
     },
@@ -572,19 +581,34 @@ export const useUpdateHimtiKitAppearance = () => {
       setStoredAppearanceConfig(payload);
 
       if (FORCE_MOCK_HIMTI_KIT) {
+        console.log("[HIMTI-KIT:Appearance] Mock mode enabled, saved to localStorage:", payload);
         return payload;
       }
 
       try {
         const backendPayload = transformAppearancePayload(payload);
+        console.log(
+          "%c[HIMTI-KIT:Appearance] Sending PATCH request to Backend...",
+          "color: #3b82f6; font-weight: bold;",
+          backendPayload
+        );
         const response = await apiClient.patch<ApiDataResponse<any>>(
           Api.himtiKitAppearance,
           backendPayload
         );
+        console.log(
+          "%c[HIMTI-KIT:Appearance] Successfully synced to Backend & Database!",
+          "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+          response.data
+        );
         const transformed = transformBackendAppearance(response.data?.data);
         return transformed;
       } catch (error) {
-        console.warn("Backend appearance endpoint unavailable, saved to local storage:", error);
+        console.error(
+          "%c[HIMTI-KIT:Appearance] Failed to sync to Backend, saved to local storage fallback:",
+          "color: #ef4444; font-weight: bold;",
+          error
+        );
         return payload;
       }
     },
@@ -601,17 +625,31 @@ export const useResetHimtiKitAppearance = () => {
       setStoredAppearanceConfig(DEFAULT_APPEARANCE_CONFIG);
 
       if (FORCE_MOCK_HIMTI_KIT) {
+        console.log("[HIMTI-KIT:Appearance] Mock mode reset to default");
         return DEFAULT_APPEARANCE_CONFIG;
       }
 
       try {
+        console.log(
+          "%c[HIMTI-KIT:Appearance] Sending Reset request to Backend...",
+          "color: #f59e0b; font-weight: bold;"
+        );
         const response = await apiClient.post<ApiDataResponse<any>>(
           Api.himtiKitAppearanceReset
+        );
+        console.log(
+          "%c[HIMTI-KIT:Appearance] Reset successfully executed on Backend!",
+          "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+          response.data
         );
         const transformed = transformBackendAppearance(response.data?.data);
         return transformed;
       } catch (error) {
-        console.warn("Backend appearance reset unavailable, reset in local storage:", error);
+        console.error(
+          "%c[HIMTI-KIT:Appearance] Backend appearance reset unavailable, reset in local storage:",
+          "color: #ef4444; font-weight: bold;",
+          error
+        );
         return DEFAULT_APPEARANCE_CONFIG;
       }
     },
