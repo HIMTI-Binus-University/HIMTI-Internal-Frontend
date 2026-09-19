@@ -114,7 +114,7 @@ export function ResourcesTab() {
             <SearchField
               id="resource-search"
               label="Search learning materials"
-              placeholder="Search by title or topic..."
+              placeholder="Search by title, topic, or description..."
               value={search}
               onChange={setSearch}
               className="relative w-full"
@@ -122,23 +122,10 @@ export function ResourcesTab() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            {/* Quick Dropdown for Direct Access */}
-            <div className="relative flex items-center">
-              <select
-                id="jurusan-dropdown"
-                value={selectedMajor}
-                onChange={(e) => setSelectedMajor(e.target.value)}
-                className="h-9 rounded-lg border border-border bg-card pl-8 pr-3 text-xs font-semibold text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                aria-label="Filter by Jurusan"
-              >
-                {filterOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt === "ALL" ? "All Jurusan" : opt} ({majorCounts[opt] || 0})
-                  </option>
-                ))}
-              </select>
-              <GraduationCap className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-muted-foreground" />
-            </div>
+            <Badge variant="secondary" className="px-3 py-1.5 text-xs font-semibold gap-1.5 hidden sm:inline-flex">
+              <BookOpen className="h-3.5 w-3.5 text-primary" />
+              <span>{resources.length} Materials</span>
+            </Badge>
 
             {/* Add Material Button */}
             <Button size="sm" onClick={handleOpenCreate} className="gap-1.5 shrink-0">
@@ -148,9 +135,9 @@ export function ResourcesTab() {
           </div>
         </div>
 
-        {/* Revamped Horizontal Pills Bar with Live Counts */}
+        {/* Unified Major Filter Navigation with Live Counters */}
         <div className="relative flex items-center">
-          <div className="flex w-full items-center gap-1.5 overflow-x-auto pb-1.5 pt-0.5 text-xs scrollbar-thin">
+          <div className="flex w-full items-center gap-1.5 overflow-x-auto pb-1.5 pt-0.5 text-xs scrollbar-none">
             {filterOptions.map((opt) => {
               const label = MAJOR_SHORT_LABELS[opt] || opt;
               const count = majorCounts[opt] || 0;
@@ -163,14 +150,15 @@ export function ResourcesTab() {
                   onClick={() => setSelectedMajor(opt)}
                   className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
                     isSelected
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "border border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-muted/30 hover:text-foreground"
+                      ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary"
+                      : "border border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-muted/40 hover:text-foreground"
                   }`}
                   title={opt === "ALL" ? "All Jurusan" : opt}
                 >
+                  {opt === "ALL" && <GraduationCap className="h-3.5 w-3.5" />}
                   <span>{label}</span>
                   <span
-                    className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold transition-colors ${
                       isSelected
                         ? "bg-primary-foreground/20 text-primary-foreground"
                         : "bg-muted text-muted-foreground"
