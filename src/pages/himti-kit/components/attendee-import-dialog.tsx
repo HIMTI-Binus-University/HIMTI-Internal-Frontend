@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import {
   AlertCircle,
   AlertTriangle,
+  Check,
   CheckCircle2,
   FileSpreadsheet,
   Plus,
@@ -246,32 +247,96 @@ export function AttendeeImportDialog({
             </DialogDescription>
           </DialogHeader>
 
-          {/* Mode Selector Tabs */}
-          <div className="mt-4 flex rounded-lg border border-border bg-muted/40 p-1 text-xs font-semibold">
+          {/* Revamped Mode Selector - Interactive Cards */}
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* Manual Entry Option */}
             <button
               type="button"
               onClick={() => setMode("manual")}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 transition-colors ${
+              className={`group relative flex items-start gap-3 rounded-xl border p-3 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 mode === "manual"
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "border-primary bg-primary/[0.04] ring-1 ring-primary shadow-sm"
+                  : "border-border bg-card hover:border-border/80 hover:bg-muted/30"
               }`}
             >
-              <UserPlus className="h-3.5 w-3.5" />
-              <span>Manual Entry</span>
+              <div
+                className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors ${
+                  mode === "manual"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted text-muted-foreground group-hover:text-foreground"
+                }`}
+              >
+                <UserPlus className="h-4 w-4" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-xs font-semibold text-foreground">
+                    Manual Entry
+                  </span>
+                  <div
+                    className={`h-3.5 w-3.5 rounded-full border grid place-items-center transition-all ${
+                      mode === "manual"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-muted-foreground/30 bg-transparent"
+                    }`}
+                  >
+                    {mode === "manual" && <Check className="h-2 w-2 stroke-[3]" />}
+                  </div>
+                </div>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                  Add an individual student with name &amp; NIM.
+                </p>
+              </div>
             </button>
 
+            {/* CSV / Bulk Import Option */}
             <button
               type="button"
               onClick={() => setMode("csv")}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 transition-colors ${
+              className={`group relative flex items-start gap-3 rounded-xl border p-3 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 mode === "csv"
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "border-primary bg-primary/[0.04] ring-1 ring-primary shadow-sm"
+                  : "border-border bg-card hover:border-border/80 hover:bg-muted/30"
               }`}
             >
-              <FileSpreadsheet className="h-3.5 w-3.5" />
-              <span>CSV / Bulk Import</span>
+              <div
+                className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors ${
+                  mode === "csv"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted text-muted-foreground group-hover:text-foreground"
+                }`}
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-foreground">
+                      CSV / Bulk Import
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="h-4 px-1 text-[9px] font-bold tracking-wider uppercase border-primary/30 text-primary bg-primary/10"
+                    >
+                      Batch
+                    </Badge>
+                  </div>
+                  <div
+                    className={`h-3.5 w-3.5 rounded-full border grid place-items-center transition-all ${
+                      mode === "csv"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-muted-foreground/30 bg-transparent"
+                    }`}
+                  >
+                    {mode === "csv" && <Check className="h-2 w-2 stroke-[3]" />}
+                  </div>
+                </div>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                  Upload CSV or paste rows to review &amp; edit.
+                </p>
+              </div>
             </button>
           </div>
 
