@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  ArrowRight,
   Check,
   Copy,
   Eye,
@@ -540,9 +541,9 @@ export function AppearanceTab() {
                 <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]" />
               </div>
 
-              <div className="flex items-center gap-1 rounded-md bg-white/10 px-3 py-0.5 text-[10px] text-slate-300">
-                <Lock className="h-2.5 w-2.5 text-slate-400" />
-                <span>kit.himtibinus.or.id</span>
+              <div className="flex items-center gap-1 rounded-md bg-white/10 px-3 py-0.5 text-[10px] text-slate-300 font-mono">
+                <Lock className="h-2.5 w-2.5 text-emerald-400" />
+                <span>https://himtikit.himtibinus.or.id/</span>
               </div>
 
               <div className="w-10" />
@@ -565,66 +566,36 @@ export function AppearanceTab() {
                 />
               </div>
 
-              {/* Student Gate Login UI */}
-              <div className="relative flex h-full flex-col justify-between p-4 sm:p-6 text-white">
-                {/* Navbar */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-6 w-6 rounded-md flex items-center justify-center text-xs font-bold text-white shadow-sm transition-colors"
-                      style={{ backgroundColor: config.primaryColor }}
-                    >
-                      H
-                    </div>
-                    <span className="text-xs font-bold tracking-tight">
-                      HIMTI KIT
-                    </span>
+              {/* Exact HIMTI-KIT-Frontend Student Gate Login UI */}
+              <section className="relative mx-auto flex h-full max-w-lg flex-col items-center justify-center px-4 py-6 text-center text-white select-none">
+                <p className="text-[9px] sm:text-[11px] font-semibold uppercase tracking-[0.3em] text-white/75">
+                  School of Computer Science
+                </p>
+
+                <h1 className="mt-1 text-2xl sm:text-4xl font-bold tracking-tight text-white drop-shadow-sm">
+                  HIMTI KIT
+                </h1>
+
+                <p className="mt-2 sm:mt-3 max-w-xs sm:max-w-md text-[10px] sm:text-xs leading-relaxed text-white/90">
+                  A learning kit for new School of Computer Science students at
+                  Bina Nusantara University. Find materials and software for your
+                  first semesters in one place.
+                </p>
+
+                <div className="mt-3.5 sm:mt-5 flex w-full max-w-[260px] sm:max-w-sm overflow-hidden rounded-xl sm:rounded-2xl bg-white shadow-2xl">
+                  <div className="min-w-0 flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-xs text-slate-400 text-left flex items-center font-normal">
+                    Insert your Student ID (NIM)
                   </div>
 
                   <div
-                    className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold border backdrop-blur transition-colors"
-                    style={{
-                      backgroundColor: `${config.primaryColor}22`,
-                      borderColor: `${config.primaryColor}55`,
-                      color: config.primaryColor,
-                    }}
+                    className="grid w-9 sm:w-11 place-items-center text-white transition-colors"
+                    style={{ backgroundColor: config.primaryColor }}
+                    aria-label="Continue"
                   >
-                    TECHNO Edition
+                    <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </div>
                 </div>
-
-                {/* Hero Card Content */}
-                <div className="mx-auto my-auto max-w-xs text-center">
-                  <h3 className="text-base sm:text-lg font-bold tracking-tight">
-                    Welcome, Binusian!
-                  </h3>
-                  <p className="mt-1 text-[11px] text-slate-300 leading-relaxed">
-                    Enter your NIM to access official HIMTI KIT study materials & software tools.
-                  </p>
-
-                  {/* Interactive Mock Input */}
-                  <div className="mt-3.5 flex items-center justify-center gap-1.5">
-                    <div
-                      className="h-7 w-40 rounded-md bg-white/10 px-2.5 text-[10px] flex items-center text-slate-300 border transition-colors"
-                      style={{ borderColor: `${config.primaryColor}66` }}
-                    >
-                      NIM (e.g. 2602111111)
-                    </div>
-                    <button
-                      type="button"
-                      className="h-7 rounded-md px-3.5 text-[10px] font-semibold flex items-center justify-center text-white shadow-sm hover:opacity-90 transition-all"
-                      style={{ backgroundColor: config.primaryColor }}
-                    >
-                      Enter
-                    </button>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="text-center text-[9px] text-slate-400">
-                  HIMTI BINUS University &copy; 2026 &bull; Authorized Students Only
-                </div>
-              </div>
+              </section>
             </div>
           </div>
 
