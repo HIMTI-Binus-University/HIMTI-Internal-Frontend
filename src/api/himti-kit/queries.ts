@@ -138,9 +138,19 @@ export const useGetHimtiKitResources = (search?: string) =>
           Api.himtiKitResources,
           { params: search ? { search } : undefined }
         );
-        return (response.data?.data || []).map(transformBackendResource);
+        const data = (response.data?.data || []).map(transformBackendResource);
+        console.log(
+          "%c[HIMTI-KIT:Materials] Loaded from Backend API:",
+          "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+          data
+        );
+        return data;
       } catch (error) {
-        console.warn("Backend unavailable, falling back to mock resources:", error);
+        console.warn(
+          "%c[HIMTI-KIT:Materials] Backend GET unavailable, using mock storage:",
+          "color: #f59e0b; font-weight: bold;",
+          error
+        );
         return getStoredResources();
       }
     },
@@ -151,6 +161,7 @@ export const useCreateHimtiKitResource = () => {
   return useMutation({
     mutationFn: async (payload: CreateHimtiKitResourceInput) => {
       if (FORCE_MOCK_HIMTI_KIT) {
+        console.log("[HIMTI-KIT:Materials] Mock mode create:", payload);
         const current = getStoredResources();
         const newResource: HimtiKitResource = {
           id: `res-${Date.now()}`,
@@ -163,13 +174,27 @@ export const useCreateHimtiKitResource = () => {
 
       try {
         const backendPayload = transformResourceCreatePayload(payload);
+        console.log(
+          "%c[HIMTI-KIT:Materials] Sending POST create request to Backend...",
+          "color: #3b82f6; font-weight: bold;",
+          backendPayload
+        );
         const response = await apiClient.post<ApiDataResponse<any>>(
           Api.himtiKitResources,
           backendPayload
         );
+        console.log(
+          "%c[HIMTI-KIT:Materials] Resource successfully created in Backend & Database!",
+          "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+          response.data
+        );
         return transformBackendResource(response.data?.data);
       } catch (error) {
-        console.warn("Backend unavailable, creating in mock storage:", error);
+        console.error(
+          "%c[HIMTI-KIT:Materials] Failed to create in Backend, fallback to mock storage:",
+          "color: #ef4444; font-weight: bold;",
+          error
+        );
         const current = getStoredResources();
         const newResource: HimtiKitResource = {
           id: `res-${Date.now()}`,
@@ -191,6 +216,7 @@ export const useUpdateHimtiKitResource = () => {
   return useMutation({
     mutationFn: async ({ id, ...payload }: UpdateHimtiKitResourceInput & { id: string }) => {
       if (FORCE_MOCK_HIMTI_KIT) {
+        console.log("[HIMTI-KIT:Materials] Mock mode update:", id, payload);
         const current = getStoredResources();
         const updated = current.map((item) =>
           item.id === id ? { ...item, ...payload, updatedAt: new Date().toISOString() } : item
@@ -202,10 +228,24 @@ export const useUpdateHimtiKitResource = () => {
       try {
         const url = Api.himtiKitResource.replace(":id", id);
         const backendPayload = transformResourceUpdatePayload(payload);
+        console.log(
+          "%c[HIMTI-KIT:Materials] Sending PATCH update request to Backend...",
+          "color: #3b82f6; font-weight: bold;",
+          { id, ...backendPayload }
+        );
         const response = await apiClient.patch<ApiDataResponse<any>>(url, backendPayload);
+        console.log(
+          "%c[HIMTI-KIT:Materials] Resource successfully updated in Backend & Database!",
+          "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+          response.data
+        );
         return transformBackendResource(response.data?.data);
       } catch (error) {
-        console.warn("Backend unavailable, updating in mock storage:", error);
+        console.error(
+          "%c[HIMTI-KIT:Materials] Failed to update in Backend, fallback to mock storage:",
+          "color: #ef4444; font-weight: bold;",
+          error
+        );
         const current = getStoredResources();
         const updated = current.map((item) =>
           item.id === id ? { ...item, ...payload, updatedAt: new Date().toISOString() } : item
@@ -225,6 +265,7 @@ export const useDeleteHimtiKitResource = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       if (FORCE_MOCK_HIMTI_KIT) {
+        console.log("[HIMTI-KIT:Materials] Mock mode delete:", id);
         const current = getStoredResources();
         const filtered = current.filter((item) => item.id !== id);
         setStoredResources(filtered);
@@ -233,9 +274,23 @@ export const useDeleteHimtiKitResource = () => {
 
       try {
         const url = Api.himtiKitResource.replace(":id", id);
+        console.log(
+          "%c[HIMTI-KIT:Materials] Sending DELETE request to Backend...",
+          "color: #ef4444; font-weight: bold;",
+          { id }
+        );
         await apiClient.delete<ApiDataResponse<void>>(url);
+        console.log(
+          "%c[HIMTI-KIT:Materials] Resource successfully deleted from Backend & Database!",
+          "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+          id
+        );
       } catch (error) {
-        console.warn("Backend unavailable, deleting from mock storage:", error);
+        console.error(
+          "%c[HIMTI-KIT:Materials] Failed to delete in Backend, fallback to mock storage:",
+          "color: #ef4444; font-weight: bold;",
+          error
+        );
         const current = getStoredResources();
         setStoredResources(current.filter((item) => item.id !== id));
       }
@@ -269,9 +324,19 @@ export const useGetHimtiKitSoftwares = (search?: string) =>
           Api.himtiKitSoftwares,
           { params: search ? { search } : undefined }
         );
-        return (response.data?.data || []).map(transformBackendSoftware);
+        const data = (response.data?.data || []).map(transformBackendSoftware);
+        console.log(
+          "%c[HIMTI-KIT:Software] Loaded from Backend API:",
+          "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+          data
+        );
+        return data;
       } catch (error) {
-        console.warn("Backend unavailable, falling back to mock softwares:", error);
+        console.warn(
+          "%c[HIMTI-KIT:Software] Backend GET unavailable, using mock storage:",
+          "color: #f59e0b; font-weight: bold;",
+          error
+        );
         return getStoredSoftwares();
       }
     },
@@ -282,6 +347,7 @@ export const useCreateHimtiKitSoftware = () => {
   return useMutation({
     mutationFn: async (payload: CreateHimtiKitSoftwareInput) => {
       if (FORCE_MOCK_HIMTI_KIT) {
+        console.log("[HIMTI-KIT:Software] Mock mode create:", payload);
         const current = getStoredSoftwares();
         const newSoftware: HimtiKitSoftware = {
           id: `soft-${Date.now()}`,
@@ -294,13 +360,27 @@ export const useCreateHimtiKitSoftware = () => {
 
       try {
         const backendPayload = transformSoftwareCreatePayload(payload);
+        console.log(
+          "%c[HIMTI-KIT:Software] Sending POST create request to Backend...",
+          "color: #3b82f6; font-weight: bold;",
+          backendPayload
+        );
         const response = await apiClient.post<ApiDataResponse<any>>(
           Api.himtiKitSoftwares,
           backendPayload
         );
+        console.log(
+          "%c[HIMTI-KIT:Software] Software successfully created in Backend & Database!",
+          "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+          response.data
+        );
         return transformBackendSoftware(response.data?.data);
       } catch (error) {
-        console.warn("Backend unavailable, creating in mock storage:", error);
+        console.error(
+          "%c[HIMTI-KIT:Software] Failed to create in Backend, fallback to mock storage:",
+          "color: #ef4444; font-weight: bold;",
+          error
+        );
         const current = getStoredSoftwares();
         const newSoftware: HimtiKitSoftware = {
           id: `soft-${Date.now()}`,
@@ -322,6 +402,7 @@ export const useUpdateHimtiKitSoftware = () => {
   return useMutation({
     mutationFn: async ({ id, ...payload }: UpdateHimtiKitSoftwareInput & { id: string }) => {
       if (FORCE_MOCK_HIMTI_KIT) {
+        console.log("[HIMTI-KIT:Software] Mock mode update:", id, payload);
         const current = getStoredSoftwares();
         const updated = current.map((item) =>
           item.id === id ? { ...item, ...payload, updatedAt: new Date().toISOString() } : item
@@ -333,10 +414,24 @@ export const useUpdateHimtiKitSoftware = () => {
       try {
         const url = Api.himtiKitSoftware.replace(":id", id);
         const backendPayload = transformSoftwareUpdatePayload(payload);
+        console.log(
+          "%c[HIMTI-KIT:Software] Sending PATCH update request to Backend...",
+          "color: #3b82f6; font-weight: bold;",
+          { id, ...backendPayload }
+        );
         const response = await apiClient.patch<ApiDataResponse<any>>(url, backendPayload);
+        console.log(
+          "%c[HIMTI-KIT:Software] Software successfully updated in Backend & Database!",
+          "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+          response.data
+        );
         return transformBackendSoftware(response.data?.data);
       } catch (error) {
-        console.warn("Backend unavailable, updating in mock storage:", error);
+        console.error(
+          "%c[HIMTI-KIT:Software] Failed to update in Backend, fallback to mock storage:",
+          "color: #ef4444; font-weight: bold;",
+          error
+        );
         const current = getStoredSoftwares();
         const updated = current.map((item) =>
           item.id === id ? { ...item, ...payload, updatedAt: new Date().toISOString() } : item
@@ -356,6 +451,7 @@ export const useDeleteHimtiKitSoftware = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       if (FORCE_MOCK_HIMTI_KIT) {
+        console.log("[HIMTI-KIT:Software] Mock mode delete:", id);
         const current = getStoredSoftwares();
         setStoredSoftwares(current.filter((item) => item.id !== id));
         return;
@@ -363,9 +459,23 @@ export const useDeleteHimtiKitSoftware = () => {
 
       try {
         const url = Api.himtiKitSoftware.replace(":id", id);
+        console.log(
+          "%c[HIMTI-KIT:Software] Sending DELETE request to Backend...",
+          "color: #ef4444; font-weight: bold;",
+          { id }
+        );
         await apiClient.delete<ApiDataResponse<void>>(url);
+        console.log(
+          "%c[HIMTI-KIT:Software] Software successfully deleted from Backend & Database!",
+          "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+          id
+        );
       } catch (error) {
-        console.warn("Backend unavailable, deleting from mock storage:", error);
+        console.error(
+          "%c[HIMTI-KIT:Software] Failed to delete in Backend, fallback to mock storage:",
+          "color: #ef4444; font-weight: bold;",
+          error
+        );
         const current = getStoredSoftwares();
         setStoredSoftwares(current.filter((item) => item.id !== id));
       }
@@ -398,9 +508,19 @@ export const useGetHimtiKitAttendees = (search?: string) =>
           Api.himtiKitAttendees,
           { params: search ? { search } : undefined }
         );
-        return (response.data?.data || []).map(transformBackendAttendee);
+        const data = (response.data?.data || []).map(transformBackendAttendee);
+        console.log(
+          "%c[HIMTI-KIT:Attendees] Loaded from Backend API:",
+          "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+          data
+        );
+        return data;
       } catch (error) {
-        console.warn("Backend unavailable, falling back to mock attendees:", error);
+        console.warn(
+          "%c[HIMTI-KIT:Attendees] Backend GET unavailable, using mock storage:",
+          "color: #f59e0b; font-weight: bold;",
+          error
+        );
         return getStoredAttendees();
       }
     },
@@ -411,6 +531,7 @@ export const useAddHimtiKitAttendees = () => {
   return useMutation({
     mutationFn: async (payload: CreateHimtiKitAttendeeInput[]) => {
       if (FORCE_MOCK_HIMTI_KIT) {
+        console.log("[HIMTI-KIT:Attendees] Mock mode bulk import:", payload);
         const current = getStoredAttendees();
         const existingNims = new Set(current.map((a) => a.nim));
         const newAttendees: HimtiKitAttendee[] = payload
@@ -433,13 +554,28 @@ export const useAddHimtiKitAttendees = () => {
           nim: p.nim.trim(),
         }));
 
+        console.log(
+          "%c[HIMTI-KIT:Attendees] Sending bulk-import POST request to Backend...",
+          "color: #3b82f6; font-weight: bold;",
+          { count: sanitizedAttendees.length, sample: sanitizedAttendees.slice(0, 5) }
+        );
+
         const response = await apiClient.post<ApiDataResponse<any>>(
           Api.himtiKitAttendeeBulk,
           { attendees: sanitizedAttendees }
         );
+        console.log(
+          "%c[HIMTI-KIT:Attendees] Attendees successfully imported & saved to Backend DB!",
+          "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+          response.data
+        );
         return response.data?.data;
       } catch (error) {
-        console.warn("Backend unavailable, adding to mock storage:", error);
+        console.error(
+          "%c[HIMTI-KIT:Attendees] Failed to import to Backend, fallback to mock storage:",
+          "color: #ef4444; font-weight: bold;",
+          error
+        );
         const current = getStoredAttendees();
         const existingNims = new Set(current.map((a) => a.nim));
         const newAttendees: HimtiKitAttendee[] = payload
@@ -467,6 +603,7 @@ export const useDeleteHimtiKitAttendee = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       if (FORCE_MOCK_HIMTI_KIT) {
+        console.log("[HIMTI-KIT:Attendees] Mock mode delete:", id);
         const current = getStoredAttendees();
         setStoredAttendees(current.filter((item) => item.id !== id));
         return;
@@ -474,9 +611,23 @@ export const useDeleteHimtiKitAttendee = () => {
 
       try {
         const url = Api.himtiKitAttendee.replace(":id", id);
+        console.log(
+          "%c[HIMTI-KIT:Attendees] Sending DELETE request to Backend...",
+          "color: #ef4444; font-weight: bold;",
+          { id }
+        );
         await apiClient.delete<ApiDataResponse<void>>(url);
+        console.log(
+          "%c[HIMTI-KIT:Attendees] Attendee successfully deleted from Backend & Database!",
+          "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+          id
+        );
       } catch (error) {
-        console.warn("Backend unavailable, deleting from mock storage:", error);
+        console.error(
+          "%c[HIMTI-KIT:Attendees] Failed to delete in Backend, fallback to mock storage:",
+          "color: #ef4444; font-weight: bold;",
+          error
+        );
         const current = getStoredAttendees();
         setStoredAttendees(current.filter((item) => item.id !== id));
       }

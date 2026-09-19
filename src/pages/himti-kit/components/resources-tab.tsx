@@ -76,14 +76,29 @@ export function ResourcesTab() {
 
   const handleSubmit = async (payload: CreateHimtiKitResourceInput) => {
     if (editingResource) {
+      console.log(
+        "%c[HIMTI-KIT:Dashboard] Submitting resource update:",
+        "font-weight: bold; color: #0284c7;",
+        { id: editingResource.id, ...payload }
+      );
       await updateMutation.mutateAsync({ id: editingResource.id, ...payload });
     } else {
+      console.log(
+        "%c[HIMTI-KIT:Dashboard] Submitting new resource:",
+        "font-weight: bold; color: #0284c7;",
+        payload
+      );
       await createMutation.mutateAsync(payload);
     }
   };
 
   const handleDeleteConfirm = async () => {
     if (deleteTarget) {
+      console.log(
+        "%c[HIMTI-KIT:Dashboard] Deleting resource:",
+        "font-weight: bold; color: #ef4444;",
+        deleteTarget
+      );
       await deleteMutation.mutateAsync(deleteTarget.id);
       setDeleteTarget(null);
     }

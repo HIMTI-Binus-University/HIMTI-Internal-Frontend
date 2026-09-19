@@ -1,5 +1,15 @@
-import { useState } from "react";
-import { AlertCircle, CheckCircle2, FileSpreadsheet, Upload, UserPlus } from "lucide-react";
+import { useState, useMemo } from "react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  FileSpreadsheet,
+  Plus,
+  RotateCcw,
+  Trash2,
+  Upload,
+  UserPlus,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -134,20 +144,82 @@ export function AttendeeImportDialog({
     parseCsvContent(text);
   };
 
+  // Row Modification Handlers
+  const handleRowChange = (index: number, field: "name" | "nim", value: string) => {
+    setParsedRows((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+  };
+
+  const handleDeleteRow = (index: number) => {
+    setParsedRows((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddRow = () => {
+    setParsedRows((prev) => [...prev, { name: "", nim: "" }]);
+  };
+
+  const handleClearParsed = () => {
+    setParsedRows([]);
+    setCsvText("");
+    setFileName(null);
+    setParseError(null);
+  };
+
+  // Validation metrics
+  const duplicateNims = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const r of parsedRows) {
+      const trimmed = r.nim.trim();
+      if (!trimmed) continue;
+      counts.set(trimmed, (counts.get(trimmed) || 0) + 1);
+    }
+    const dupes = new Set<string>();
+    for (const [nim, count] of counts.entries()) {
+      if (count > 1) dupes.add(nim);
+    }
+    return dupes;
+  }, [parsedRows]);
+
+  const validRowsCount = useMemo(() => {
+    return parsedRows.filter((r) => r.name.trim().length > 0 && r.nim.trim().length > 0).length;
+  }, [parsedRows]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (mode === "manual") {
       if (!name.trim() || !nim.trim()) return;
-      await onSubmit([{ name: name.trim(), nim: nim.trim().replace(/\s+/g, "") }]);
+      const single = [{ name: name.trim(), nim: nim.trim().replace(/\s+/g, "") }];
+      console.log(
+        "%c[HIMTI-KIT:Attendees] Submitting manual attendee:",
+        "font-weight: bold; color: #0284c7;",
+        single
+      );
+      await onSubmit(single);
       resetState();
       onOpenChange(false);
     } else {
-      if (parsedRows.length === 0) {
-        setParseError("No valid rows to import.");
+      const cleaned = parsedRows
+        .map((r) => ({
+          name: r.name.trim(),
+          nim: r.nim.trim().replace(/\s+/g, ""),
+        }))
+        .filter((r) => r.name.length > 0 && r.nim.length > 0);
+
+      if (cleaned.length === 0) {
+        setParseError("No valid rows to import. Please make sure at least one row has Name and NIM.");
         return;
       }
-      await onSubmit(parsedRows);
+
+      console.log(
+        `%c[HIMTI-KIT:Attendees] Submitting ${cleaned.length} modified attendee rows to Backend:`,
+        "font-weight: bold; color: #0284c7;",
+        cleaned
+      );
+      await onSubmit(cleaned);
       resetState();
       onOpenChange(false);
     }
@@ -161,7 +233,11 @@ export function AttendeeImportDialog({
         onOpenChange(isOpen);
       }}
     >
-      <DialogContent className="sm:max-w-[560px]">
+      <DialogContent
+        className={`transition-all duration-200 ${
+          mode === "csv" && parsedRows.length > 0 ? "sm:max-w-[680px]" : "sm:max-w-[560px]"
+        }`}
+      >
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Add Eligible TECHNO Attendees</DialogTitle>
@@ -233,88 +309,187 @@ export function AttendeeImportDialog({
                 </div>
               </div>
             ) : (
-              /* ================= CSV BULK IMPORT ================= */
+              /* ================= CSV BULK IMPORT & MODIFICATION ================= */
               <div className="space-y-4">
-                {/* File Upload / Drag zone */}
-                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 p-4 text-center transition-colors hover:border-primary/50">
-                  <Upload className="h-6 w-6 text-muted-foreground" />
-                  <p className="mt-1.5 text-xs font-semibold text-foreground">
-                    {fileName ? fileName : "Upload CSV file from Google Sheets"}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Supports columns: <code>Name, NIM</code> or <code>NIM, Name</code>
-                  </p>
-                  <label className="mt-2.5 inline-flex cursor-pointer items-center gap-1 rounded-md bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground hover:bg-secondary/80">
-                    <span>Browse File</span>
-                    <input
-                      type="file"
-                      accept=".csv,text/csv,text/plain"
-                      onChange={handleFileUpload}
-                      className="sr-only"
-                    />
-                  </label>
-                </div>
+                {parsedRows.length === 0 ? (
+                  <>
+                    {/* File Upload / Drag zone */}
+                    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 p-4 text-center transition-colors hover:border-primary/50">
+                      <Upload className="h-6 w-6 text-muted-foreground" />
+                      <p className="mt-1.5 text-xs font-semibold text-foreground">
+                        {fileName ? fileName : "Upload CSV file from Google Sheets"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Supports columns: <code>Name, NIM</code> or <code>NIM, Name</code>
+                      </p>
+                      <label className="mt-2.5 inline-flex cursor-pointer items-center gap-1 rounded-md bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground hover:bg-secondary/80">
+                        <span>Browse File</span>
+                        <input
+                          type="file"
+                          accept=".csv,text/csv,text/plain"
+                          onChange={handleFileUpload}
+                          className="sr-only"
+                        />
+                      </label>
+                    </div>
 
-                {/* Paste Area Alternative */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="csv-raw" className="text-xs">
-                    Or Paste CSV Data Directly:
-                  </Label>
-                  <textarea
-                    id="csv-raw"
-                    rows={4}
-                    className="w-full font-mono rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    placeholder="Name, NIM&#10;Alya Putri, 2602111111&#10;Bima Pratama, 2602111112"
-                    value={csvText}
-                    onChange={(e) => handleCsvTextChange(e.target.value)}
-                  />
-                </div>
+                    {/* Paste Area Alternative */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="csv-raw" className="text-xs">
+                        Or Paste CSV Data Directly:
+                      </Label>
+                      <textarea
+                        id="csv-raw"
+                        rows={4}
+                        className="w-full font-mono rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        placeholder="Name, NIM&#10;Alya Putri, 2602111111&#10;Bima Pratama, 2602111112"
+                        value={csvText}
+                        onChange={(e) => handleCsvTextChange(e.target.value)}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  /* ================= EDITABLE IMPORTED ROWS TABLE ================= */
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-semantic-success" />
+                          Review & Modify Attendees
+                        </span>
+                        <Badge variant="secondary" className="text-[11px]">
+                          {validRowsCount} of {parsedRows.length} valid
+                        </Badge>
+                        {duplicateNims.size > 0 && (
+                          <Badge variant="outline" className="border-amber-500/30 text-amber-500 bg-amber-500/10 text-[10px] gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            <span>{duplicateNims.size} duplicate NIM</span>
+                          </Badge>
+                        )}
+                      </div>
 
-                {/* Status / Parse Preview */}
-                {parseError ? (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleClearParsed}
+                          className="h-7 px-2 text-[11px] text-muted-foreground hover:text-destructive gap-1"
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                          <span>Re-import</span>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAddRow}
+                          className="h-7 px-2 text-[11px] gap-1"
+                        >
+                          <Plus className="h-3 w-3" />
+                          <span>Add Row</span>
+                        </Button>
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-muted-foreground">
+                      You can edit names, NIMs, remove incorrect rows, or add new students before submitting to the database.
+                    </p>
+
+                    {/* Editable Table */}
+                    <div className="max-h-72 overflow-y-auto rounded-lg border border-border bg-card p-1.5 text-xs">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="border-b border-border text-[11px] text-muted-foreground">
+                            <th className="w-8 pb-1.5 pl-2">#</th>
+                            <th className="w-36 pb-1.5 px-2">NIM</th>
+                            <th className="pb-1.5 px-2">Student Full Name</th>
+                            <th className="w-10 pb-1.5 text-right pr-2">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/60">
+                          {parsedRows.map((row, idx) => {
+                            const isDuplicate = duplicateNims.has(row.nim.trim());
+                            const isNimEmpty = !row.nim.trim();
+                            const isNameEmpty = !row.name.trim();
+
+                            return (
+                              <tr key={idx} className="group hover:bg-muted/30 transition-colors">
+                                <td className="py-1.5 pl-2 text-[11px] text-muted-foreground font-mono">
+                                  {idx + 1}
+                                </td>
+                                <td className="py-1.5 px-2">
+                                  <Input
+                                    value={row.nim}
+                                    onChange={(e) => handleRowChange(idx, "nim", e.target.value)}
+                                    placeholder="NIM"
+                                    className={`h-7 text-xs font-mono font-medium ${
+                                      isDuplicate
+                                        ? "border-amber-500/60 bg-amber-500/5 text-amber-600 focus-visible:ring-amber-400"
+                                        : isNimEmpty
+                                        ? "border-destructive bg-destructive/5 text-destructive"
+                                        : ""
+                                    }`}
+                                  />
+                                </td>
+                                <td className="py-1.5 px-2">
+                                  <Input
+                                    value={row.name}
+                                    onChange={(e) => handleRowChange(idx, "name", e.target.value)}
+                                    placeholder="Student Name"
+                                    className={`h-7 text-xs ${
+                                      isNameEmpty
+                                        ? "border-destructive bg-destructive/5 text-destructive"
+                                        : ""
+                                    }`}
+                                  />
+                                </td>
+                                <td className="py-1.5 text-right pr-2">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteRow(idx)}
+                                    className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                    title="Delete row"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    <span className="sr-only">Delete</span>
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleAddRow}
+                        className="h-7 px-2 text-xs text-primary hover:text-primary/80 gap-1"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        <span>Add another student</span>
+                      </Button>
+
+                      <span className="text-[11px] text-muted-foreground">
+                        {validRowsCount} ready to import
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Parse Error Notification */}
+                {parseError && (
                   <div className="flex items-center gap-2 rounded-lg border border-semantic-danger-border bg-semantic-danger-background p-2.5 text-xs text-semantic-danger">
                     <AlertCircle className="h-4 w-4 shrink-0" />
                     <span>{parseError}</span>
                   </div>
-                ) : parsedRows.length > 0 ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-semantic-success" />
-                        Preview Parsed Attendees
-                      </span>
-                      <Badge variant="secondary" className="text-xs">
-                        {parsedRows.length} students detected
-                      </Badge>
-                    </div>
-
-                    <div className="max-h-36 overflow-y-auto rounded-lg border border-border bg-card p-2 text-xs">
-                      <table className="w-full text-left">
-                        <thead>
-                          <tr className="border-b border-border text-[11px] text-muted-foreground">
-                            <th className="pb-1">NIM</th>
-                            <th className="pb-1">Name</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/60">
-                          {parsedRows.slice(0, 10).map((row, idx) => (
-                            <tr key={idx} className="py-1">
-                              <td className="py-1 font-mono font-medium text-primary">
-                                {row.nim}
-                              </td>
-                              <td className="py-1 text-foreground">{row.name}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      {parsedRows.length > 10 && (
-                        <p className="pt-2 text-center text-[10px] text-muted-foreground">
-                          ...and {parsedRows.length - 10} more rows
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ) : null}
+                )}
               </div>
             )}
           </div>
@@ -335,16 +510,16 @@ export function AttendeeImportDialog({
               type="submit"
               disabled={
                 isLoading ||
-                (mode === "manual" ? !name.trim() || !nim.trim() : parsedRows.length === 0)
+                (mode === "manual"
+                  ? !name.trim() || !nim.trim()
+                  : validRowsCount === 0)
               }
             >
-              {isLoading ? (
-                "Processing..."
-              ) : mode === "manual" ? (
-                "Add Attendee"
-              ) : (
-                `Import ${parsedRows.length} Attendees`
-              )}
+              {isLoading
+                ? "Processing..."
+                : mode === "manual"
+                ? "Add Attendee"
+                : `Import ${validRowsCount} Attendees`}
             </Button>
           </DialogFooter>
         </form>

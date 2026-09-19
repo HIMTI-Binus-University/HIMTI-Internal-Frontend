@@ -40,11 +40,21 @@ export function AttendeesTab() {
   }, [attendees, search]);
 
   const handleImportSubmit = async (payload: CreateHimtiKitAttendeeInput[]) => {
+    console.log(
+      "%c[HIMTI-KIT:Dashboard] Importing attendee(s)...",
+      "font-weight: bold; color: #0284c7;",
+      payload
+    );
     await addMutation.mutateAsync(payload);
   };
 
   const handleDeleteConfirm = async () => {
     if (deleteTarget) {
+      console.log(
+        "%c[HIMTI-KIT:Dashboard] Deleting attendee:",
+        "font-weight: bold; color: #ef4444;",
+        deleteTarget
+      );
       await deleteMutation.mutateAsync(deleteTarget.id);
       setDeleteTarget(null);
     }

@@ -54,14 +54,29 @@ export function SoftwareTab() {
 
   const handleSubmit = async (payload: CreateHimtiKitSoftwareInput) => {
     if (editingSoftware) {
+      console.log(
+        "%c[HIMTI-KIT:Dashboard] Submitting software update:",
+        "font-weight: bold; color: #0284c7;",
+        { id: editingSoftware.id, ...payload }
+      );
       await updateMutation.mutateAsync({ id: editingSoftware.id, ...payload });
     } else {
+      console.log(
+        "%c[HIMTI-KIT:Dashboard] Submitting new software:",
+        "font-weight: bold; color: #0284c7;",
+        payload
+      );
       await createMutation.mutateAsync(payload);
     }
   };
 
   const handleDeleteConfirm = async () => {
     if (deleteTarget) {
+      console.log(
+        "%c[HIMTI-KIT:Dashboard] Deleting software:",
+        "font-weight: bold; color: #ef4444;",
+        deleteTarget
+      );
       await deleteMutation.mutateAsync(deleteTarget.id);
       setDeleteTarget(null);
     }
