@@ -4,9 +4,7 @@ import {
   BookOpenText,
   Check,
   CodeXml,
-  Copy,
   Download,
-  Eye,
   FileText,
   Image as ImageIcon,
   Lock,
@@ -127,11 +125,9 @@ export function AppearanceTab() {
   const [config, setConfig] = useState<HimtiKitAppearanceConfig>(
     initialData || DEFAULT_APPEARANCE_CONFIG
   );
-  const [previewBgUrl, setPreviewBgUrl] = useState(
-    initialData?.backgroundUrl || DEFAULT_APPEARANCE_CONFIG.backgroundUrl
-  );
+  const previewBgUrl =
+    config.backgroundUrl.trim() || DEFAULT_APPEARANCE_CONFIG.backgroundUrl;
   const [isSaved, setIsSaved] = useState(false);
-  const [copiedTokens, setCopiedTokens] = useState(false);
   const [previewPage, setPreviewPage] = useState<PreviewPage>("login");
   const [previewSearch, setPreviewSearch] = useState("");
 
@@ -161,18 +157,11 @@ export function AppearanceTab() {
   useEffect(() => {
     if (initialData) {
       setConfig(initialData);
-      setPreviewBgUrl(initialData.backgroundUrl || DEFAULT_APPEARANCE_CONFIG.backgroundUrl);
     }
   }, [initialData]);
 
-  const handleApplyBgPreview = () => {
-    setPreviewBgUrl(config.backgroundUrl.trim() || DEFAULT_APPEARANCE_CONFIG.backgroundUrl);
-    setIsSaved(false);
-  };
-
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPreviewBgUrl(config.backgroundUrl.trim() || DEFAULT_APPEARANCE_CONFIG.backgroundUrl);
     console.log("%c[HIMTI-KIT:Dashboard] Save Changes triggered with settings:", "font-weight: bold; color: #0284c7;", config);
     try {
       await updateMutation.mutateAsync(config);
@@ -186,31 +175,12 @@ export function AppearanceTab() {
   const handleReset = async () => {
     console.log("%c[HIMTI-KIT:Dashboard] Reset to Default triggered", "font-weight: bold; color: #f59e0b;");
     setConfig(DEFAULT_APPEARANCE_CONFIG);
-    setPreviewBgUrl(DEFAULT_APPEARANCE_CONFIG.backgroundUrl);
     try {
       await resetMutation.mutateAsync();
       setIsSaved(false);
     } catch (err) {
       console.error("%c[HIMTI-KIT:Dashboard] Error during reset:", "color: red;", err);
     }
-  };
-
-  const handleCopyCssTokens = () => {
-    const effectiveOpacity = config.enableOverlay
-      ? (config.overlayOpacity / 100).toFixed(2)
-      : "0";
-    const effectiveBlur = config.enableBlur ? `${config.blurLevel}px` : "0px";
-
-    const cssContent = `:root {
-  /* HIMTI-KIT Public Theme Tokens */
-  --himti-kit-primary: ${config.primaryColor};
-  --himti-kit-overlay-opacity: ${effectiveOpacity};
-  --himti-kit-blur-level: ${effectiveBlur};
-  --himti-kit-bg-url: url("${config.backgroundUrl}");
-}`;
-    navigator.clipboard.writeText(cssContent);
-    setCopiedTokens(true);
-    setTimeout(() => setCopiedTokens(false), 2500);
   };
 
   const overlayStyle = config.enableOverlay
@@ -244,27 +214,6 @@ export function AppearanceTab() {
             />
             <span className="font-medium">Accent: {config.primaryColor}</span>
           </Badge>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleCopyCssTokens}
-            className="text-xs h-8 gap-1.5"
-            title="Copy CSS Theme Variables"
-          >
-            {copiedTokens ? (
-              <>
-                <Check className="h-3.5 w-3.5 text-semantic-success" />
-                <span>Copied CSS</span>
-              </>
-            ) : (
-              <>
-                <Copy className="h-3.5 w-3.5" />
-                <span>Copy CSS Tokens</span>
-              </>
-            )}
-          </Button>
         </div>
       </div>
 
@@ -402,30 +351,20 @@ export function AppearanceTab() {
                 <Label htmlFor="bg-image-url" className="text-xs font-medium">
                   Background Image URL
                 </Label>
-                <div className="relative">
-                  <Input
-                    id="bg-image-url"
-                    type="url"
-                    placeholder="https://images.unsplash.com/..."
-                    value={config.backgroundUrl}
-                    onChange={(e) => {
-                      setConfig((prev) => ({
-                        ...prev,
-                        backgroundUrl: e.target.value,
-                      }));
-                      setIsSaved(false);
-                    }}
-                    className="pr-10 text-xs font-mono"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleApplyBgPreview}
-                    title="Apply preview URL"
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-                </div>
+                <Input
+                  id="bg-image-url"
+                  type="url"
+                  placeholder="https://images.unsplash.com/..."
+                  value={config.backgroundUrl}
+                  onChange={(e) => {
+                    setConfig((prev) => ({
+                      ...prev,
+                      backgroundUrl: e.target.value,
+                    }));
+                    setIsSaved(false);
+                  }}
+                  className="text-xs font-mono"
+                />
                 <p className="text-[11px] text-muted-foreground">
                   Paste a direct link to any high-resolution image for the public login background.
                 </p>
