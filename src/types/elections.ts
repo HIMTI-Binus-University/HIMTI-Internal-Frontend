@@ -24,6 +24,7 @@ export interface Election {
   status: ElectionStatus;
   startsAt: string;
   endsAt: string;
+  originalEndsAt: string;
   debateAt: string | null;
   openedAt: string | null;
   closedAt: string | null;

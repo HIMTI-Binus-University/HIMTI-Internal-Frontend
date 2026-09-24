@@ -89,6 +89,18 @@ export const useUpdateElectionDebateSchedule = (id: string) =>
         .then((response) => response.data.data),
     id,
   );
+export const useUpdateElectionVotingEnd = (id: string) =>
+  useElectionMutation(
+    (payload: { endsAt: string }) =>
+      apiClient
+        .patch<ElectionResponse<Election>>(
+          electionPath(Api.electionVotingEnd, id),
+          payload,
+        )
+        .then((response) => response.data.data),
+    id,
+  );
+
 
 export const useUpdateElectionPublicDetails = (id: string) =>
   useElectionMutation(

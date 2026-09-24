@@ -87,6 +87,7 @@ export const Api = {
   electionClose: "/api/internal/elections/:electionId/close",
   electionPublish: "/api/internal/elections/:electionId/publish",
   electionDebateSchedule: "/api/internal/elections/:electionId/debate-schedule",
+  electionVotingEnd: "/api/internal/elections/:electionId/voting-end",
   electionPublicDetails: "/api/internal/elections/:electionId/public-details",
   electionTurnout: "/api/internal/elections/:electionId/turnout",
   electionTally: "/api/internal/elections/:electionId/tally",

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
+import apiClient from "@/config/api-client";
 import { useGetMe } from "@/api/auth/queries";
 import { Button } from "@/components/ui/button";
 import { gsap, useGSAP } from "@/lib/motion";
@@ -39,6 +40,28 @@ export const LoginPage = () => {
   const { data: meData, isLoading: isMeLoading } = useGetMe(!!session);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [devLoginEnabled, setDevLoginEnabled] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void apiClient.get<{ enabled: boolean }>("/api/auth/dev-login")
+      .then(({ data }) => { if (active) setDevLoginEnabled(data.enabled === true); })
+      .catch(() => { if (active) setDevLoginEnabled(false); });
+    return () => { active = false; };
+  }, []);
+
+  const handleDevLogin = async () => {
+    setIsLoading(true);
+    setErrorMessage("");
+    try {
+      await apiClient.post("/api/auth/dev-login", {}, { withCredentials: true });
+      await authClient.getSession({ query: { disableCookieCache: true } });
+      window.location.reload();
+    } catch {
+      setErrorMessage("Development sign-in failed. Please try again.");
+      setIsLoading(false);
+    }
+  };
 
   useGSAP(
     () => {
@@ -203,6 +226,11 @@ export const LoginPage = () => {
                 </>
               )}
             </Button>
+            {devLoginEnabled && (
+              <Button type="button" className="mt-3 h-12 w-full" onClick={() => void handleDevLogin()} disabled={isLoading}>
+                {isLoading ? "Signing in..." : "Development System login"}
+              </Button>
+            )}
 
             <p className="mt-6 text-center text-sm leading-6 text-muted-foreground">
               Having trouble?{" "}

@@ -24,6 +24,7 @@ import {
   useUpdateCandidate,
   useUpdateElectionDebateSchedule,
   useUpdateElectionPublicDetails,
+  useUpdateElectionVotingEnd,
 } from "@/api/elections/queries";
 import { Container, PageLayout } from "@/components/Utils";
 import {
@@ -39,6 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -224,6 +226,99 @@ function DebateScheduleDialog({
   );
 }
 
+function VotingEndDialog({
+  electionId,
+  startsAt,
+  endsAt,
+  originalEndsAt,
+}: {
+  electionId: string;
+  startsAt: string;
+  endsAt: string;
+  originalEndsAt: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState("");
+  const mutation = useUpdateElectionVotingEnd(electionId);
+  const chosen = value ? new Date(value).getTime() : NaN;
+  const minimum = Math.max(new Date(originalEndsAt).getTime(), new Date(startsAt).getTime() + 1);
+  const invalid = !Number.isFinite(chosen) || chosen < minimum;
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (invalid || mutation.isPending) return;
+    mutation.mutate(
+      { endsAt: new Date(value).toISOString() },
+      { onSuccess: () => setOpen(false) },
+    );
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen) {
+          setValue(localDate(endsAt));
+          mutation.reset();
+        }
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button size="sm" variant="secondary">
+          <Pencil />
+          Edit voting end
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[460px]">
+        <DialogHeader>
+          <DialogTitle>Edit voting end</DialogTitle>
+          <DialogDescription>
+            Change when voting closes. The original end cannot be moved earlier;
+            this does not change the debate schedule.
+          </DialogDescription>
+        </DialogHeader>
+        <form className="space-y-4" onSubmit={submit}>
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold">Voting ends (your local time)</span>
+            <Input
+              type="datetime-local"
+              value={value}
+              min={localDate(originalEndsAt)}
+              required
+              aria-invalid={invalid && value !== ""}
+              aria-describedby="voting-end-limit"
+              onChange={(event) => setValue(event.target.value)}
+            />
+          </label>
+          <p id="voting-end-limit" className="text-sm text-muted-foreground">
+            Earliest allowed: {formatDate(originalEndsAt)}. Voting must also end
+            after it starts ({formatDate(startsAt)}).
+          </p>
+          {value && invalid && (
+            <p role="alert" className="text-sm text-semantic-danger">
+              Choose a valid time no earlier than the original end and after voting starts.
+            </p>
+          )}
+          {mutation.isError && (
+            <p role="alert" className="text-sm text-semantic-danger">
+              {errorText(mutation.error)}
+            </p>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" disabled={mutation.isPending} onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button disabled={invalid || mutation.isPending || chosen === new Date(endsAt).getTime()}>
+              {mutation.isPending ? "Saving..." : "Save voting end"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function PublicDetailsDialog({
   electionId,
   title,
@@ -385,6 +480,7 @@ function Overview({
   description,
   startsAt,
   endsAt,
+  originalEndsAt,
   debateAt,
 }: {
   id: string;
@@ -395,14 +491,9 @@ function Overview({
   startsAt: string;
   endsAt: string;
   debateAt: string | null;
+  originalEndsAt: string;
 }) {
   const turnout = useGetElectionTurnout(id, status === "OPEN");
-  const start = new Date(startsAt).getTime();
-  const end = new Date(endsAt).getTime();
-  const progress = Math.max(
-    0,
-    Math.min(100, ((Date.now() - start) / (end - start)) * 100),
-  );
   const countsMatch = turnout.data?.valid;
   const turnoutPercentage = turnout.data?.eligibleVoterCount
     ? (turnout.data.participationCount / turnout.data.eligibleVoterCount) * 100
@@ -531,48 +622,63 @@ function Overview({
           <div>
             <h3 className="font-semibold">Election schedule</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              The progress bar shows how much of the configured voting window
-              has elapsed, not voter turnout.
+              Times shown in your local time zone.
             </p>
           </div>
         </div>
-        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-          <div>
-            <dt className="font-medium text-muted-foreground">Voting starts</dt>
-            <dd>{formatDate(startsAt)}</dd>
+        <div className="mt-5 grid overflow-hidden rounded-xl border border-border sm:grid-cols-3">
+          <div className="min-w-0 p-4 sm:border-r sm:border-border">
+            <p className="text-sm font-semibold">Voting opens</p>
+            <time
+              dateTime={startsAt}
+              className="mt-2 block text-sm leading-5 text-muted-foreground"
+            >
+              {formatDate(startsAt)}
+            </time>
           </div>
-          <div>
-            <dt className="font-medium text-muted-foreground">Voting ends</dt>
-            <dd>{formatDate(endsAt)}</dd>
-          </div>
-          <div>
-            <dt className="font-medium text-muted-foreground">
-              Candidate debate
-            </dt>
-            <dd>{formatDate(debateAt)}</dd>
+          <div className="min-w-0 border-t border-border p-4 sm:border-r sm:border-t-0">
+            <p className="text-sm font-semibold">Voting closes</p>
+            <time
+              dateTime={endsAt}
+              className="mt-2 block text-sm leading-5 text-muted-foreground"
+            >
+              {formatDate(endsAt)}
+            </time>
+            {endsAt !== originalEndsAt && (
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                Original end: {formatDate(originalEndsAt)}
+              </p>
+            )}
             {(status === "DRAFT" || status === "OPEN") && (
-              <div className="mt-2">
+              <div className="mt-3">
+                <VotingEndDialog
+                  electionId={id}
+                  startsAt={startsAt}
+                  endsAt={endsAt}
+                  originalEndsAt={originalEndsAt}
+                />
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 border-t border-border p-4 sm:border-t-0">
+            <p className="text-sm font-semibold">Candidate debate</p>
+            {debateAt ? (
+              <time
+                dateTime={debateAt}
+                className="mt-2 block text-sm leading-5 text-muted-foreground"
+              >
+                {formatDate(debateAt)}
+              </time>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">Not scheduled</p>
+            )}
+            {(status === "DRAFT" || status === "OPEN") && (
+              <div className="mt-3">
                 <DebateScheduleDialog electionId={id} debateAt={debateAt} />
               </div>
             )}
           </div>
-        </dl>
-        <div
-          className="mt-5 h-2 overflow-hidden rounded-full bg-muted"
-          aria-label={`Schedule progress ${Math.round(progress)} percent`}
-          role="progressbar"
-          aria-valuenow={Math.round(progress)}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        >
-          <div
-            className="h-full bg-primary"
-            style={{ width: `${progress}%` }}
-          />
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          {Math.round(progress)}% of the voting window has elapsed.
-        </p>
       </Container>
     </div>
   );
@@ -617,11 +723,9 @@ function CandidateForm({
   return (
     <form
       onSubmit={submit}
-      className="space-y-4 rounded-xl border bg-muted/20 p-4"
+      className={candidate ? "space-y-4 rounded-xl border bg-muted/20 p-4" : "space-y-4"}
     >
-      <h3 className="font-semibold">
-        {candidate ? `Edit ${candidate.name}` : "Add candidate"}
-      </h3>
+      {candidate && <h3 className="font-semibold">Edit {candidate.name}</h3>}
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-1">
           <span className="text-sm">Name *</span>
@@ -687,13 +791,22 @@ function CandidateForm({
             defaultValue={candidate?.videoUrl ?? ""}
           />
         </label>
-        <label className="flex items-center gap-2">
-          <input
+        <label
+          htmlFor="candidate-active"
+          className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background p-3 sm:col-span-2"
+        >
+          <Checkbox
+            id="candidate-active"
             name="isActive"
-            type="checkbox"
             defaultChecked={candidate?.isActive ?? true}
-          />{" "}
-          Active
+            className="mt-0.5"
+          />
+          <span>
+            <span className="block text-sm font-medium">Active candidate</span>
+            <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
+              Include this candidate on the ballot when voting opens.
+            </span>
+          </span>
         </label>
       </div>
       {error && (
@@ -757,16 +870,33 @@ function Candidates({
         Ready means active with a photo, video, nonempty vision and mission, at
         least one work program, and at least one organization experience.
       </p>
-      {draft && !editing && (
+      {draft && editing !== "new" && (
         <Button onClick={() => setEditing("new")}>
           <Plus />
           Add candidate
         </Button>
       )}
-      {editing && (
+      <Dialog
+        open={editing === "new"}
+        onOpenChange={(open) => !open && setEditing(null)}
+      >
+        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add candidate</DialogTitle>
+            <DialogDescription>
+              Add the candidate profile and ballot information.
+            </DialogDescription>
+          </DialogHeader>
+          <CandidateForm
+            electionId={electionId}
+            close={() => setEditing(null)}
+          />
+        </DialogContent>
+      </Dialog>
+      {editing && editing !== "new" && (
         <CandidateForm
           electionId={electionId}
-          candidate={editing === "new" ? undefined : editing}
+          candidate={editing}
           close={() => setEditing(null)}
         />
       )}
@@ -1132,6 +1262,7 @@ export default function ElectionWorkspacePage() {
             description={election.description}
             startsAt={election.startsAt}
             endsAt={election.endsAt}
+            originalEndsAt={election.originalEndsAt}
             debateAt={election.debateAt}
           />
         )}

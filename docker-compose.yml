@@ -1,3 +1,5 @@
+name: himti-internal-frontend
+
 services:
   app:
     build:
@@ -10,6 +12,7 @@ services:
         VITE_REGISTRATION_APP_URL: ${VITE_REGISTRATION_APP_URL:-http://localhost:3001}
         VITE_LOCAL_LINK_BASE_PATH: ${VITE_LOCAL_LINK_BASE_PATH:-/link}
     image: himti-internal-frontend:local
+    container_name: himti-internal-frontend
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     healthcheck:
