@@ -839,6 +839,7 @@ function Candidates({
     null,
   );
   const update = useUpdateCandidate(electionId);
+  const [toggleError, setToggleError] = useState<string | null>(null);
   const activeCount = candidates.filter(
     (candidate) => candidate.isActive,
   ).length;
@@ -900,6 +901,11 @@ function Candidates({
           close={() => setEditing(null)}
         />
       )}
+      {toggleError && (
+        <div role="alert" className="rounded-md border border-semantic-danger-border bg-semantic-danger-background p-3 text-sm text-semantic-danger">
+          {toggleError}
+        </div>
+      )}
       {candidates
         .slice()
         .sort((a, b) => a.ballotNumber - b.ballotNumber)
@@ -959,9 +965,17 @@ function Candidates({
                     <Switch
                       aria-label={`Toggle ${candidate.name} activation`}
                       checked={candidate.isActive}
-                      onCheckedChange={(isActive) =>
-                        update.mutate({ id: candidate.id, isActive })
-                      }
+                      disabled={update.isPending}
+                      onCheckedChange={(isActive) => {
+                        setToggleError(null);
+                        update.mutate(
+                          { id: candidate.id, isActive },
+                          {
+                            onSuccess: () => setToggleError(null),
+                            onError: (error) => setToggleError(errorText(error)),
+                          },
+                        );
+                      }}
                     />
                     Active
                   </label>
@@ -1251,7 +1265,7 @@ export default function ElectionWorkspacePage() {
           <Results
             id={election.id}
             status={election.status}
-            allowed={!!me.data?.permissions.includes("view_election_results")}
+            allowed={!!me.data?.permissions.includes("manage_elections")}
           />
         ) : (
           <Overview
