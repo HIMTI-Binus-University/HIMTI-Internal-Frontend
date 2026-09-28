@@ -11,7 +11,6 @@ export type HimtiPermission =
   | "manage_event_packages"
   | "manage_event_registration_form"
   | "manage_elections"
-  | "view_election_results"
   | "manage_batch"
   | "create_events"
   | "view_dashboard";

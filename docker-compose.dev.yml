@@ -1,0 +1,23 @@
+name: himti-internal-frontend-dev
+
+services:
+  app:
+    build:
+      context: .
+      target: development
+    image: himti-internal-frontend:dev
+    container_name: himti-internal-frontend-dev
+    working_dir: /app
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--no-open"]
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+      VITE_ADMIN_APP_URL: ${VITE_ADMIN_APP_URL:-http://localhost:3000}
+      VITE_LINK_APP_URL: ${VITE_LINK_APP_URL:-http://localhost:3000}
+      VITE_OFOG_URL: ${VITE_OFOG_URL:-https://ofog.himtibinus.or.id}
+      VITE_REGISTRATION_APP_URL: ${VITE_REGISTRATION_APP_URL:-http://localhost:3001}
+      VITE_LOCAL_LINK_BASE_PATH: ${VITE_LOCAL_LINK_BASE_PATH:-/link}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
