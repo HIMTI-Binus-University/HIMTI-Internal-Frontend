@@ -802,9 +802,11 @@ function CandidateForm({
             className="mt-0.5"
           />
           <span>
-            <span className="block text-sm font-medium">Active candidate</span>
+            <span className="block text-sm font-medium">On public ballot</span>
             <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
-              Include this candidate on the ballot when voting opens.
+              {candidate
+                ? "Turning this off removes the candidate from future ballots. Existing votes remain in the tally."
+                : "Include this candidate on the ballot when voting opens."}
             </span>
           </span>
         </label>
@@ -829,11 +831,13 @@ function CandidateForm({
 function Candidates({
   electionId,
   candidates,
+  status,
   draft,
 }: {
   electionId: string;
   candidates: ElectionCandidate[];
   draft: boolean;
+  status: ElectionStatus;
 }) {
   const [editing, setEditing] = useState<ElectionCandidate | "new" | null>(
     null,
@@ -959,7 +963,7 @@ function Candidates({
                   {candidate.experiences.length === 1 ? "" : "s"}
                 </p>
               </div>
-              {draft && (
+              {(status === "DRAFT" || status === "OPEN") && (
                 <div className="flex items-center gap-2">
                   <label className="flex items-center gap-2 text-sm">
                     <Switch
@@ -977,7 +981,7 @@ function Candidates({
                         );
                       }}
                     />
-                    Active
+                    {candidate.isActive ? "On ballot" : "Removed from ballot"}
                   </label>
                   <Button
                     size="sm"
@@ -1260,6 +1264,7 @@ export default function ElectionWorkspacePage() {
             electionId={election.id}
             candidates={election.candidates}
             draft={election.status === "DRAFT"}
+            status={election.status}
           />
         ) : section === "results" ? (
           <Results
