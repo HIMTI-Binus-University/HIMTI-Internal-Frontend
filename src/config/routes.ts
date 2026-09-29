@@ -1,6 +1,7 @@
 import { Route } from "@/types/route";
 import HomePage from "@/pages/home";
 import LoginPage from "@/pages/login";
+import AuthErrorPage from "@/pages/auth-error";
 import UrlShortenerPage from "@/pages/url-shortener";
 import RedirectLoadingPage from "@/pages/loading";
 import RbacPermissionsPage from "@/pages/rbac/permissions";
@@ -19,6 +20,15 @@ import ElectionEditorPage from "@/pages/elections/editor";
 import ElectionWorkspacePage from "@/pages/elections/workspace";
 
 export const publicRoutes: Route[] = [
+  {
+    key: "router-auth-error",
+    title: "Sign-in error",
+    description: "Sign-in recovery",
+    component: AuthErrorPage,
+    path: "/auth/error",
+    isEnabled: true,
+    isProtected: false,
+  },
   {
     key: "router-event-group-create",
     title: "Create event group",
