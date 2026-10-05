@@ -19,12 +19,9 @@ events, and links while also serving the public landing and short-link routes.
 
 ### Event Feature Status
 
-Event and sub-event list, create, update, and ordering operations use the backend
-API. Some advanced screens, including detailed form building, registration
-review, payments, tickets, lifecycle notes, and related workspace data, still use
-the in-memory prototype store in `src/pages/events/store.tsx` and
-`src/data/events.ts`. Changes made in those prototype flows are lost on refresh
-and are not shared between users.
+Event administration uses the backend API, including event editing, lifecycle
+transitions, organizers, registration settings, packages, registrations, and
+attendance. Authenticated event workflows require the running backend.
 
 ## Stack
 
@@ -72,9 +69,12 @@ cp .env.example .env
 | `VITE_LOCAL_LINK_BASE_PATH` | Absolute local path used for short links |
 | `FRONTEND_PORT` | Local Docker host port; defaults to `3000` |
 
-Vite embeds every `VITE_*` value into the browser bundle at build time. These
-values are public configuration and must never contain secrets. Changing them in
-a running Nginx container has no effect; rebuild the image instead.
+Every `VITE_*` value is public browser configuration and must never contain
+secrets. For native Vite development, restart the dev server after changing
+`.env`. For Docker development, recreate the service with
+`docker compose up -d --force-recreate app` so Compose reloads the environment.
+Production values are embedded at build time; rebuild the Nginx image after
+changing them.
 
 The backend must allow the exact frontend origin with credentialed CORS. Better
 Auth and Google OAuth must also trust the served origin and callback URL.
@@ -100,18 +100,36 @@ protected tools require the backend at `VITE_API_BASE_URL`.
 
 ## Run With Docker
 
-The checked-in Compose file builds the frontend from local source and serves it
-through Nginx:
+Run these commands from this repository's frontend directory. The default
+`docker-compose.yml` builds the Dockerfile's `development` target and runs Vite
+with the source mounted into `/app`, providing hot module replacement (HMR):
 
 ```bash
 cp .env.example .env
 docker compose up --build -d
 docker compose ps
-curl http://localhost:3000/healthz
 ```
 
-The frontend and backend are separate Compose projects. Start the backend stack
-from the sibling backend repository before using authenticated functionality.
+Open `http://localhost:3000`. `docker compose build` only builds the development
+image; it does not start Vite or any containers. The optional explicit invocation
+`docker compose -f docker-compose.dev.yml up --build -d` has the same behavior.
+
+Each repository has its own Compose project; there is no aggregate workspace
+Compose file. Start each app separately with `docker compose up --build -d` from
+its Compose directory:
+
+| Application | Public local origin |
+| --- | --- |
+| Internal frontend (this directory) | `http://localhost:3000` |
+| Registration frontend (`himti-regis`) | `http://localhost:3001` |
+| Election frontend (`himti-election`) | `http://localhost:3002` |
+| Internal backend (sibling backend directory) | `http://localhost:8000` |
+
+This frontend does not start the backend. Backend startup applies migrations and
+safely seeds the database automatically. Follow the backend README for its admin
+and Google OAuth setup. Browser configuration uses these public origins, not
+Docker service names. Keep backend CORS, trusted origins, and Google callback
+settings aligned with the served URLs.
 
 View logs or stop the frontend:
 
@@ -120,8 +138,29 @@ docker compose logs -f app
 docker compose down
 ```
 
-Nested routes are handled by Nginx's SPA fallback, so refreshing a route such as
-`/events` still serves the React application.
+The anonymous `/app/node_modules` volume isolates container dependencies from
+the host. After changing `package.json` or `package-lock.json`, rebuild and renew
+that volume:
+
+```bash
+docker compose up --build -d --renew-anon-volumes
+```
+
+### Opt-in Production Container
+
+Stop development first because both configurations use host port `3000`:
+
+```bash
+docker compose down
+docker compose -f docker-compose.prod.yml up --build -d
+curl http://localhost:3000/healthz
+docker compose -f docker-compose.prod.yml logs -f app
+docker compose -f docker-compose.prod.yml down
+```
+
+`docker-compose.prod.yml` retains the production build served by Nginx. It has no
+source mount or HMR; source and environment changes require an image rebuild.
+Nginx's SPA fallback serves nested routes such as `/events` on refresh.
 
 ## Commands
 
@@ -215,8 +254,9 @@ pull request into the appropriate integration branch.
 
 ## Deployment
 
-The active VPS workflow builds environment-specific images because Vite settings
-are build-time values. Production credentials and deployment variables belong in
-GitHub Actions secrets or server-side configuration, never in this repository.
-The repository Compose file is intended for local builds; VPS deployment uses
-the Compose configuration managed on the server.
+The active VPS workflow, `.github/workflows/deploy-vps.yml`, builds
+environment-specific images because production Vite settings are build-time
+values. Production credentials and deployment variables belong in GitHub Actions
+secrets or server-side configuration, never in this repository. Local development
+uses `docker-compose.yml`; the local Nginx build uses `docker-compose.prod.yml`.
+VPS deployment uses the Compose configuration managed on the server.
