@@ -165,7 +165,7 @@ export function WorkspaceLinksView({
       ) : !current ? (
         <p className="text-sm text-muted-foreground">Loading workspace...</p>
       ) : (
-        <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
           <div className="min-w-0 space-y-6">
             <section className="relative overflow-hidden rounded-xl border border-brand-secondary-2 bg-card p-5 shadow-sm">
               <div className="absolute inset-y-0 right-0 w-40 bg-gradient-to-l from-blue-50 to-transparent" />
@@ -276,7 +276,7 @@ export function WorkspaceLinksView({
                       key={link.id}
                       className="-mx-5 flex min-w-0 max-w-[calc(100%+2.5rem)] items-start justify-between gap-3 border-t border-border px-5 py-4 first:border-t-0 max-sm:flex-col max-sm:gap-4"
                     >
-                      <div className="min-w-0 flex-1 space-y-2">
+                      <div className="min-w-0 flex-1 space-y-2 max-sm:w-full">
                         <p className="break-all whitespace-normal font-semibold">
                           {shortLinkConfig.buildShortUrl(link.url.shortCode)}
                         </p>
