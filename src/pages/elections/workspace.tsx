@@ -699,8 +699,7 @@ function CandidateForm({
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const payload: CandidatePayload = {
-      ballotNumber: Number(data.get("ballotNumber")),
+    const payload: Omit<CandidatePayload, "ballotNumber"> = {
       name: String(data.get("name") ?? "").trim(),
       photoUrl: optional(data.get("photoUrl")),
       biography: optional(data.get("biography")),
@@ -718,7 +717,7 @@ function CandidateForm({
     };
     candidate
       ? update.mutate({ id: candidate.id, ...payload }, options)
-      : create.mutate(payload, options);
+      : create.mutate({ ...payload, ballotNumber: Number(data.get("ballotNumber")) }, options);
   };
   return (
     <form
@@ -736,16 +735,17 @@ function CandidateForm({
             defaultValue={candidate?.name}
           />
         </label>
-        <label className="space-y-1">
-          <span className="text-sm">Ballot number *</span>
-          <Input
-            name="ballotNumber"
-            type="number"
-            min={1}
-            required
-            defaultValue={candidate?.ballotNumber}
-          />
-        </label>
+        {candidate ? (
+          <div className="space-y-1">
+            <span className="text-sm">Ballot number</span>
+            <p className="text-sm font-medium">{candidate.ballotNumber} (cannot be changed)</p>
+          </div>
+        ) : (
+          <label className="space-y-1">
+            <span className="text-sm">Ballot number *</span>
+            <Input name="ballotNumber" type="number" min={1} required />
+          </label>
+        )}
         <label className="space-y-1">
           <span className="text-sm">Photo URL</span>
           <Input

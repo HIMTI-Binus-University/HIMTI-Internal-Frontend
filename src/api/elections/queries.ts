@@ -128,7 +128,7 @@ export const useCreateCandidate = (id: string) =>
 
 export const useUpdateCandidate = (electionId: string) =>
   useElectionMutation(
-    ({ id, ...payload }: Partial<CandidatePayload> & { id: string }) =>
+    ({ id, ...payload }: Partial<Omit<CandidatePayload, "ballotNumber">> & { id: string }) =>
       apiClient
         .put<ElectionResponse<ElectionCandidate>>(
           path(Api.electionCandidate, "candidateId", id),
