@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { ArrowRight, LogOut, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
-import HimtiLogo from "@/components/logos/HimtiLogo";
 import { Button } from "@/components/ui/button";
 import { runtimeConfig } from "@/config/runtime";
 import { authClient } from "@/utils/auth-client";
@@ -26,7 +25,14 @@ export default function CompleteRegistrationPage() {
 
       <section className="relative w-full max-w-xl rounded-[2rem] border border-border bg-card p-6 text-center shadow-2xl shadow-brand-primary-1/10 sm:p-10">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-primary-1 text-white">
-          <HimtiLogo width={34} height={40} />
+          <img
+            data-himti-brand-target
+            src="/logo-himti.png"
+            width={40}
+            height={40}
+            alt=""
+            className="brightness-0 invert"
+          />
         </div>
         <div className="mx-auto mt-8 flex h-12 w-12 items-center justify-center rounded-full bg-semantic-warning-background text-semantic-warning">
           <ShieldAlert aria-hidden="true" className="h-6 w-6" />

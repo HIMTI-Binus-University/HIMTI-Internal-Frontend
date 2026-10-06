@@ -96,6 +96,15 @@ const PageLayout = ({
               <Menu aria-hidden="true" className="h-5 w-5 stroke-[1.75]" />
             </button>
 
+            <img
+              data-himti-brand-target
+              src="/logo-himti.png"
+              width={32}
+              height={32}
+              alt=""
+              className="size-8 shrink-0 object-contain lg:hidden"
+            />
+
             <div className="min-w-0">
               <nav aria-label="Breadcrumb">
                 <ol className="flex min-w-0 items-center gap-1 text-sm leading-5">

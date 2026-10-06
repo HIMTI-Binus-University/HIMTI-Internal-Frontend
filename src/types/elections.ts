@@ -13,7 +13,6 @@ export interface ElectionCandidate {
   videoUrl: string | null;
   workPrograms: string[];
   experiences: string[];
-  position: number;
   isActive: boolean;
 }
 
@@ -25,6 +24,7 @@ export interface Election {
   status: ElectionStatus;
   startsAt: string;
   endsAt: string;
+  originalEndsAt: string;
   debateAt: string | null;
   openedAt: string | null;
   closedAt: string | null;
@@ -48,11 +48,15 @@ export type CandidatePayload = Omit<ElectionCandidate, "id" | "electionId">;
 
 export interface ElectionTurnout {
   participationCount: number;
+  eligibleVoterCount: number;
   ballotCount: number;
   valid: boolean;
 }
 
-export interface ElectionTally extends ElectionTurnout {
+export interface ElectionTally extends Omit<
+  ElectionTurnout,
+  "eligibleVoterCount"
+> {
   winnerCandidateId: string | null;
   isTie: boolean;
   results: { candidate: ElectionCandidate; votes: number }[];

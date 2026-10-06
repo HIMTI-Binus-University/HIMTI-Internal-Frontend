@@ -89,6 +89,18 @@ export const useUpdateElectionDebateSchedule = (id: string) =>
         .then((response) => response.data.data),
     id,
   );
+export const useUpdateElectionVotingEnd = (id: string) =>
+  useElectionMutation(
+    (payload: { endsAt: string }) =>
+      apiClient
+        .patch<ElectionResponse<Election>>(
+          electionPath(Api.electionVotingEnd, id),
+          payload,
+        )
+        .then((response) => response.data.data),
+    id,
+  );
+
 
 export const useUpdateElectionPublicDetails = (id: string) =>
   useElectionMutation(
@@ -148,7 +160,7 @@ export const useTransitionElection = (
     id,
   );
 
-export const useGetElectionTurnout = (id: string) =>
+export const useGetElectionTurnout = (id: string, live = false) =>
   useQuery({
     queryKey: electionKeys.turnout(id),
     queryFn: () =>
@@ -158,6 +170,7 @@ export const useGetElectionTurnout = (id: string) =>
         )
         .then((response) => response.data.data),
     enabled: !!id,
+    refetchInterval: live ? 10_000 : false,
   });
 
 export const useGetElectionTally = (id: string, enabled: boolean) =>

@@ -4,6 +4,7 @@ import { authClient } from "@/utils/auth-client";
 import { HimtiPermission } from "@/types/route";
 import { useGetMe } from "@/api/auth/queries";
 import { needsRegistrationCompletion } from "@/utils/registration-access";
+import { AppLoading } from "@/components/app-motion";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -42,7 +43,7 @@ export const ProtectedRoute = ({
     }
   }, [session, isPending, navigate, requiredPermission, allowedRoles, meData]);
 
-  if (isPending) return <div>Loading...</div>;
+  if (isPending) return <AppLoading label="Loading HIMTI Internal Tools" />;
 
   // Render children jika lolos pengecekan
   const isAuthorized =

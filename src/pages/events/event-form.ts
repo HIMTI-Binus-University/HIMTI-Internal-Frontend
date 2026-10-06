@@ -39,3 +39,11 @@ export const splitEventDateTime = (value: string) => {
     time: `${pad(date.getHours())}:${pad(date.getMinutes())}`,
   };
 };
+
+export const individualTicketPrice = (value: unknown): string => {
+  const price = String(value ?? "").trim();
+  if (!/^[1-9]\d*$/.test(price)) {
+    throw new TypeError("Enter a whole individual ticket price above IDR 0.");
+  }
+  return price;
+};
