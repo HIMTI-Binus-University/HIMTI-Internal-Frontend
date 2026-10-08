@@ -6,6 +6,11 @@ export type HimtiPermission =
   | "manage_roles"
   | "manage_permissions"
   | "manage_events"
+  | "manage_event_groups"
+  | "manage_event_registration"
+  | "manage_event_packages"
+  | "manage_event_registration_form"
+  | "manage_elections"
   | "manage_batch"
   | "create_events"
   | "view_dashboard";

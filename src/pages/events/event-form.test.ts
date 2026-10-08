@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   combineEventDateTime,
+  individualTicketPrice,
   normalizeOptionalEventUrl,
   splitEventDateTime,
 } from "./event-form";
@@ -24,6 +25,21 @@ describe("normalizeOptionalEventUrl", () => {
     ).toThrow(
       "Enter a valid poster link. Only HTTP and HTTPS links are allowed.",
     );
+  });
+});
+
+describe("individual ticket price", () => {
+  it("keeps valid IDR values as decimal strings", () => {
+    expect(individualTicketPrice("150000")).toBe("150000");
+    expect(individualTicketPrice("9007199254740993")).toBe(
+      "9007199254740993",
+    );
+  });
+
+  it("rejects empty, free, fractional, and negative paid prices", () => {
+    for (const value of ["", "0", "1.5", "-1"]) {
+      expect(() => individualTicketPrice(value)).toThrow("above IDR 0");
+    }
   });
 });
 

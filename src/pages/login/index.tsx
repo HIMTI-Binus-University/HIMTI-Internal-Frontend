@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
+import apiClient from "@/config/api-client";
 import { useGetMe } from "@/api/auth/queries";
 import { Button } from "@/components/ui/button";
 import { gsap, useGSAP } from "@/lib/motion";
@@ -39,6 +40,39 @@ export const LoginPage = () => {
   const { data: meData, isLoading: isMeLoading } = useGetMe(!!session);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [devLoginEnabled, setDevLoginEnabled] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void apiClient
+      .get<{ enabled: boolean }>("/api/auth/dev-login")
+      .then(({ data }) => {
+        if (active) setDevLoginEnabled(data.enabled === true);
+      })
+      .catch(() => {
+        if (active) setDevLoginEnabled(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleDevLogin = async () => {
+    setIsLoading(true);
+    setErrorMessage("");
+    try {
+      await apiClient.post(
+        "/api/auth/dev-login",
+        {},
+        { withCredentials: true },
+      );
+      await authClient.getSession({ query: { disableCookieCache: true } });
+      window.location.reload();
+    } catch {
+      setErrorMessage("Development sign-in failed. Please try again.");
+      setIsLoading(false);
+    }
+  };
 
   useGSAP(
     () => {
@@ -79,24 +113,28 @@ export const LoginPage = () => {
   }, [isMeLoading, meData, navigate, session]);
 
   const handleGoogleLogin = async () => {
+    if (isLoading) return;
     setIsLoading(true);
     setErrorMessage("");
 
-    await authClient.signIn.social(
-      {
-        provider: "google",
-        callbackURL: `${window.location.origin}/login`,
-      },
-      {
-        onSuccess: () => {
-          setIsLoading(false);
+    try {
+      await authClient.signIn.social(
+        {
+          provider: "google",
+          callbackURL: `${window.location.origin}/login`,
+          errorCallbackURL: `${window.location.origin}/auth/error`,
         },
-        onError: (ctx) => {
-          setErrorMessage(ctx.error.message);
-          setIsLoading(false);
+        {
+          onError: (ctx) => {
+            setErrorMessage(ctx.error.message);
+            setIsLoading(false);
+          },
         },
-      },
-    );
+      );
+    } catch {
+      setErrorMessage("Could not start sign-in. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -104,7 +142,10 @@ export const LoginPage = () => {
       ref={pageRef}
       className="relative min-h-screen overflow-hidden bg-gradient-to-br from-brand-primary-2 via-brand-primary-1 to-[#001431] text-foreground"
     >
-      <div aria-hidden="true" className="absolute inset-0 overflow-hidden opacity-20">
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 overflow-hidden opacity-20"
+      >
         <div className="absolute inset-y-[8%] left-[5%] hidden w-16 rounded-xl border border-white/20 bg-white/[0.04] py-6 sm:flex sm:flex-col sm:items-center sm:gap-5">
           <span className="size-7 rounded-lg bg-white/30" />
           <span className="h-px w-8 bg-white/20" />
@@ -137,9 +178,7 @@ export const LoginPage = () => {
             </Link>
             <h1 className="text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
               Welcome back.
-              <br />
-              {" "}
-              Let’s get to work.
+              <br /> Let’s get to work.
             </h1>
             <p className="mt-4 max-w-lg text-base leading-7 text-white/75 sm:mt-5 sm:text-lg sm:leading-8">
               Sign in with your authorized HIMTI Google account to access the
@@ -154,7 +193,8 @@ export const LoginPage = () => {
           >
             <div className="mb-8 flex items-center gap-3">
               <img
-                src="/icon-primary.svg"
+                data-himti-brand-target
+                src="/logo-himti.png"
                 alt=""
                 className="size-12 shrink-0 object-contain"
               />
@@ -202,6 +242,16 @@ export const LoginPage = () => {
                 </>
               )}
             </Button>
+            {devLoginEnabled && (
+              <Button
+                type="button"
+                className="mt-3 h-12 w-full"
+                onClick={() => void handleDevLogin()}
+                disabled={isLoading}
+              >
+                {isLoading ? "Signing in..." : "Development System login"}
+              </Button>
+            )}
 
             <p className="mt-6 text-center text-sm leading-6 text-muted-foreground">
               Having trouble?{" "}

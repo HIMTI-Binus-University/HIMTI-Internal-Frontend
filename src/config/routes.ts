@@ -1,6 +1,7 @@
 import { Route } from "@/types/route";
 import HomePage from "@/pages/home";
 import LoginPage from "@/pages/login";
+import AuthErrorPage from "@/pages/auth-error";
 import UrlShortenerPage from "@/pages/url-shortener";
 import RedirectLoadingPage from "@/pages/loading";
 import RbacPermissionsPage from "@/pages/rbac/permissions";
@@ -10,14 +11,54 @@ import RbacUserDetailPage from "@/pages/rbac/users/detail";
 import EventsPage from "@/pages/events";
 import EventEditorPage from "@/pages/events/editor";
 import EventWorkspacePage from "@/pages/events/workspace";
-import SubeventSetupPage from "@/pages/events/subevents/setup";
-import SubeventWorkspacePage from "@/pages/events/subevents/workspace";
-import FormEditorPage from "@/pages/events/subevents/form-editor";
-import RegistrationReviewPage from "@/pages/events/subevents/registration-review";
+import EventGroupEditorPage from "@/pages/event-groups/editor";
+import EventGroupWorkspacePage from "@/pages/event-groups/workspace";
 import BatchesPage from "@/pages/batches";
 import CompleteRegistrationPage from "@/pages/complete-registration";
+import ElectionsPage from "@/pages/elections";
+import ElectionEditorPage from "@/pages/elections/editor";
+import ElectionWorkspacePage from "@/pages/elections/workspace";
 
 export const publicRoutes: Route[] = [
+  {
+    key: "router-auth-error",
+    title: "Sign-in error",
+    description: "Sign-in recovery",
+    component: AuthErrorPage,
+    path: "/auth/error",
+    isEnabled: true,
+    isProtected: false,
+  },
+  {
+    key: "router-event-group-create",
+    title: "Create event group",
+    description: "Create Event Group",
+    component: EventGroupEditorPage,
+    path: "/event-groups/new",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_event_groups",
+  },
+  {
+    key: "router-event-group-edit",
+    title: "Edit event group",
+    description: "Edit Event Group",
+    component: EventGroupEditorPage,
+    path: "/event-groups/:eventGroupId/edit",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_event_groups",
+  },
+  {
+    key: "router-event-group-workspace",
+    title: "Event group workspace",
+    description: "Event Group Workspace",
+    component: EventGroupWorkspacePage,
+    path: "/event-groups/:eventGroupId",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_event_groups",
+  },
   {
     key: "router-home",
     title: "Home",
@@ -110,44 +151,45 @@ export const publicRoutes: Route[] = [
     requiredPermission: "manage_events",
   },
   {
-    key: "router-subevent-setup",
-    title: "Create subevent",
-    description: "Subevent Setup Flow",
-    component: SubeventSetupPage,
-    path: "/events/:eventId/subevents/new/:step",
+    key: "router-elections",
+    title: "Elections",
+    description: "Election Administration",
+    component: ElectionsPage,
+    path: "/elections",
     isEnabled: true,
     isProtected: true,
-    requiredPermission: "manage_events",
+    requiredPermission: "manage_elections",
+    group: "Tools",
   },
   {
-    key: "router-subevent-form-editor",
-    title: "Form builder",
-    description: "Subevent Form Builder",
-    component: FormEditorPage,
-    path: "/events/:eventId/subevents/:subeventId/forms/:formId",
+    key: "router-election-create",
+    title: "Create election",
+    description: "Create Election",
+    component: ElectionEditorPage,
+    path: "/elections/new",
     isEnabled: true,
     isProtected: true,
-    requiredPermission: "manage_events",
+    requiredPermission: "manage_elections",
   },
   {
-    key: "router-subevent-registration-review",
-    title: "Registration review",
-    description: "Subevent Registration Review",
-    component: RegistrationReviewPage,
-    path: "/events/:eventId/subevents/:subeventId/registrations/:registrationId",
+    key: "router-election-edit",
+    title: "Edit election",
+    description: "Edit Election",
+    component: ElectionEditorPage,
+    path: "/elections/:electionId/edit",
     isEnabled: true,
     isProtected: true,
-    requiredPermission: "manage_events",
+    requiredPermission: "manage_elections",
   },
   {
-    key: "router-subevent-workspace",
-    title: "Subevent workspace",
-    description: "Subevent Workspace",
-    component: SubeventWorkspacePage,
-    path: "/events/:eventId/subevents/:subeventId/:section",
+    key: "router-election-workspace",
+    title: "Election workspace",
+    description: "Election Workspace",
+    component: ElectionWorkspacePage,
+    path: "/elections/:electionId",
     isEnabled: true,
     isProtected: true,
-    requiredPermission: "manage_events",
+    requiredPermission: "manage_elections",
   },
   {
     key: "router-rbac-permissions",
