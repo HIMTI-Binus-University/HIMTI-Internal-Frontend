@@ -165,7 +165,7 @@ export function WorkspaceLinksView({
       ) : !current ? (
         <p className="text-sm text-muted-foreground">Loading workspace...</p>
       ) : (
-        <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
           <div className="min-w-0 space-y-6">
             <section className="relative overflow-hidden rounded-xl border border-brand-secondary-2 bg-card p-5 shadow-sm">
               <div className="absolute inset-y-0 right-0 w-40 bg-gradient-to-l from-blue-50 to-transparent" />
@@ -274,15 +274,17 @@ export function WorkspaceLinksView({
                   {visibleLinks.map((link) => (
                     <article
                       key={link.id}
-                      className="-mx-5 flex items-start justify-between gap-3 border-t border-border px-5 py-4 first:border-t-0 max-sm:flex-col"
+                      className="-mx-5 flex min-w-0 max-w-[calc(100%+2.5rem)] items-start justify-between gap-3 border-t border-border px-5 py-4 first:border-t-0 max-sm:flex-col max-sm:gap-4"
                     >
-                      <div className="min-w-0 flex-1 space-y-2">
-                        <p className="break-all font-semibold">
+                      <div className="min-w-0 flex-1 space-y-2 max-sm:w-full">
+                        <p className="break-all whitespace-normal font-semibold">
                           {shortLinkConfig.buildShortUrl(link.url.shortCode)}
                         </p>
-                        <p className="flex min-w-0 items-center gap-2 break-all text-sm text-muted-foreground">
-                          <ArrowRight className="h-4 w-4 shrink-0" />{" "}
-                          {link.url.originalUrl}
+                        <p className="flex min-w-0 items-start gap-2 text-sm text-muted-foreground">
+                          <ArrowRight className="mt-0.5 h-4 w-4 shrink-0" />
+                          <span className="min-w-0 flex-1 break-all whitespace-normal">
+                            {link.url.originalUrl}
+                          </span>
                         </p>
                         <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
