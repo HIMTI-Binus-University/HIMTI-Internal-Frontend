@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,6 +40,27 @@ export function ResourceFormDialog({
   const [resourceUrl, setResourceUrl] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [urlError, setUrlError] = useState<string | null>(null);
+  const [isUrlTouched, setIsUrlTouched] = useState(false);
+
+  const validateDownloadUrl = (value: string): string | null => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return "Download link is required.";
+    }
+    if (!/^https?:\/\//i.test(trimmed)) {
+      return "Download link must start with http:// or https:// (e.g. https://...)";
+    }
+    try {
+      const parsed = new URL(trimmed);
+      if (!parsed.hostname || parsed.hostname.length < 3) {
+        return "Please enter a valid web address.";
+      }
+    } catch {
+      return "Please enter a valid URL.";
+    }
+    return null;
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -59,7 +81,21 @@ export function ResourceFormDialog({
       setDescription("");
     }
     setError(null);
+    setUrlError(null);
+    setIsUrlTouched(false);
   }, [initialData, open, defaultMajor]);
+
+  const handleResourceUrlChange = (value: string) => {
+    setResourceUrl(value);
+    if (isUrlTouched || urlError) {
+      setUrlError(validateDownloadUrl(value));
+    }
+  };
+
+  const handleResourceUrlBlur = () => {
+    setIsUrlTouched(true);
+    setUrlError(validateDownloadUrl(resourceUrl));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,13 +107,17 @@ export function ResourceFormDialog({
       setError("Jurusan is required.");
       return;
     }
-    if (!resourceUrl.trim()) {
-      setError("Download/Resource URL is required.");
+
+    const urlValidation = validateDownloadUrl(resourceUrl);
+    if (urlValidation) {
+      setIsUrlTouched(true);
+      setUrlError(urlValidation);
       return;
     }
 
     try {
       setError(null);
+      setUrlError(null);
       await onSubmit({
         title: title.trim(),
         major: major.trim(),
@@ -89,14 +129,18 @@ export function ResourceFormDialog({
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Failed to save resource.";
-      setError(message);
+      if (/url|link/i.test(message)) {
+        setUrlError(message);
+      } else {
+        setError(message);
+      }
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px]">
-        <form onSubmit={handleSubmit}>
+        <form noValidate onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>
               {initialData ? "Edit Learning Material" : "Add Learning Material"}
@@ -166,9 +210,30 @@ export function ResourceFormDialog({
                 type="url"
                 placeholder="https://drive.google.com/... or direct link"
                 value={resourceUrl}
-                onChange={(e) => setResourceUrl(e.target.value)}
-                required
+                onChange={(e) => handleResourceUrlChange(e.target.value)}
+                onBlur={handleResourceUrlBlur}
+                aria-invalid={!!urlError}
+                aria-describedby={urlError ? "resource-url-error" : undefined}
+                className={
+                  urlError
+                    ? "border-destructive focus-visible:ring-destructive/20"
+                    : ""
+                }
               />
+              {urlError ? (
+                <p
+                  id="resource-url-error"
+                  role="alert"
+                  className="flex items-center gap-1.5 text-xs text-destructive animate-in fade-in duration-150"
+                >
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  <span>{urlError}</span>
+                </p>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">
+                  Provide a valid HTTP or HTTPS link (e.g. Google Drive, OneDrive, or direct file link).
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,6 +36,27 @@ export function SoftwareFormDialog({
   const [downloadUrl, setDownloadUrl] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [urlError, setUrlError] = useState<string | null>(null);
+  const [isUrlTouched, setIsUrlTouched] = useState(false);
+
+  const validateDownloadUrl = (value: string): string | null => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return "Download or website URL is required.";
+    }
+    if (!/^https?:\/\//i.test(trimmed)) {
+      return "Download URL must start with http:// or https:// (e.g. https://...)";
+    }
+    try {
+      const parsed = new URL(trimmed);
+      if (!parsed.hostname || parsed.hostname.length < 3) {
+        return "Please enter a valid web address.";
+      }
+    } catch {
+      return "Please enter a valid URL.";
+    }
+    return null;
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -49,7 +71,21 @@ export function SoftwareFormDialog({
       setDescription("");
     }
     setError(null);
+    setUrlError(null);
+    setIsUrlTouched(false);
   }, [initialData, open]);
+
+  const handleDownloadUrlChange = (value: string) => {
+    setDownloadUrl(value);
+    if (isUrlTouched || urlError) {
+      setUrlError(validateDownloadUrl(value));
+    }
+  };
+
+  const handleDownloadUrlBlur = () => {
+    setIsUrlTouched(true);
+    setUrlError(validateDownloadUrl(downloadUrl));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,10 +93,14 @@ export function SoftwareFormDialog({
       setError("Software name is required.");
       return;
     }
-    if (!downloadUrl.trim()) {
-      setError("Download or website URL is required.");
+
+    const urlValidation = validateDownloadUrl(downloadUrl);
+    if (urlValidation) {
+      setIsUrlTouched(true);
+      setUrlError(urlValidation);
       return;
     }
+
     if (!description.trim()) {
       setError("Description is required.");
       return;
@@ -68,6 +108,7 @@ export function SoftwareFormDialog({
 
     try {
       setError(null);
+      setUrlError(null);
       await onSubmit({
         name: name.trim(),
         logoUrl: logoUrl.trim() || null,
@@ -78,14 +119,18 @@ export function SoftwareFormDialog({
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Failed to save software entry.";
-      setError(message);
+      if (/url|link/i.test(message)) {
+        setUrlError(message);
+      } else {
+        setError(message);
+      }
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px]">
-        <form onSubmit={handleSubmit}>
+        <form noValidate onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>
               {initialData ? "Edit Software Entry" : "Add Software Entry"}
@@ -135,9 +180,30 @@ export function SoftwareFormDialog({
                 type="url"
                 placeholder="https://code.visualstudio.com"
                 value={downloadUrl}
-                onChange={(e) => setDownloadUrl(e.target.value)}
-                required
+                onChange={(e) => handleDownloadUrlChange(e.target.value)}
+                onBlur={handleDownloadUrlBlur}
+                aria-invalid={!!urlError}
+                aria-describedby={urlError ? "software-url-error" : undefined}
+                className={
+                  urlError
+                    ? "border-destructive focus-visible:ring-destructive/20"
+                    : ""
+                }
               />
+              {urlError ? (
+                <p
+                  id="software-url-error"
+                  role="alert"
+                  className="flex items-center gap-1.5 text-xs text-destructive animate-in fade-in duration-150"
+                >
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  <span>{urlError}</span>
+                </p>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">
+                  Provide a valid official website or direct download URL (starting with https://).
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">

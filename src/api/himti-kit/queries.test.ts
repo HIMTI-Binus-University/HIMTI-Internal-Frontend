@@ -11,6 +11,8 @@ import {
   transformResourceUpdatePayload,
   transformSoftwareCreatePayload,
   transformSoftwareUpdatePayload,
+  upsertAttendeesInMemory,
+  FORCE_MOCK_HIMTI_KIT,
 } from "./queries";
 import { BACKEND_ENUM_TO_MAJOR, MAJOR_TO_BACKEND_ENUM } from "@/types/himti-kit";
 
@@ -92,6 +94,7 @@ describe("HIMTI-KIT Data Transformers", () => {
         title: "Data Science 101",
         description: "Intro notes",
         major: "DATA_SCIENCE",
+        majors: ["DATA_SCIENCE"],
         downloadUrl: "https://drive.google.com/ds101",
         coverImageUrl: "https://images.com/cover.jpg",
       });
@@ -106,8 +109,25 @@ describe("HIMTI-KIT Data Transformers", () => {
       const payload = transformResourceUpdatePayload(update);
       expect(payload).toEqual({
         major: "CYBER_SECURITY",
+        majors: ["CYBER_SECURITY"],
         downloadUrl: "https://drive.google.com/updated",
       });
+    });
+
+    it("transforms backend resource with majors array to frontend model", () => {
+      const backendRow = {
+        id: "res-102",
+        title: "Calculus",
+        description: "Math notes",
+        majors: ["COMPUTER_SCIENCE"],
+        downloadUrl: "https://drive.google.com/calc",
+        coverImageUrl: null,
+        createdAt: "2026-03-01T00:00:00Z",
+        updatedAt: "2026-03-02T00:00:00Z",
+      };
+
+      const transformed = transformBackendResource(backendRow);
+      expect(transformed.major).toBe("Computer Science");
     });
   });
 
@@ -185,6 +205,71 @@ describe("HIMTI-KIT Data Transformers", () => {
         createdAt: "2026-03-01T00:00:00Z",
         updatedAt: "2026-03-02T00:00:00Z",
       });
+    });
+
+    it("updates existing attendee name when adding an already registered NIM", () => {
+      const current = [
+        {
+          id: "att-1",
+          name: "Old Student Name",
+          nim: "2902557196",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      ];
+
+      const payload = [
+        {
+          name: "New Student Name",
+          nim: "2902557196",
+        },
+      ];
+
+      const result = upsertAttendeesInMemory(current, payload);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("att-1");
+      expect(result[0].nim).toBe("2902557196");
+      expect(result[0].name).toBe("New Student Name");
+      expect(result[0].updatedAt).toBeDefined();
+    });
+
+    it("inserts new attendees and updates existing ones in a mixed batch", () => {
+      const current = [
+        {
+          id: "att-1",
+          name: "Alice",
+          nim: "2902557196",
+          createdAt: "2026-01-01T00:00:00.000Z",
+        },
+      ];
+
+      const payload = [
+        {
+          name: "Alice Updated",
+          nim: "2902557196",
+        },
+        {
+          name: "Bob Brand New",
+          nim: "2902557999",
+        },
+      ];
+
+      const result = upsertAttendeesInMemory(current, payload);
+
+      expect(result).toHaveLength(2);
+      const alice = result.find((a) => a.nim === "2902557196");
+      const bob = result.find((a) => a.nim === "2902557999");
+
+      expect(alice?.name).toBe("Alice Updated");
+      expect(alice?.id).toBe("att-1");
+
+      expect(bob?.name).toBe("Bob Brand New");
+      expect(bob?.id).toBeDefined();
+    });
+
+    it("ensures FORCE_MOCK_HIMTI_KIT is false so real database queries are used", () => {
+      expect(FORCE_MOCK_HIMTI_KIT).toBe(false);
     });
   });
 

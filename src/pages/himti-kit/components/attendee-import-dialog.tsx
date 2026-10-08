@@ -23,13 +23,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { CreateHimtiKitAttendeeInput } from "@/types/himti-kit";
+import { backendMessage } from "@/components/notification";
+import type { CreateHimtiKitAttendeeInput, HimtiKitAttendee } from "@/types/himti-kit";
 
 interface AttendeeImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (attendees: CreateHimtiKitAttendeeInput[]) => Promise<void>;
   isLoading?: boolean;
+  existingAttendees?: HimtiKitAttendee[];
 }
 
 type Mode = "manual" | "csv";
@@ -39,6 +41,7 @@ export function AttendeeImportDialog({
   onOpenChange,
   onSubmit,
   isLoading,
+  existingAttendees = [],
 }: AttendeeImportDialogProps) {
   const [mode, setMode] = useState<Mode>("manual");
 
@@ -51,6 +54,7 @@ export function AttendeeImportDialog({
   const [parsedRows, setParsedRows] = useState<CreateHimtiKitAttendeeInput[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const resetState = () => {
     setName("");
@@ -59,6 +63,7 @@ export function AttendeeImportDialog({
     setParsedRows([]);
     setParseError(null);
     setFileName(null);
+    setSubmitError(null);
   };
 
   const parseCsvContent = (content: string) => {
@@ -169,7 +174,7 @@ export function AttendeeImportDialog({
     setParseError(null);
   };
 
-  // Validation metrics
+  // Validation & Upsert metrics
   const duplicateNims = useMemo(() => {
     const counts = new Map<string, number>();
     for (const r of parsedRows) {
@@ -188,41 +193,84 @@ export function AttendeeImportDialog({
     return parsedRows.filter((r) => r.name.trim().length > 0 && r.nim.trim().length > 0).length;
   }, [parsedRows]);
 
+  const normalizedManualNim = nim.trim().replace(/\s+/g, "");
+  const existingMatch = useMemo(() => {
+    if (!normalizedManualNim || !existingAttendees) return null;
+    return (
+      existingAttendees.find(
+        (a) => a.nim.trim().replace(/\s+/g, "") === normalizedManualNim
+      ) || null
+    );
+  }, [normalizedManualNim, existingAttendees]);
+
+  const existingNimMap = useMemo(() => {
+    const map = new Map<string, HimtiKitAttendee>();
+    if (!existingAttendees) return map;
+    for (const a of existingAttendees) {
+      map.set(a.nim.trim().replace(/\s+/g, ""), a);
+    }
+    return map;
+  }, [existingAttendees]);
+
+  const { newCount, updateCount } = useMemo(() => {
+    let n = 0;
+    let u = 0;
+    for (const r of parsedRows) {
+      const trimmedNim = r.nim.trim().replace(/\s+/g, "");
+      const trimmedName = r.name.trim();
+      if (!trimmedNim || !trimmedName) continue;
+      if (existingNimMap.has(trimmedNim)) {
+        u++;
+      } else {
+        n++;
+      }
+    }
+    return { newCount: n, updateCount: u };
+  }, [parsedRows, existingNimMap]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
 
-    if (mode === "manual") {
-      if (!name.trim() || !nim.trim()) return;
-      const single = [{ name: name.trim(), nim: nim.trim().replace(/\s+/g, "") }];
-      console.log(
-        "%c[HIMTI-KIT:Attendees] Submitting manual attendee:",
-        "font-weight: bold; color: #0284c7;",
-        single
-      );
-      await onSubmit(single);
-      resetState();
-      onOpenChange(false);
-    } else {
-      const cleaned = parsedRows
-        .map((r) => ({
-          name: r.name.trim(),
-          nim: r.nim.trim().replace(/\s+/g, ""),
-        }))
-        .filter((r) => r.name.length > 0 && r.nim.length > 0);
+    try {
+      if (mode === "manual") {
+        if (!name.trim() || !nim.trim()) return;
+        const single = [{ name: name.trim(), nim: nim.trim().replace(/\s+/g, "") }];
+        console.log(
+          "%c[HIMTI-KIT:Attendees] Submitting manual attendee:",
+          "font-weight: bold; color: #0284c7;",
+          single
+        );
+        await onSubmit(single);
+        resetState();
+        onOpenChange(false);
+      } else {
+        const cleaned = parsedRows
+          .map((r) => ({
+            name: r.name.trim(),
+            nim: r.nim.trim().replace(/\s+/g, ""),
+          }))
+          .filter((r) => r.name.length > 0 && r.nim.length > 0);
 
-      if (cleaned.length === 0) {
-        setParseError("No valid rows to import. Please make sure at least one row has Name and NIM.");
-        return;
+        if (cleaned.length === 0) {
+          setParseError("No valid rows to import. Please make sure at least one row has Name and NIM.");
+          return;
+        }
+
+        console.log(
+          `%c[HIMTI-KIT:Attendees] Submitting ${cleaned.length} modified attendee rows to Backend:`,
+          "font-weight: bold; color: #0284c7;",
+          cleaned
+        );
+        await onSubmit(cleaned);
+        resetState();
+        onOpenChange(false);
       }
-
-      console.log(
-        `%c[HIMTI-KIT:Attendees] Submitting ${cleaned.length} modified attendee rows to Backend:`,
-        "font-weight: bold; color: #0284c7;",
-        cleaned
+    } catch (err) {
+      console.error("[HIMTI-KIT:Attendees] Failed to save attendees to backend:", err);
+      setSubmitError(
+        backendMessage(err, "Failed to save attendee(s) to database. Please check backend connection.")
       );
-      await onSubmit(cleaned);
-      resetState();
-      onOpenChange(false);
     }
   };
 
@@ -372,6 +420,22 @@ export function AttendeeImportDialog({
                     This NIM will be validated when the student signs into the public HIMTI-KIT portal.
                   </p>
                 </div>
+
+                {existingMatch && (
+                  <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200 animate-in fade-in duration-150">
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="font-semibold text-amber-900 dark:text-amber-200">
+                        Existing NIM Detected &mdash; Will Update Name
+                      </p>
+                      <p className="text-[11px] leading-relaxed opacity-90">
+                        NIM <span className="font-mono font-bold">{existingMatch.nim}</span> is currently registered to{" "}
+                        <span className="font-semibold">&quot;{existingMatch.name}&quot;</span>. Submitting this form will update their name to{" "}
+                        <span className="font-semibold">&quot;{name.trim() || "(enter new name above)"}&quot;</span> instead of creating a duplicate.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               /* ================= CSV BULK IMPORT & MODIFICATION ================= */
@@ -417,7 +481,7 @@ export function AttendeeImportDialog({
                   /* ================= EDITABLE IMPORTED ROWS TABLE ================= */
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2.5">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                           <CheckCircle2 className="h-3.5 w-3.5 text-semantic-success" />
                           Review & Modify Attendees
@@ -425,10 +489,26 @@ export function AttendeeImportDialog({
                         <Badge variant="secondary" className="text-[11px]">
                           {validRowsCount} of {parsedRows.length} valid
                         </Badge>
+                        {newCount > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 text-[10px]"
+                          >
+                            {newCount} New
+                          </Badge>
+                        )}
+                        {updateCount > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10 text-[10px]"
+                          >
+                            {updateCount} Updates
+                          </Badge>
+                        )}
                         {duplicateNims.size > 0 && (
-                          <Badge variant="outline" className="border-amber-500/30 text-amber-500 bg-amber-500/10 text-[10px] gap-1">
+                          <Badge variant="outline" className="border-destructive/30 text-destructive bg-destructive/10 text-[10px] gap-1">
                             <AlertTriangle className="h-3 w-3" />
-                            <span>{duplicateNims.size} duplicate NIM</span>
+                            <span>{duplicateNims.size} duplicate in CSV</span>
                           </Badge>
                         )}
                       </div>
@@ -467,6 +547,7 @@ export function AttendeeImportDialog({
                         <thead>
                           <tr className="border-b border-border text-[11px] text-muted-foreground">
                             <th className="w-8 pb-1.5 pl-2">#</th>
+                            <th className="w-16 pb-1.5 px-1 text-center">Status</th>
                             <th className="w-36 pb-1.5 px-2">NIM</th>
                             <th className="pb-1.5 px-2">Student Full Name</th>
                             <th className="w-10 pb-1.5 text-right pr-2">Action</th>
@@ -474,14 +555,35 @@ export function AttendeeImportDialog({
                         </thead>
                         <tbody className="divide-y divide-border/60">
                           {parsedRows.map((row, idx) => {
+                            const trimmedNim = row.nim.trim().replace(/\s+/g, "");
                             const isDuplicate = duplicateNims.has(row.nim.trim());
                             const isNimEmpty = !row.nim.trim();
                             const isNameEmpty = !row.name.trim();
+                            const existingForThisRow = trimmedNim ? existingNimMap.get(trimmedNim) : null;
+                            const isUpdate = Boolean(existingForThisRow);
 
                             return (
                               <tr key={idx} className="group hover:bg-muted/30 transition-colors">
                                 <td className="py-1.5 pl-2 text-[11px] text-muted-foreground font-mono">
                                   {idx + 1}
+                                </td>
+                                <td className="py-1.5 px-1 text-center">
+                                  {isUpdate ? (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 text-[9px] px-1.5 py-0 h-4 font-medium whitespace-nowrap"
+                                      title={`Will update existing student "${existingForThisRow?.name}"`}
+                                    >
+                                      Update
+                                    </Badge>
+                                  ) : (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 text-[9px] px-1.5 py-0 h-4 font-medium whitespace-nowrap"
+                                    >
+                                      New
+                                    </Badge>
+                                  )}
                                 </td>
                                 <td className="py-1.5 px-2">
                                   <Input
@@ -490,7 +592,7 @@ export function AttendeeImportDialog({
                                     placeholder="NIM"
                                     className={`h-7 text-xs font-mono font-medium ${
                                       isDuplicate
-                                        ? "border-amber-500/60 bg-amber-500/5 text-amber-600 focus-visible:ring-amber-400"
+                                        ? "border-destructive/60 bg-destructive/5 text-destructive focus-visible:ring-destructive"
                                         : isNimEmpty
                                         ? "border-destructive bg-destructive/5 text-destructive"
                                         : ""
@@ -501,7 +603,11 @@ export function AttendeeImportDialog({
                                   <Input
                                     value={row.name}
                                     onChange={(e) => handleRowChange(idx, "name", e.target.value)}
-                                    placeholder="Student Name"
+                                    placeholder={
+                                      existingForThisRow
+                                        ? `Update (was: ${existingForThisRow.name})`
+                                        : "Student Name"
+                                    }
                                     className={`h-7 text-xs ${
                                       isNameEmpty
                                         ? "border-destructive bg-destructive/5 text-destructive"
@@ -559,7 +665,15 @@ export function AttendeeImportDialog({
             )}
           </div>
 
-          <DialogFooter>
+          {/* Submit Error Notification */}
+          {submitError && (
+            <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-semantic-danger-border bg-semantic-danger-background p-3 text-xs text-semantic-danger">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>{submitError}</span>
+            </div>
+          )}
+
+          <DialogFooter className="mt-6">
             <Button
               type="button"
               variant="outline"
@@ -583,7 +697,11 @@ export function AttendeeImportDialog({
               {isLoading
                 ? "Processing..."
                 : mode === "manual"
-                ? "Add Attendee"
+                ? existingMatch
+                  ? "Update Attendee Name"
+                  : "Add Attendee"
+                : updateCount > 0
+                ? `Import & Update ${validRowsCount} Attendees (${updateCount} Updates)`
                 : `Import ${validRowsCount} Attendees`}
             </Button>
           </DialogFooter>

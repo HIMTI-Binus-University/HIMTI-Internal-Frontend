@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
-import { Plus, Trash2, UserCheck, UsersRound } from "lucide-react";
+import { AlertCircle, Plus, RotateCcw, Trash2, UserCheck, UsersRound } from "lucide-react";
 import {
   useAddHimtiKitAttendees,
   useDeleteHimtiKitAttendee,
   useGetHimtiKitAttendees,
 } from "@/api/himti-kit/queries";
+import { backendMessage, useNotification } from "@/components/notification";
 import { Container, EmptyState, SearchField } from "@/components/Utils";
 import {
   AlertDialog,
@@ -26,8 +27,9 @@ export function AttendeesTab() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<HimtiKitAttendee | null>(null);
+  const notify = useNotification();
 
-  const { data: attendees = [], isLoading, isError } = useGetHimtiKitAttendees();
+  const { data: attendees = [], isLoading, isError, error, refetch } = useGetHimtiKitAttendees();
   const addMutation = useAddHimtiKitAttendees();
   const deleteMutation = useDeleteHimtiKitAttendee();
 
@@ -50,13 +52,22 @@ export function AttendeesTab() {
 
   const handleDeleteConfirm = async () => {
     if (deleteTarget) {
-      console.log(
-        "%c[HIMTI-KIT:Dashboard] Deleting attendee:",
-        "font-weight: bold; color: #ef4444;",
-        deleteTarget
-      );
-      await deleteMutation.mutateAsync(deleteTarget.id);
-      setDeleteTarget(null);
+      try {
+        console.log(
+          "%c[HIMTI-KIT:Dashboard] Deleting attendee:",
+          "font-weight: bold; color: #ef4444;",
+          deleteTarget
+        );
+        await deleteMutation.mutateAsync(deleteTarget.id);
+        notify(`Successfully removed ${deleteTarget.name} from authorized attendees.`, "success");
+        setDeleteTarget(null);
+      } catch (err) {
+        console.error("[HIMTI-KIT:Dashboard] Delete failed:", err);
+        notify(
+          backendMessage(err, "Failed to remove attendee. Please verify backend connection."),
+          "error"
+        );
+      }
     }
   };
 
@@ -76,9 +87,12 @@ export function AttendeesTab() {
         </div>
 
         <div className="flex items-center gap-3 self-start sm:self-auto">
-          <Badge variant="secondary" className="px-3 py-1.5 text-xs font-semibold gap-1.5">
-            <UsersRound className="h-3.5 w-3.5 text-primary" />
-            <span>{attendees.length} Authorized Students</span>
+          <Badge
+            variant={isError ? "destructive" : "secondary"}
+            className="px-3 py-1.5 text-xs font-semibold gap-1.5"
+          >
+            <UsersRound className="h-3.5 w-3.5" />
+            <span>{isError ? "Database Unavailable" : `${attendees.length} Authorized Students`}</span>
           </Badge>
 
           <Button size="sm" onClick={() => setDialogOpen(true)} className="gap-1.5">
@@ -97,8 +111,28 @@ export function AttendeesTab() {
             ))}
           </div>
         ) : isError ? (
-          <div className="p-6 text-center text-sm text-semantic-danger">
-            Failed to load attendee records. Please verify backend connection.
+          <div className="flex flex-col items-center justify-center p-12 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-semantic-danger-background text-semantic-danger border border-semantic-danger-border mb-4">
+              <AlertCircle className="h-6 w-6" />
+            </div>
+            <h3 className="text-base font-semibold text-foreground">
+              Failed to load attendee records
+            </h3>
+            <p className="mt-1 max-w-md text-sm text-muted-foreground">
+              {backendMessage(
+                error,
+                "Unable to reach the backend database. Please check your network connection or server status."
+              )}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              className="mt-4 gap-2"
+            >
+              <RotateCcw className="h-4 w-4" />
+              <span>Retry</span>
+            </Button>
           </div>
         ) : filteredAttendees.length === 0 ? (
           <div className="p-8">
@@ -176,6 +210,7 @@ export function AttendeesTab() {
         onOpenChange={setDialogOpen}
         onSubmit={handleImportSubmit}
         isLoading={addMutation.isPending}
+        existingAttendees={attendees}
       />
 
       {/* Delete Confirmation Alert */}

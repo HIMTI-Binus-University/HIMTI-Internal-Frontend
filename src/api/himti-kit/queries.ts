@@ -33,25 +33,32 @@ export const FORCE_MOCK_HIMTI_KIT = false;
 // Transformers & Payload Mappers
 // ==========================================
 
-export const transformBackendResource = (raw: any): HimtiKitResource => ({
-  id: String(raw.id),
-  title: raw.title,
-  description: raw.description ?? null,
-  major: BACKEND_ENUM_TO_MAJOR[raw.major] || raw.major || "Computer Science",
-  downloadUrl: raw.downloadUrl || raw.resourceUrl || "",
-  resourceUrl: raw.downloadUrl || raw.resourceUrl || "",
-  coverImageUrl: raw.coverImageUrl ?? null,
-  createdAt: raw.createdAt,
-  updatedAt: raw.updatedAt,
-});
+export const transformBackendResource = (raw: any): HimtiKitResource => {
+  const rawMajor = (Array.isArray(raw.majors) && raw.majors[0]) || raw.major;
+  return {
+    id: String(raw.id),
+    title: raw.title,
+    description: raw.description ?? null,
+    major: BACKEND_ENUM_TO_MAJOR[rawMajor] || rawMajor || "Computer Science",
+    downloadUrl: raw.downloadUrl || raw.resourceUrl || "",
+    resourceUrl: raw.downloadUrl || raw.resourceUrl || "",
+    coverImageUrl: raw.coverImageUrl ?? null,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  };
+};
 
-export const transformResourceCreatePayload = (payload: CreateHimtiKitResourceInput) => ({
-  title: payload.title.trim(),
-  description: payload.description?.trim() || undefined,
-  major: MAJOR_TO_BACKEND_ENUM[payload.major] || payload.major,
-  downloadUrl: payload.resourceUrl || payload.downloadUrl || "",
-  coverImageUrl: payload.coverImageUrl?.trim() || null,
-});
+export const transformResourceCreatePayload = (payload: CreateHimtiKitResourceInput) => {
+  const backendMajor = MAJOR_TO_BACKEND_ENUM[payload.major] || payload.major;
+  return {
+    title: payload.title.trim(),
+    description: payload.description?.trim() || undefined,
+    major: backendMajor,
+    majors: [backendMajor],
+    downloadUrl: payload.resourceUrl || payload.downloadUrl || "",
+    coverImageUrl: payload.coverImageUrl?.trim() || null,
+  };
+};
 
 export const transformResourceUpdatePayload = (payload: UpdateHimtiKitResourceInput) => {
   const result: Record<string, any> = {};
@@ -60,7 +67,9 @@ export const transformResourceUpdatePayload = (payload: UpdateHimtiKitResourceIn
     result.description = payload.description?.trim() || undefined;
   }
   if (payload.major !== undefined) {
-    result.major = MAJOR_TO_BACKEND_ENUM[payload.major] || payload.major;
+    const backendMajor = MAJOR_TO_BACKEND_ENUM[payload.major] || payload.major;
+    result.major = backendMajor;
+    result.majors = [backendMajor];
   }
   if (payload.resourceUrl !== undefined || payload.downloadUrl !== undefined) {
     result.downloadUrl = payload.resourceUrl || payload.downloadUrl;
@@ -503,94 +512,101 @@ export const useGetHimtiKitAttendees = (search?: string) =>
         );
       }
 
-      try {
-        const response = await apiClient.get<ApiDataResponse<any[]>>(
-          Api.himtiKitAttendees,
-          { params: search ? { search } : undefined }
-        );
-        const data = (response.data?.data || []).map(transformBackendAttendee);
-        console.log(
-          "%c[HIMTI-KIT:Attendees] Loaded from Backend API:",
-          "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
-          data
-        );
-        return data;
-      } catch (error) {
-        console.warn(
-          "%c[HIMTI-KIT:Attendees] Backend GET unavailable, using mock storage:",
-          "color: #f59e0b; font-weight: bold;",
-          error
-        );
-        return getStoredAttendees();
-      }
+      const response = await apiClient.get<ApiDataResponse<any[]>>(
+        Api.himtiKitAttendees,
+        { params: search ? { search } : undefined }
+      );
+      const data = (response.data?.data || []).map(transformBackendAttendee);
+      console.log(
+        "%c[HIMTI-KIT:Attendees] Loaded from Backend API:",
+        "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+        data
+      );
+      return data;
     },
   });
+
+export const upsertAttendeesInMemory = (
+  current: HimtiKitAttendee[],
+  payload: CreateHimtiKitAttendeeInput[]
+): HimtiKitAttendee[] => {
+  const existingMap = new Map(current.map((a) => [a.nim.trim().toLowerCase(), a]));
+  const now = new Date().toISOString();
+
+  // Deduplicate incoming payload: if the same NIM appears multiple times, the last entry takes precedence
+  const payloadMap = new Map<string, CreateHimtiKitAttendeeInput>();
+  for (const item of payload) {
+    const key = item.nim.trim().toLowerCase();
+    if (key) {
+      payloadMap.set(key, item);
+    }
+  }
+
+  // 1. Update existing attendees whose NIM matches any in the payload with the new name
+  const updatedCurrent = current.map((att) => {
+    const key = att.nim.trim().toLowerCase();
+    const match = payloadMap.get(key);
+    if (match) {
+      return {
+        ...att,
+        name: match.name.trim(),
+        updatedAt: now,
+      };
+    }
+    return att;
+  });
+
+  // 2. Add brand new attendees that did not exist before
+  const newAttendees: HimtiKitAttendee[] = [];
+  let idx = 0;
+  for (const [key, item] of payloadMap.entries()) {
+    if (!existingMap.has(key)) {
+      newAttendees.push({
+        id: `att-${Date.now()}-${idx++}`,
+        name: item.name.trim(),
+        nim: item.nim.trim(),
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  }
+
+  return [...newAttendees, ...updatedCurrent];
+};
 
 export const useAddHimtiKitAttendees = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: CreateHimtiKitAttendeeInput[]) => {
+      const sanitizedAttendees = payload.map((p) => ({
+        name: p.name.trim(),
+        nim: p.nim.trim(),
+      }));
+
       if (FORCE_MOCK_HIMTI_KIT) {
-        console.log("[HIMTI-KIT:Attendees] Mock mode bulk import:", payload);
+        console.log("[HIMTI-KIT:Attendees] Mock mode upsert:", sanitizedAttendees);
         const current = getStoredAttendees();
-        const existingNims = new Set(current.map((a) => a.nim));
-        const newAttendees: HimtiKitAttendee[] = payload
-          .filter((p) => !existingNims.has(p.nim))
-          .map((p, idx) => ({
-            id: `att-${Date.now()}-${idx}`,
-            name: p.name,
-            nim: p.nim,
-            createdAt: new Date().toISOString(),
-          }));
-
-        const updated = [...newAttendees, ...current];
+        const updated = upsertAttendeesInMemory(current, sanitizedAttendees);
         setStoredAttendees(updated);
-        return newAttendees;
+        return updated;
       }
 
-      try {
-        const sanitizedAttendees = payload.map((p) => ({
-          name: p.name.trim(),
-          nim: p.nim.trim(),
-        }));
+      console.log(
+        "%c[HIMTI-KIT:Attendees] Sending bulk-import POST request to Backend...",
+        "color: #3b82f6; font-weight: bold;",
+        { count: sanitizedAttendees.length, sample: sanitizedAttendees.slice(0, 5) }
+      );
 
-        console.log(
-          "%c[HIMTI-KIT:Attendees] Sending bulk-import POST request to Backend...",
-          "color: #3b82f6; font-weight: bold;",
-          { count: sanitizedAttendees.length, sample: sanitizedAttendees.slice(0, 5) }
-        );
-
-        const response = await apiClient.post<ApiDataResponse<any>>(
-          Api.himtiKitAttendeeBulk,
-          { attendees: sanitizedAttendees }
-        );
-        console.log(
-          "%c[HIMTI-KIT:Attendees] Attendees successfully imported & saved to Backend DB!",
-          "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
-          response.data
-        );
-        return response.data?.data;
-      } catch (error) {
-        console.error(
-          "%c[HIMTI-KIT:Attendees] Failed to import to Backend, fallback to mock storage:",
-          "color: #ef4444; font-weight: bold;",
-          error
-        );
-        const current = getStoredAttendees();
-        const existingNims = new Set(current.map((a) => a.nim));
-        const newAttendees: HimtiKitAttendee[] = payload
-          .filter((p) => !existingNims.has(p.nim))
-          .map((p, idx) => ({
-            id: `att-${Date.now()}-${idx}`,
-            name: p.name,
-            nim: p.nim,
-            createdAt: new Date().toISOString(),
-          }));
-
-        const updated = [...newAttendees, ...current];
-        setStoredAttendees(updated);
-        return newAttendees;
-      }
+      const response = await apiClient.post<ApiDataResponse<any>>(
+        Api.himtiKitAttendeeBulk,
+        { attendees: sanitizedAttendees }
+      );
+      console.log(
+        "%c[HIMTI-KIT:Attendees] Attendees successfully imported/upserted & saved to Backend DB!",
+        "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+        response.data
+      );
+      return response.data?.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["himti-kit-attendees"] });
@@ -609,28 +625,18 @@ export const useDeleteHimtiKitAttendee = () => {
         return;
       }
 
-      try {
-        const url = Api.himtiKitAttendee.replace(":id", id);
-        console.log(
-          "%c[HIMTI-KIT:Attendees] Sending DELETE request to Backend...",
-          "color: #ef4444; font-weight: bold;",
-          { id }
-        );
-        await apiClient.delete<ApiDataResponse<void>>(url);
-        console.log(
-          "%c[HIMTI-KIT:Attendees] Attendee successfully deleted from Backend & Database!",
-          "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
-          id
-        );
-      } catch (error) {
-        console.error(
-          "%c[HIMTI-KIT:Attendees] Failed to delete in Backend, fallback to mock storage:",
-          "color: #ef4444; font-weight: bold;",
-          error
-        );
-        const current = getStoredAttendees();
-        setStoredAttendees(current.filter((item) => item.id !== id));
-      }
+      const url = Api.himtiKitAttendee.replace(":id", id);
+      console.log(
+        "%c[HIMTI-KIT:Attendees] Sending DELETE request to Backend...",
+        "color: #ef4444; font-weight: bold;",
+        { id }
+      );
+      await apiClient.delete<ApiDataResponse<void>>(url);
+      console.log(
+        "%c[HIMTI-KIT:Attendees] Attendee successfully deleted from Backend & Database!",
+        "color: #10b981; font-weight: bold; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;",
+        id
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["himti-kit-attendees"] });
