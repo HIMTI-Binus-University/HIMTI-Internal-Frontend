@@ -7,6 +7,8 @@ import { authClient } from "@/utils/auth-client";
 
 export default function CompleteRegistrationPage() {
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const registrationUrl = new URL("/register", runtimeConfig.registrationAppUrl);
+  registrationUrl.searchParams.set("returnTo", `${window.location.origin}/login`);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
@@ -49,7 +51,7 @@ export default function CompleteRegistrationPage() {
 
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <Button asChild size="lg">
-            <a href={runtimeConfig.registrationAppUrl}>
+            <a href={registrationUrl.href}>
               Go to HIMTI Registration
               <ArrowRight aria-hidden="true" />
             </a>
