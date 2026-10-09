@@ -80,7 +80,7 @@ export const useUpdateElection = (id: string) =>
 
 export const useUpdateElectionDebateSchedule = (id: string) =>
   useElectionMutation(
-    (payload: { debateAt: string | null }) =>
+    (payload: { debateAt: string | null; secondDebateAt: string | null }) =>
       apiClient
         .patch<ElectionResponse<Election>>(
           electionPath(Api.electionDebateSchedule, id),
