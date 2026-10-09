@@ -149,17 +149,23 @@ const localDate = (value: string | null) =>
 function DebateScheduleDialog({
   electionId,
   debateAt,
+  secondDebateAt,
 }: {
   electionId: string;
   debateAt: string | null;
+  secondDebateAt: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
+  const [secondValue, setSecondValue] = useState("");
   const mutation = useUpdateElectionDebateSchedule(electionId);
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     mutation.mutate(
-      { debateAt: value ? new Date(value).toISOString() : null },
+      {
+        debateAt: value ? new Date(value).toISOString() : null,
+        secondDebateAt: secondValue ? new Date(secondValue).toISOString() : null,
+      },
       { onSuccess: () => setOpen(false) },
     );
   };
@@ -171,6 +177,7 @@ function DebateScheduleDialog({
         setOpen(nextOpen);
         if (nextOpen) {
           setValue(localDate(debateAt));
+          setSecondValue(localDate(secondDebateAt));
           mutation.reset();
         }
       }}
@@ -185,18 +192,18 @@ function DebateScheduleDialog({
         <DialogHeader>
           <DialogTitle>Edit debate schedule</DialogTitle>
           <DialogDescription>
-            Set the candidate debate date and time, or leave it empty to clear
-            the schedule.
+            Set each debate date and time, or leave a field empty to clear that
+            debate's schedule.
           </DialogDescription>
         </DialogHeader>
         <form className="space-y-4" onSubmit={submit}>
           <label className="block space-y-2">
-            <span className="text-sm font-semibold">Debate date and time</span>
-            <Input
-              type="datetime-local"
-              value={value}
-              onChange={(event) => setValue(event.target.value)}
-            />
+            <span className="text-sm font-semibold">Debate 1 date and time</span>
+            <Input value={value} onChange={(event) => setValue(event.target.value)} type="datetime-local" />
+          </label>
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold">Debate 2 date and time</span>
+            <Input value={secondValue} onChange={(event) => setSecondValue(event.target.value)} type="datetime-local" />
           </label>
           <p className="text-sm text-muted-foreground">
             This only changes the debate schedule. Voting dates and ballot
@@ -482,6 +489,7 @@ function Overview({
   endsAt,
   originalEndsAt,
   debateAt,
+  secondDebateAt,
 }: {
   id: string;
   status: ElectionStatus;
@@ -491,6 +499,7 @@ function Overview({
   startsAt: string;
   endsAt: string;
   debateAt: string | null;
+  secondDebateAt: string | null;
   originalEndsAt: string;
 }) {
   const turnout = useGetElectionTurnout(id, status === "OPEN");
@@ -662,19 +671,15 @@ function Overview({
           </div>
           <div className="min-w-0 border-t border-border p-4 sm:border-t-0">
             <p className="text-sm font-semibold">Candidate debate</p>
-            {debateAt ? (
-              <time
-                dateTime={debateAt}
-                className="mt-2 block text-sm leading-5 text-muted-foreground"
-              >
-                {formatDate(debateAt)}
-              </time>
-            ) : (
-              <p className="mt-2 text-sm text-muted-foreground">Not scheduled</p>
-            )}
+            {[['Debate 1', debateAt], ['Debate 2', secondDebateAt]].map(([label, value]) => (
+              <div key={label} className="mt-2 text-sm leading-5 text-muted-foreground">
+                <span className="font-semibold text-foreground">{label}: </span>
+                {value ? <time dateTime={value}>{formatDate(value)}</time> : 'Not scheduled'}
+              </div>
+            ))}
             {(status === "DRAFT" || status === "OPEN") && (
               <div className="mt-3">
-                <DebateScheduleDialog electionId={id} debateAt={debateAt} />
+                <DebateScheduleDialog electionId={id} debateAt={debateAt} secondDebateAt={secondDebateAt} />
               </div>
             )}
           </div>
@@ -1260,18 +1265,9 @@ export default function ElectionWorkspacePage() {
           ))}
         </div>
         {section === "candidates" ? (
-          <Candidates
-            electionId={election.id}
-            candidates={election.candidates}
-            draft={election.status === "DRAFT"}
-            status={election.status}
-          />
+          <Candidates electionId={election.id} candidates={election.candidates} draft={election.status === "DRAFT"} status={election.status} />
         ) : section === "results" ? (
-          <Results
-            id={election.id}
-            status={election.status}
-            allowed={!!me.data?.permissions.includes("manage_elections")}
-          />
+          <Results id={election.id} status={election.status} allowed={!!me.data?.permissions.includes("manage_elections")} />
         ) : (
           <Overview
             id={election.id}
@@ -1283,6 +1279,7 @@ export default function ElectionWorkspacePage() {
             endsAt={election.endsAt}
             originalEndsAt={election.originalEndsAt}
             debateAt={election.debateAt}
+            secondDebateAt={election.secondDebateAt}
           />
         )}
       </div>
