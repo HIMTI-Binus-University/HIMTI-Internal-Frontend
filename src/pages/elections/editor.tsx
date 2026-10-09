@@ -54,6 +54,9 @@ export default function ElectionEditorPage() {
       debateAt: data.get("debateAt")
         ? new Date(String(data.get("debateAt"))).toISOString()
         : null,
+      secondDebateAt: data.get("secondDebateAt")
+        ? new Date(String(data.get("secondDebateAt"))).toISOString()
+        : null,
     };
     if (payload.slug.length < 3 || payload.title.length < 3)
       return setError("Title and slug must contain at least 3 characters.");
@@ -129,12 +132,20 @@ export default function ElectionEditorPage() {
                 defaultValue={localDate(existing?.endsAt)}
               />
             </label>
-            <label className="space-y-2 sm:col-span-2">
-              <span className="text-sm font-semibold">Debate at</span>
+            <label className="space-y-2">
+              <span className="text-sm font-semibold">Debate 1 date and time</span>
               <Input
                 name="debateAt"
                 type="datetime-local"
                 defaultValue={localDate(existing?.debateAt)}
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-semibold">Debate 2 date and time</span>
+              <Input
+                name="secondDebateAt"
+                type="datetime-local"
+                defaultValue={localDate(existing?.secondDebateAt)}
               />
             </label>
           </CardContent>

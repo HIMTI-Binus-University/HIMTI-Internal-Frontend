@@ -26,7 +26,7 @@ export interface Election {
   endsAt: string;
   originalEndsAt: string;
   debateAt: string | null;
-  openedAt: string | null;
+  secondDebateAt: string | null;
   closedAt: string | null;
   publishedAt: string | null;
   createdAt: string;
@@ -36,7 +36,7 @@ export interface Election {
 
 export type ElectionPayload = Pick<
   Election,
-  "slug" | "title" | "description" | "startsAt" | "endsAt" | "debateAt"
+  "slug" | "title" | "description" | "startsAt" | "endsAt" | "debateAt" | "secondDebateAt"
 >;
 
 export type ElectionPublicDetailsPayload = Pick<
