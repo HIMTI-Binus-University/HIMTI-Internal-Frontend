@@ -17,6 +17,7 @@ const CertificatePreview = () => {
   const fabricRef = useRef<Canvas | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const textboxRef = useRef<Textbox | null>(null);
+  const backgroundImageRef = useRef<FabricImage | null>(null);
 
   const { state, getLongestName } = useCertificateStore();
   const { template, names, textSettings } = state;
@@ -38,15 +39,39 @@ const CertificatePreview = () => {
       if (!containerRef.current) return;
       const containerWidth = containerRef.current.clientWidth - 32;
       const aspectRatio = template.height / template.width;
-      const newWidth = Math.min(containerWidth, template.width);
+      const newWidth = Math.max(1, Math.min(containerWidth, template.width));
       const newHeight = newWidth * aspectRatio;
 
-      setCanvasSize({ width: newWidth, height: newHeight });
+      setCanvasSize((prev) =>
+        prev.width === newWidth && prev.height === newHeight
+          ? prev
+          : { width: newWidth, height: newHeight },
+      );
       canvas.setDimensions({ width: newWidth, height: newHeight });
+
+      // Keep the template image aligned with the canvas on every resize.
+      const backgroundImage = backgroundImageRef.current;
+      if (backgroundImage) {
+        backgroundImage.set({
+          left: 0,
+          top: 0,
+          scaleX: newWidth / template.width,
+          scaleY: newHeight / template.height,
+        });
+        canvas.requestRenderAll();
+      }
     };
 
     updateCanvasSize();
     window.addEventListener("resize", updateCanvasSize);
+
+    // ResizeObserver also catches layout changes that do not fire a window
+    // resize event (e.g. browser zoom, sidebar or panel size changes).
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" && containerRef.current
+        ? new ResizeObserver(updateCanvasSize)
+        : null;
+    resizeObserver?.observe(containerRef.current!);
 
     FabricImage.fromURL(
       template.url,
@@ -69,6 +94,8 @@ const CertificatePreview = () => {
         scaleY: actualHeight / template.height,
       });
 
+      backgroundImageRef.current = img;
+
       canvas.add(img);
       canvas.sendObjectToBack(img);
       renderText(canvas, textSettings, { width: actualWidth, height: actualHeight });
@@ -76,9 +103,11 @@ const CertificatePreview = () => {
 
     return () => {
       window.removeEventListener("resize", updateCanvasSize);
+      resizeObserver?.disconnect();
       canvas.dispose();
       fabricRef.current = null;
       textboxRef.current = null;
+      backgroundImageRef.current = null;
     };
   }, [template]);
 
@@ -99,6 +128,12 @@ const CertificatePreview = () => {
     const textWidth = Math.max(40, (settings.width / 100) * canvasSize.width);
 
     textbox.set({
+      // Position is stored in template percent, so it must follow the
+      // canvas size exactly like the initial render does.
+      left: (settings.x / 100) * canvasSize.width,
+      top: (settings.y / 100) * canvasSize.height,
+      originX: "center",
+      originY: "center",
       text: displayName,
       width: textWidth,
       fontSize: scaledFontSize,
