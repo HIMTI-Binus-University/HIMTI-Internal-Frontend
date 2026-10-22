@@ -56,7 +56,7 @@ const SettingsPanel = () => {
   };
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-auto">
+    <div className="flex flex-col gap-4 lg:h-full lg:overflow-auto">
       {/* Section 1: Posisi & Dimensi */}
       <Card className="p-4">
         <h3 className="mb-3 text-sm font-semibold">Position & Dimensions</h3>

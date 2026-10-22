@@ -11,22 +11,29 @@ const PositionEditor = () => {
   return (
     <Container>
       <ContainerHeader>Set Name Position</ContainerHeader>
-      <div className="flex h-[calc(100vh-12rem)] gap-6 p-6">
-        <div className="w-1/2">
+      <div className="flex flex-col gap-4 p-4 sm:p-6 lg:h-[calc(100vh-12rem)] lg:flex-row lg:gap-6">
+        <div className="w-full min-w-0 lg:w-1/2">
           <CanvasPreview />
         </div>
 
-        <div className="w-1/2">
+        <div className="w-full min-w-0 lg:w-1/2">
           <SettingsPanel />
         </div>
       </div>
 
-      <div className="flex justify-between border-t border-border px-6 py-4">
-        <Button variant="outline" onClick={() => setStep(1)}>
+      <div className="flex flex-col gap-2 border-t border-border px-4 py-4 sm:flex-row sm:justify-between sm:px-6">
+        <Button
+          variant="outline"
+          className="w-full justify-center sm:w-auto"
+          onClick={() => setStep(1)}
+        >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <Button onClick={() => setStep(3)}>
+        <Button
+          className="w-full justify-center sm:w-auto"
+          onClick={() => setStep(3)}
+        >
           Preview Result
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>

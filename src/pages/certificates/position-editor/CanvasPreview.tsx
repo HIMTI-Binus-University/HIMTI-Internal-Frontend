@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Canvas, FabricImage, Line, Rect, Textbox, Text } from "fabric";
-import { Minus, Plus, Maximize2 } from "lucide-react";
+import { Minus, Plus, Maximize2, Magnet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -16,6 +16,159 @@ const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
 const roundPosition = (value: number) => Number(value.toFixed(2));
 
 const MIN_TEXT_WIDTH = 40;
+const GUIDELINE_MARGIN = 40;
+const SNAP_THRESHOLD = 8;
+const GRID_SNAP_THRESHOLD = 4;
+
+type SnapResult = {
+  snappedAt: number | null;
+  kind: "guide" | "grid" | null;
+  delta: number;
+};
+
+const nullSnap: SnapResult = { snappedAt: null, kind: null, delta: 0 };
+
+// Snap the textbox edges/center to the canvas guidelines (margins, midpoint,
+// canvas edges) first, then its center to a coarse grid. Returns where the
+// object snapped so callers can draw temporary guide lines.
+export const snapToTargets = (
+  textbox: Textbox,
+  size: { width: number; height: number }
+): { x: SnapResult; y: SnapResult } => {
+  // Fabric caches object coordinates; refresh them so getBoundingRect()
+  // reflects the position Fabric just applied for this drag step.
+  textbox.setCoords();
+
+  const bounds = textbox.getBoundingRect();
+
+  const centerX = bounds.left + bounds.width / 2;
+  const centerY = bounds.top + bounds.height / 2;
+
+  const gridStep = Math.max(
+    20,
+    Math.round(Math.min(size.width, size.height) / 8)
+  );
+
+  const guidelineTargets = (axisSize: number) => [
+    0,
+    axisSize,
+    GUIDELINE_MARGIN,
+    axisSize - GUIDELINE_MARGIN,
+    axisSize / 2, // canvas midpoint
+  ];
+
+  const gridTargets = (axisSize: number) => {
+    const targets = [];
+    for (let grid = gridStep; grid < axisSize; grid += gridStep) {
+      targets.push(grid);
+    }
+    return targets;
+  };
+
+  const snapAxis = (
+    targetList: number[],
+    edges: number[],
+    threshold: number
+  ): SnapResult => {
+    let best: { delta: number; snappedAt: number; distance: number } | null =
+      null;
+
+    for (const target of targetList) {
+      for (const edge of edges) {
+        const distance = Math.abs(target - edge);
+        if (distance <= threshold && (!best || distance < best.distance)) {
+          best = {
+            delta: target - edge,
+            snappedAt: target,
+            distance,
+          };
+        }
+      }
+    }
+
+    if (!best) return nullSnap;
+
+    return { snappedAt: best.snappedAt, kind: "guide", delta: best.delta };
+  };
+
+  const xEdges = [bounds.left, centerX, bounds.left + bounds.width];
+  const yEdges = [bounds.top, centerY, bounds.top + bounds.height];
+
+  // Guidelines win over the grid.
+  let resultX = snapAxis(guidelineTargets(size.width), xEdges, SNAP_THRESHOLD);
+  let resultY = snapAxis(guidelineTargets(size.height), yEdges, SNAP_THRESHOLD);
+
+  if (resultX.snappedAt === null) {
+    const gridResult = snapAxis(gridTargets(size.width), [centerX], GRID_SNAP_THRESHOLD);
+    if (gridResult.snappedAt !== null) resultX = { ...gridResult, kind: "grid" };
+  }
+
+  if (resultY.snappedAt === null) {
+    const gridResult = snapAxis(gridTargets(size.height), [centerY], GRID_SNAP_THRESHOLD);
+    if (gridResult.snappedAt !== null) resultY = { ...gridResult, kind: "grid" };
+  }
+
+  const applyX = resultX.snappedAt === null ? null : resultX.delta;
+  const applyY = resultY.snappedAt === null ? null : resultY.delta;
+
+  if (applyX !== null && applyX !== 0) {
+    textbox.set({ left: textbox.left! + applyX });
+  }
+
+  if (applyY !== null && applyY !== 0) {
+    textbox.set({ top: textbox.top! + applyY });
+  }
+
+  if (applyX !== null || applyY !== null) {
+    textbox.setCoords();
+  }
+
+  return { x: resultX, y: resultY };
+};
+
+type MarkedFabricObject = { isSnapGuide?: boolean };
+
+const removeSnapGuides = (canvas: Canvas) => {
+  canvas
+    .getObjects()
+    .filter((obj) => (obj as MarkedFabricObject).isSnapGuide)
+    .forEach((obj) => canvas.remove(obj));
+};
+
+const drawSnapGuides = (
+  canvas: Canvas,
+  snappedX: SnapResult,
+  snappedY: SnapResult,
+  size: { width: number; height: number }
+) => {
+  removeSnapGuides(canvas);
+
+  if (snappedX.snappedAt !== null) {
+    const guide = new Line([snappedX.snappedAt, 0, snappedX.snappedAt, size.height], {
+      stroke: snappedX.kind === "grid" ? "#10b981" : "#ec4899",
+      strokeWidth: 1,
+      strokeDashArray: [6, 4],
+      selectable: false,
+      evented: false,
+    });
+
+    (guide as MarkedFabricObject).isSnapGuide = true;
+    canvas.add(guide);
+  }
+
+  if (snappedY.snappedAt !== null) {
+    const guide = new Line([0, snappedY.snappedAt, size.width, snappedY.snappedAt], {
+      stroke: snappedY.kind === "grid" ? "#10b981" : "#ec4899",
+      strokeWidth: 1,
+      strokeDashArray: [6, 4],
+      selectable: false,
+      evented: false,
+    });
+
+    (guide as MarkedFabricObject).isSnapGuide = true;
+    canvas.add(guide);
+  }
+};
 
 const CanvasPreview = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -36,6 +189,13 @@ const CanvasPreview = () => {
   const [zoom, setZoom] = useState(100);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
   const [previewNameIndex, setPreviewNameIndex] = useState(0);
+
+  const [snapEnabled, setSnapEnabled] = useState(true);
+  const snapEnabledRef = useRef(true);
+
+  useEffect(() => {
+    snapEnabledRef.current = snapEnabled;
+  }, [snapEnabled]);
 
   const requestSmoothRender = (canvas: Canvas) => {
     if (renderFrameRef.current !== null) return;
@@ -189,7 +349,7 @@ const CanvasPreview = () => {
       .filter((obj: any) => obj.isGuideline)
       .forEach((obj: any) => canvas.remove(obj));
 
-    const margin = 40;
+    const margin = GUIDELINE_MARGIN;
 
     const marginRect = new Rect({
       left: margin,
@@ -329,7 +489,20 @@ const CanvasPreview = () => {
     textbox.on("moving", () => {
       isTransformingRef.current = true;
 
-      // Let Fabric move the textbox naturally.
+      // Snap the box to canvas midpoints / margin / grid lines first, so
+      // the label follows the final position.
+      if (snapEnabledRef.current) {
+        const liveSize = {
+          width: canvas.getWidth(),
+          height: canvas.getHeight(),
+        };
+
+        const snapped = snapToTargets(textbox, liveSize);
+        drawSnapGuides(canvas, snapped.x, snapped.y, liveSize);
+      } else {
+        removeSnapGuides(canvas);
+      }
+
       // Only the label follows the textbox.
       updateLabelPosition(textbox);
 
@@ -416,13 +589,21 @@ const CanvasPreview = () => {
       scalingStartSize.centerX = 0;
       scalingStartSize.centerY = 0;
 
+      removeSnapGuides(canvas);
+
+      // Read the live canvas size: the canvas can be resized after this
+      // handler was created (responsive column change, window resize), and
+      // the captured `size` would then compute wrong percentages.
+      const liveWidth = canvas.getWidth();
+      const liveHeight = canvas.getHeight();
+
       const center = textbox.getCenterPoint();
       const finalWidth = textbox.width || MIN_TEXT_WIDTH;
       const finalFontSize = textbox.fontSize || 72;
 
-      const newX = (center.x / size.width) * 100;
-      const newY = (center.y / size.height) * 100;
-      const newWidth = (finalWidth / size.width) * 100;
+      const newX = (center.x / liveWidth) * 100;
+      const newY = (center.y / liveHeight) * 100;
+      const newWidth = (finalWidth / liveWidth) * 100;
       
       const scaleFactor = size.width / template!.width;
       const originalFontSize = Math.round(finalFontSize / scaleFactor);
@@ -611,12 +792,22 @@ const CanvasPreview = () => {
 
   return (
     <div ref={containerRef} className="flex h-full flex-col">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-base font-semibold text-foreground">
           Preview editor
         </h3>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant={snapEnabled ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setSnapEnabled((enabled) => !enabled)}
+            title="Snap to midpoints, margins and grid while dragging"
+          >
+            <Magnet className="h-4 w-4" />
+            Snap
+          </Button>
+
           <Button
             variant="outline"
             size="icon"
@@ -657,7 +848,7 @@ const CanvasPreview = () => {
             value={previewNameIndex.toString()}
             onValueChange={(value) => setPreviewNameIndex(Number(value))}
           >
-            <SelectTrigger className="h-8 w-[250px] text-xs">
+            <SelectTrigger className="h-8 w-full min-w-0 text-xs sm:w-[250px] sm:min-w-[250px]">
               <SelectValue>
                 {names[previewNameIndex]?.name || "Select name"}
               </SelectValue>
@@ -681,7 +872,8 @@ const CanvasPreview = () => {
 
       <div className="mt-4 text-sm text-muted-foreground">
         <p>
-          <strong>Drag box</strong> to move position. 
+          <strong>Drag box</strong> to move position (snaps when Snap is on{" "}
+          {snapEnabled ? "— on" : "— off"}).{" "}
           <strong>Drag 4 corners</strong> to resize font.
           <strong>Drag left/right corners</strong> to change area width (text auto-wrap).
         </p>
