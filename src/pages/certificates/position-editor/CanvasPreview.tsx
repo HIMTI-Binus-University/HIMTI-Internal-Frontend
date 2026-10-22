@@ -741,14 +741,6 @@ const CanvasPreview = () => {
         </div>
       </div>
 
-      <div className="mt-4 text-sm text-muted-foreground">
-        <p>
-          <strong>Drag box</strong> to move position (automatically snaps to
-          guidelines and grid).{" "}
-          <strong>Drag 4 corners</strong> to resize font.
-          <strong>Drag left/right corners</strong> to change area width (text auto-wrap).
-        </p>
-      </div>
     </div>
   );
 };
