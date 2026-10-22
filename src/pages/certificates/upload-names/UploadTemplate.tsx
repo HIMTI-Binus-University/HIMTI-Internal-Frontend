@@ -70,7 +70,7 @@ const UploadTemplate = () => {
                         <img
                             src={template.url}
                             alt="Certificate Template Preview"
-                            className="max-h-[calc(100vh-28rem)] max-w-full object-contain"
+                            className="max-h-[60vh] max-w-full object-contain lg:max-h-[calc(100vh-28rem)]"
                         />
                     </div>
                     <div className="mb-4 rounded-lg border border-border bg-card p-4">

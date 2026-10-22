@@ -28,6 +28,13 @@ const UploadNames = () => {
 
   useLayoutEffect(() => {
     const recalc = () => {
+      // Below the lg breakpoint the two panels stack vertically and simply
+      // grow with their content, so no fixed row height is applied.
+      if (window.innerWidth < 1024) {
+        setRowHeight(null);
+        return;
+      }
+
       if (!rowRef.current || !footerRef.current) return;
 
       const top = rowRef.current.getBoundingClientRect().top;
@@ -55,11 +62,11 @@ const UploadNames = () => {
       <ContainerHeader>Upload Template & Input Names</ContainerHeader>
       <div
         ref={rowRef}
-        className="flex items-stretch gap-6 p-6"
+        className="flex flex-col items-stretch gap-4 p-4 sm:p-6 lg:flex-row lg:gap-6"
         style={{ height: rowHeight ? `${rowHeight}px` : undefined }}
       >
-        <div className="flex h-full w-1/2 min-h-0">
-          <div className="flex h-full w-full min-h-0 flex-col overflow-y-auto rounded-lg border border-border gap-3 p-4">
+        <div className="flex w-full min-w-0 min-h-0 lg:h-full lg:w-1/2">
+          <div className="flex w-full min-h-0 flex-col rounded-lg border border-border gap-3 p-4 lg:h-full lg:overflow-y-auto">
             <div className="flex w-full items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100">
                 <FileImage className="h-5 w-5 text-blue-600" />
@@ -75,8 +82,8 @@ const UploadNames = () => {
 
         </div>
 
-        <div className="flex h-full w-1/2 min-h-0">
-           <div className="flex h-full w-full min-h-0 flex-col overflow-y-auto rounded-lg border border-border p-4">
+        <div className="flex w-full min-w-0 min-h-0 lg:h-full lg:w-1/2">
+           <div className="flex w-full min-h-0 flex-col rounded-lg border border-border p-4 lg:h-full lg:overflow-y-auto">
             <div className="flex w-full items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100">
                 <FileText className="h-5 w-5 text-blue-600" />
@@ -95,8 +102,8 @@ const UploadNames = () => {
 
       </div>
 
-      <div ref={footerRef} className="flex justify-end border-t border-border px-6 py-4">
-        <Button onClick={handleNext} disabled={!canProceed}>
+      <div ref={footerRef} className="flex justify-end border-t border-border px-4 py-4 sm:px-6">
+        <Button className="w-full sm:w-auto" onClick={handleNext} disabled={!canProceed}>
           Set Name Position
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
