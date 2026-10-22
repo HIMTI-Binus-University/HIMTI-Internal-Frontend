@@ -96,12 +96,12 @@ const PreviewDownload = () => {
     <Container>
       <ContainerHeader>Preview & Download</ContainerHeader>
       
-      <div className="flex gap-6 p-6">
-        <div className="flex-1 flex flex-col gap-6">
+      <div className="flex flex-col gap-4 p-4 sm:p-6 lg:flex-row lg:gap-6">
+        <div className="min-w-0 flex-1 flex flex-col gap-6">
           <CertificatePreview />
         </div>
 
-        <div className="w-[400px] flex flex-col gap-6">
+        <div className="flex w-full min-w-0 flex-col gap-6 lg:w-[400px] lg:shrink-0">
           <ResultInspection 
             stats={stats}
             highlightedStats={highlightedStats}

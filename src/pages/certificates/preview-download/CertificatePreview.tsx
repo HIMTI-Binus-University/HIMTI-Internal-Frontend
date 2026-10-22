@@ -276,13 +276,13 @@ const CertificatePreview = () => {
   return (
     <div ref={containerRef} className="flex h-full flex-col gap-3">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-base font-semibold text-blue-900">Preview canvas</h3>
         <Select 
           value={currentIndex.toString()} 
           onValueChange={(value) => setCurrentIndex(parseInt(value || "0"))}
         >
-          <SelectTrigger className="w-[250px]">
+          <SelectTrigger className="w-full min-w-0 sm:w-[250px] sm:min-w-[250px]">
             <SelectValue>
               {names[currentIndex]?.name || "Select name"}
             </SelectValue>
@@ -305,7 +305,7 @@ const CertificatePreview = () => {
       </div>
 
       {/* Footer Navigation */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <Button
           variant="ghost"
           onClick={handlePrevious}
