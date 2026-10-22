@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { Textbox } from "fabric";
 
-// snapToTargets is a pure helper inside CanvasPreview; exercised here with a
+// snapToTargets lives in its own module (kept out of the component file so
+// CanvasPreview stays lint-clean for fast refresh); exercised here with a
 // minimal textbox stand-in so the snap math (guidelines win over grid, edge
 // deltas relative to the matched edge) stays covered by unit tests.
-import { snapToTargets } from "./CanvasPreview";
+import { snapToTargets } from "./snap";
 
 const CANVAS = { width: 800, height: 600 };
 const MARGIN = 40;
