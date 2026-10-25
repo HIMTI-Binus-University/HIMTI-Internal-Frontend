@@ -114,6 +114,23 @@ export const useUpdateElectionPublicDetails = (id: string) =>
     id,
   );
 
+export const useUpdateElectionLiveReveal = (id: string) => {
+  const client = useQueryClient();
+  return useElectionMutation(
+    (payload: { removeCountdownForLiveReveal: boolean }) =>
+      apiClient
+        .patch<ElectionResponse<Election>>(
+          electionPath(Api.electionLiveReveal, id),
+          payload,
+        )
+        .then((response) => {
+          client.setQueryData(electionKeys.detail(id), response.data.data);
+          return response.data.data;
+        }),
+    id,
+  );
+};
+
 export const useCreateCandidate = (id: string) =>
   useElectionMutation(
     (payload: CandidatePayload) =>
