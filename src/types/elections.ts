@@ -27,6 +27,7 @@ export interface Election {
   originalEndsAt: string;
   debateAt: string | null;
   secondDebateAt: string | null;
+  removeCountdownForLiveReveal: boolean;
   closedAt: string | null;
   publishedAt: string | null;
   createdAt: string;
