@@ -24,6 +24,7 @@ import {
   useUpdateCandidate,
   useUpdateElectionDebateSchedule,
   useUpdateElectionPublicDetails,
+  useUpdateElectionLiveReveal,
   useUpdateElectionVotingEnd,
 } from "@/api/elections/queries";
 import { Container, PageLayout } from "@/components/Utils";
@@ -490,6 +491,7 @@ function Overview({
   originalEndsAt,
   debateAt,
   secondDebateAt,
+  removeCountdownForLiveReveal,
 }: {
   id: string;
   status: ElectionStatus;
@@ -500,9 +502,11 @@ function Overview({
   endsAt: string;
   debateAt: string | null;
   secondDebateAt: string | null;
+  removeCountdownForLiveReveal: boolean;
   originalEndsAt: string;
 }) {
   const turnout = useGetElectionTurnout(id, status === "OPEN");
+  const liveReveal = useUpdateElectionLiveReveal(id);
   const countsMatch = turnout.data?.valid;
   const turnoutPercentage = turnout.data?.eligibleVoterCount
     ? (turnout.data.participationCount / turnout.data.eligibleVoterCount) * 100
@@ -684,6 +688,37 @@ function Overview({
             )}
           </div>
         </div>
+      </Container>
+      <Container>
+        <div className="flex items-center justify-between gap-5">
+          <div>
+            <label htmlFor="live-reveal" className="font-semibold">
+              Remove Countdown for Live Reveal
+            </label>
+            <p id="live-reveal-description" className="mt-1 text-sm leading-6 text-muted-foreground">
+              Replace the public countdown with an invitation to the live results
+              reveal at the second debate.
+            </p>
+          </div>
+          <Switch
+            id="live-reveal"
+            aria-describedby="live-reveal-description"
+            checked={removeCountdownForLiveReveal ?? false}
+            disabled={liveReveal.isPending}
+            onCheckedChange={(checked) =>
+              liveReveal.mutate({ removeCountdownForLiveReveal: checked })
+            }
+          />
+        </div>
+        {liveReveal.isError ? (
+          <p role="alert" className="mt-3 text-sm text-semantic-danger">
+            {errorText(liveReveal.error)}
+          </p>
+        ) : (
+          <p role="status" className="mt-3 text-sm text-muted-foreground">
+            {liveReveal.isPending ? "Saving..." : liveReveal.isSuccess ? "Saved." : ""}
+          </p>
+        )}
       </Container>
     </div>
   );
@@ -1280,6 +1315,7 @@ export default function ElectionWorkspacePage() {
             originalEndsAt={election.originalEndsAt}
             debateAt={election.debateAt}
             secondDebateAt={election.secondDebateAt}
+            removeCountdownForLiveReveal={election.removeCountdownForLiveReveal}
           />
         )}
       </div>
