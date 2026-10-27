@@ -18,6 +18,7 @@ import CompleteRegistrationPage from "@/pages/complete-registration";
 import ElectionsPage from "@/pages/elections";
 import ElectionEditorPage from "@/pages/elections/editor";
 import ElectionWorkspacePage from "@/pages/elections/workspace";
+import EducationPage from "@/pages/education";
 
 export const publicRoutes: Route[] = [
   {
@@ -190,6 +191,17 @@ export const publicRoutes: Route[] = [
     isEnabled: true,
     isProtected: true,
     requiredPermission: "manage_elections",
+  },
+  {
+    key: "router-education",
+    title: "Education",
+    description: "Responsi, Study Clubs, videos, and course groups",
+    component: EducationPage,
+    path: "/education",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_education",
+    group: "Tools",
   },
   {
     key: "router-rbac-permissions",
