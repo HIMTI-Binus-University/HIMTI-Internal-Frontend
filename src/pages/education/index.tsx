@@ -49,14 +49,14 @@ const PlaceholderTab = ({ tab }: { tab: EducationTab }) => {
   const Icon = tab.icon;
 
   return (
-    <Container className="flex min-h-[360px] flex-col items-center justify-center px-6 py-12 text-center">
-      <span className="flex size-14 items-center justify-center rounded-xl bg-semantic-info-background text-primary">
-        <Icon aria-hidden="true" className="size-7" />
+    <Container className="flex h-full min-h-[320px] flex-col items-center justify-center px-6 py-10 text-center lg:min-h-0">
+      <span className="flex size-12 items-center justify-center rounded-xl bg-semantic-info-background text-primary">
+        <Icon aria-hidden="true" className="size-6" />
       </span>
-      <h2 className="mt-4 text-ds-h3 font-bold tracking-tight text-foreground">
+      <h2 className="mt-4 text-lg font-semibold leading-7 tracking-tight text-foreground">
         {tab.label}
       </h2>
-      <p className="mt-2 max-w-md text-ds-body text-muted-foreground">
+      <p className="mt-1 max-w-md text-sm text-muted-foreground">
         {tab.description}
       </p>
     </Container>
@@ -109,67 +109,70 @@ const EducationPage = () => {
       title="Education"
       breadcrumbs={["Education", activeTab.label]}
     >
-      <section aria-labelledby="education-heading">
-        <h2
-          id="education-heading"
-          className="text-ds-h2 font-bold tracking-tight text-foreground"
+      <div className="flex flex-col gap-4 lg:h-[calc(100dvh-8rem)] lg:min-h-0 lg:gap-5">
+        <section aria-labelledby="education-heading">
+          <h2
+            id="education-heading"
+            className="text-ds-h3 font-bold tracking-tight text-foreground"
+          >
+            Education
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage Responsi content, Study Clubs, videos, and course groups.
+          </p>
+        </section>
+
+        <div
+          role="tablist"
+          aria-label="Education sections"
+          onKeyDown={moveTabFocus}
+          className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border lg:grid-cols-4"
         >
-          Education
-        </h2>
-        <p className="mt-1 text-ds-body text-muted-foreground">
-          Manage Responsi content, Study Clubs, videos, and course groups.
-        </p>
-      </section>
+          {EDUCATION_TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = tab.id === activeTab.id;
 
-      <div
-        role="tablist"
-        aria-label="Education sections"
-        onKeyDown={moveTabFocus}
-        className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border lg:grid-cols-4"
-      >
-        {EDUCATION_TABS.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = tab.id === activeTab.id;
+            return (
+              <button
+                key={tab.id}
+                ref={(element) => {
+                  tabRefs.current[tab.id] = element;
+                }}
+                type="button"
+                role="tab"
+                id={`education-tab-${tab.id}`}
+                aria-selected={isActive}
+                aria-controls={`education-panel-${tab.id}`}
+                tabIndex={isActive ? 0 : -1}
+                onClick={() => selectTab(tab)}
+                className={`flex min-h-14 items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
+                  isActive
+                    ? "bg-semantic-info-background font-semibold text-primary shadow-[inset_0_-2px_0_0_hsl(var(--primary))]"
+                    : "bg-card text-foreground hover:bg-muted/50"
+                }`}
+              >
+                <Icon
+                  aria-hidden="true"
+                  className="size-[18px] shrink-0 stroke-[1.75]"
+                />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
 
-          return (
-            <button
-              key={tab.id}
-              ref={(element) => {
-                tabRefs.current[tab.id] = element;
-              }}
-              type="button"
-              role="tab"
-              id={`education-tab-${tab.id}`}
-              aria-selected={isActive}
-              aria-controls={`education-panel-${tab.id}`}
-              tabIndex={isActive ? 0 : -1}
-              onClick={() => selectTab(tab)}
-              className={`flex min-h-16 items-center justify-center gap-2.5 px-4 py-4 text-ds-body-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
-                isActive
-                  ? "bg-semantic-info-background font-semibold text-primary shadow-[inset_0_-2px_0_0_hsl(var(--primary))]"
-                  : "bg-card text-foreground hover:bg-muted/50"
-              }`}
-            >
-              <Icon
-                aria-hidden="true"
-                className="size-5 shrink-0 stroke-[1.75]"
-              />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div
-        role="tabpanel"
-        id={`education-panel-${activeTab.id}`}
-        aria-labelledby={`education-tab-${activeTab.id}`}
-      >
-        {activeTab.id === "responsi" ? (
-          <ResponsiTab />
-        ) : (
-          <PlaceholderTab tab={activeTab} />
-        )}
+        <div
+          role="tabpanel"
+          id={`education-panel-${activeTab.id}`}
+          aria-labelledby={`education-tab-${activeTab.id}`}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          {activeTab.id === "responsi" ? (
+            <ResponsiTab />
+          ) : (
+            <PlaceholderTab tab={activeTab} />
+          )}
+        </div>
       </div>
     </PageLayout>
   );

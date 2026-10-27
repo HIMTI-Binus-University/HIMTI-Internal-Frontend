@@ -162,7 +162,7 @@ const StatusBadge = ({ status }: { status: ResponsiStatus }) => {
   return (
     <Badge
       variant={meta.variant}
-      className="gap-1.5 rounded-md px-2.5 py-1 font-medium"
+      className="gap-1.5 rounded-md px-2.5 py-0.5 font-medium"
     >
       <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
       {meta.label}
@@ -184,7 +184,7 @@ const Pagination = ({
       aria-label="Previous page"
       variant="outline"
       size="icon"
-      className="size-9"
+      className="size-8"
       disabled={page <= 1}
       onClick={() => onPageChange(page - 1)}
     >
@@ -198,7 +198,7 @@ const Pagination = ({
           aria-label={`Page ${pageNumber}`}
           variant={pageNumber === page ? "default" : "outline"}
           size="icon"
-          className="size-9"
+          className="size-8"
           onClick={() => onPageChange(pageNumber)}
         >
           {pageNumber}
@@ -209,7 +209,7 @@ const Pagination = ({
       aria-label="Next page"
       variant="outline"
       size="icon"
-      className="size-9"
+      className="size-8"
       disabled={page >= totalPages}
       onClick={() => onPageChange(page + 1)}
     >
@@ -282,31 +282,31 @@ const ResponsiTab = () => {
   };
 
   return (
-    <Container className="p-5 sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <Container className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-ds-h3 font-bold tracking-tight text-foreground">
+          <h2 className="text-lg font-semibold leading-7 tracking-tight text-foreground">
             Responsi
           </h2>
-          <p className="mt-1 text-ds-body text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             Create, edit, and manage Responsi summaries.
           </p>
         </div>
         {/* shortcut: row actions and editor panels arrive with the Responsi workspace. */}
-        <Button className="sm:shrink-0">
+        <Button size="sm" className="sm:shrink-0">
           <Plus />
           Create Responsi
         </Button>
       </div>
 
-      <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
+      <div className="mt-4 flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
         <div className="relative min-w-[220px] flex-1">
           <label className="sr-only" htmlFor="responsi-search">
             Search Responsi
           </label>
           <Search
             aria-hidden="true"
-            className="absolute left-3 top-1/2 size-[18px] -translate-y-1/2 stroke-[1.75] text-muted-foreground"
+            className="absolute left-3 top-1/2 size-4 -translate-y-1/2 stroke-[1.75] text-muted-foreground"
           />
           <Input
             id="responsi-search"
@@ -317,7 +317,7 @@ const ResponsiTab = () => {
               setPage(1);
             }}
             placeholder="Search by title, course, or keyword..."
-            className="h-11 pl-10"
+            className="pl-9"
           />
         </div>
 
@@ -329,10 +329,7 @@ const ResponsiTab = () => {
             setPage(1);
           }}
         >
-          <SelectTrigger
-            aria-label="Filter by course"
-            className="h-11 lg:w-[168px]"
-          >
+          <SelectTrigger aria-label="Filter by course" className="lg:w-[160px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -354,7 +351,7 @@ const ResponsiTab = () => {
         >
           <SelectTrigger
             aria-label="Filter by academic period"
-            className="h-11 lg:w-[186px]"
+            className="lg:w-[176px]"
           >
             <SelectValue />
           </SelectTrigger>
@@ -377,7 +374,7 @@ const ResponsiTab = () => {
         >
           <SelectTrigger
             aria-label="Filter by exam type"
-            className="h-11 lg:w-[170px]"
+            className="lg:w-[160px]"
           >
             <SelectValue />
           </SelectTrigger>
@@ -398,10 +395,7 @@ const ResponsiTab = () => {
             setPage(1);
           }}
         >
-          <SelectTrigger
-            aria-label="Filter by status"
-            className="h-11 lg:w-[150px]"
-          >
+          <SelectTrigger aria-label="Filter by status" className="lg:w-[140px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -415,44 +409,44 @@ const ResponsiTab = () => {
 
         <Button
           variant="outline"
-          className="h-11 lg:w-[88px]"
+          className="lg:w-[84px]"
           onClick={resetFilters}
         >
           Reset
         </Button>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-xl border border-border">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1040px] text-left">
+      <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border">
+        <div className="min-h-0 flex-1 overflow-auto">
+          <table className="w-full min-w-[980px] text-left">
             <caption className="sr-only">
               Responsi summaries with course, academic period, exam type, PIC,
               status, last updated, and actions
             </caption>
-            <thead className="bg-muted/60">
-              <tr className="text-ds-subtle-medium text-muted-foreground">
-                <th scope="col" className="px-4 py-3 font-medium">
+            <thead className="sticky top-0 z-10 bg-muted">
+              <tr className="text-xs text-muted-foreground">
+                <th scope="col" className="px-4 py-2.5 font-semibold">
                   Title
                 </th>
-                <th scope="col" className="px-4 py-3 font-medium">
+                <th scope="col" className="px-4 py-2.5 font-semibold">
                   Course
                 </th>
-                <th scope="col" className="px-4 py-3 font-medium">
+                <th scope="col" className="px-4 py-2.5 font-semibold">
                   Academic Period
                 </th>
-                <th scope="col" className="px-4 py-3 font-medium">
+                <th scope="col" className="px-4 py-2.5 font-semibold">
                   Exam Type
                 </th>
-                <th scope="col" className="px-4 py-3 font-medium">
+                <th scope="col" className="px-4 py-2.5 font-semibold">
                   PIC
                 </th>
-                <th scope="col" className="px-4 py-3 font-medium">
+                <th scope="col" className="px-4 py-2.5 font-semibold">
                   Status
                 </th>
-                <th scope="col" className="px-4 py-3 font-medium">
+                <th scope="col" className="px-4 py-2.5 font-semibold">
                   Last Updated
                 </th>
-                <th scope="col" className="px-4 py-3 font-medium">
+                <th scope="col" className="px-4 py-2.5 font-semibold">
                   Actions
                 </th>
               </tr>
@@ -467,36 +461,36 @@ const ResponsiTab = () => {
                       key={row.id}
                       className="transition-colors hover:bg-muted/30"
                     >
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-semantic-info-background text-primary">
-                            <FileText aria-hidden="true" className="size-5" />
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-semantic-info-background text-primary">
+                            <FileText aria-hidden="true" className="size-4" />
                           </span>
-                          <span className="text-ds-body-medium font-semibold text-foreground">
+                          <span className="text-sm font-semibold text-foreground">
                             {row.title}
                           </span>
                         </div>
                       </td>
-                      <td className="max-w-[170px] px-4 py-4 text-ds-body text-muted-foreground">
+                      <td className="max-w-[170px] px-4 py-3 text-sm text-muted-foreground">
                         {row.course}
                       </td>
-                      <td className="px-4 py-4 text-ds-body text-muted-foreground">
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
                         {row.academicPeriod}
                       </td>
-                      <td className="px-4 py-4 text-ds-body text-muted-foreground">
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
                         {row.examType}
                       </td>
-                      <td className="max-w-[170px] px-4 py-4 text-ds-body leading-6 text-muted-foreground">
+                      <td className="max-w-[170px] px-4 py-3 text-sm leading-5 text-muted-foreground">
                         {row.pic}
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-3">
                         <StatusBadge status={row.status} />
                       </td>
-                      <td className="px-4 py-4 text-ds-subtle text-muted-foreground">
+                      <td className="px-4 py-3 text-xs leading-5 text-muted-foreground">
                         <span className="block">{updatedAt.date}</span>
                         <span className="block">{updatedAt.time}</span>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <IconButton
                             label={`Preview ${row.title}`}
@@ -527,7 +521,7 @@ const ResponsiTab = () => {
                 <tr>
                   <td
                     colSpan={8}
-                    className="px-4 py-10 text-center text-ds-body text-muted-foreground"
+                    className="px-4 py-8 text-center text-sm text-muted-foreground"
                   >
                     No Responsi matches these filters.
                   </td>
@@ -538,8 +532,8 @@ const ResponsiTab = () => {
         </div>
       </div>
 
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-ds-body text-muted-foreground">
+      <div className="mt-4 flex flex-none flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
           Showing {filteredRows.length ? firstRow + 1 : 0}-{lastRow} of{" "}
           {filteredRows.length} results
         </p>
