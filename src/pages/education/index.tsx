@@ -108,8 +108,9 @@ const EducationPage = () => {
       icon={BookOpen}
       title="Education"
       breadcrumbs={["Education", activeTab.label]}
+      fullHeight
     >
-      <div className="flex flex-col gap-4 lg:h-[calc(100dvh-8rem)] lg:min-h-0 lg:gap-5">
+      <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:gap-5">
         <section aria-labelledby="education-heading">
           <h2
             id="education-heading"
