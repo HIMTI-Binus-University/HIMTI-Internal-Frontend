@@ -201,6 +201,7 @@ export const publicRoutes: Route[] = [
     isEnabled: true,
     isProtected: true,
     requiredPermission: "manage_education",
+    allowedRoles: ["Admin"],
     group: "Tools",
   },
   {
