@@ -78,6 +78,9 @@ export const Api = {
   eventRegistrationForm: "/api/internal/events/:id/registration-form",
   eventRegistrationFormAction:
     "/api/internal/events/:id/registration-form/:action",
+  // Education administration endpoints
+  courseGroups: "/api/internal/education/course-groups",
+
   // Election administration endpoints
   elections: "/api/internal/elections",
   election: "/api/internal/elections/:electionId",

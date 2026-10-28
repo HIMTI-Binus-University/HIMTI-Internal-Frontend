@@ -6,6 +6,19 @@ export type ResponsiStatus =
 
 export type ResponsiExamType = "Mid Exam" | "Final Exam";
 
+export type CourseGroupStatus = "ACTIVE" | "INACTIVE";
+
+export interface CourseGroup {
+  id: string;
+  name: string;
+  code: string | null;
+  status: CourseGroupStatus;
+}
+
+export interface CourseGroupListResponse {
+  data: CourseGroup[];
+}
+
 export interface ResponsiSummary {
   id: string;
   title: string;

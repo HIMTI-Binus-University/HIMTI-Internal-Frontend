@@ -11,6 +11,29 @@ vi.mock("@/components/Utils", async (original) => ({
   ),
 }));
 
+vi.mock("@/api/education/queries", () => ({
+  useGetCourseGroups: () => ({
+    data: [
+      {
+        id: "algorithm-programming",
+        name: "Algorithm & Programming",
+        code: "CS-101",
+        status: "ACTIVE",
+      },
+      { id: "calculus", name: "Calculus", code: "MA-101", status: "ACTIVE" },
+      {
+        id: "database-systems",
+        name: "Database Systems",
+        code: "CS-204",
+        status: "ACTIVE",
+      },
+    ],
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+}));
+
 const renderPage = () =>
   render(
     <MemoryRouter initialEntries={["/education"]}>

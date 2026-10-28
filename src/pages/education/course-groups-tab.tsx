@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { useGetCourseGroups } from "@/api/education/queries";
 import { ResponsiStatusBadge } from "@/components/education/ResponsiStatusBadge";
 import { useNotification } from "@/components/notification";
 import { Container } from "@/components/Utils";
@@ -26,27 +27,11 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import type { ResponsiSummary } from "@/types/education";
+import type { CourseGroup, ResponsiSummary } from "@/types/education";
 
-type CourseGroup = {
-  id: string;
-  name: string;
-  code: string;
-};
-
-// shortcut: mock courses stand in until the Course Group API ships.
-const INITIAL_COURSES: CourseGroup[] = [
-  { id: "algorithm-programming", name: "Algorithm & Programming", code: "CS-101" },
-  { id: "calculus", name: "Calculus", code: "MA-101" },
-  { id: "database-systems", name: "Database Systems", code: "CS-204" },
-  { id: "computer-architecture", name: "Computer Architecture", code: "CS-203" },
-  { id: "operating-systems", name: "Operating Systems", code: "CS-301" },
-  { id: "computer-networks", name: "Computer Networks", code: "CS-302" },
-];
-
-// shortcut: connected resources are mock data until the education API ships.
+// shortcut: connected resources are mock data until the Responsi API ships.
 const COURSE_RESPONSI: Record<string, ResponsiSummary[]> = {
-  "algorithm-programming": [
+  "Algorithm & Programming": [
     {
       id: "dynamic-programming",
       title: "Dynamic Programming",
@@ -68,7 +53,7 @@ const COURSE_RESPONSI: Record<string, ResponsiSummary[]> = {
       lastUpdated: "2026-10-20T07:02:00Z",
     },
   ],
-  calculus: [
+  Calculus: [
     {
       id: "limits-and-continuity",
       title: "Limits and Continuity",
@@ -80,7 +65,7 @@ const COURSE_RESPONSI: Record<string, ResponsiSummary[]> = {
       lastUpdated: "2026-10-22T11:30:00Z",
     },
   ],
-  "database-systems": [
+  "Database Systems": [
     {
       id: "database-normalization",
       title: "Database Normalization",
@@ -92,7 +77,7 @@ const COURSE_RESPONSI: Record<string, ResponsiSummary[]> = {
       lastUpdated: "2026-10-25T09:36:00Z",
     },
   ],
-  "computer-architecture": [
+  "Computer Architecture": [
     {
       id: "computer-architecture-basics",
       title: "Computer Architecture Basics",
@@ -104,7 +89,7 @@ const COURSE_RESPONSI: Record<string, ResponsiSummary[]> = {
       lastUpdated: "2026-10-21T09:19:00Z",
     },
   ],
-  "operating-systems": [
+  "Operating Systems": [
     {
       id: "operating-systems",
       title: "Operating Systems",
@@ -116,7 +101,7 @@ const COURSE_RESPONSI: Record<string, ResponsiSummary[]> = {
       lastUpdated: "2026-10-18T04:20:00Z",
     },
   ],
-  "computer-networks": [
+  "Computer Networks": [
     {
       id: "network-fundamentals",
       title: "Network Fundamentals",
@@ -155,8 +140,16 @@ const ResourcePlaceholder = ({
 
 const CourseGroupsTab = () => {
   const notify = useNotification();
-  const [courses, setCourses] = useState(INITIAL_COURSES);
-  const [selectedId, setSelectedId] = useState(INITIAL_COURSES[0].id);
+  const {
+    data: serverCourses = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useGetCourseGroups();
+  // shortcut: local edits stay in this draft until the Course Group write API ships.
+  const [draftCourses, setDraftCourses] = useState<CourseGroup[] | null>(null);
+  const courses = draftCourses ?? serverCourses;
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<CourseGroup | null>(null);
@@ -166,7 +159,7 @@ const CourseGroupsTab = () => {
   const selectedCourse =
     courses.find((course) => course.id === selectedId) ?? courses[0];
   const selectedResponsi = selectedCourse
-    ? (COURSE_RESPONSI[selectedCourse.id] ?? [])
+    ? (COURSE_RESPONSI[selectedCourse.name] ?? [])
     : [];
 
   const filteredCourses = useMemo(() => {
@@ -174,7 +167,7 @@ const CourseGroupsTab = () => {
     if (!keyword) return courses;
 
     return courses.filter((course) =>
-      [course.name, course.code].some((value) =>
+      [course.name, course.code ?? ""].some((value) =>
         value.toLowerCase().includes(keyword),
       ),
     );
@@ -191,7 +184,7 @@ const CourseGroupsTab = () => {
     if (!selectedCourse) return;
     setEditingCourse(selectedCourse);
     setName(selectedCourse.name);
-    setCode(selectedCourse.code);
+    setCode(selectedCourse.code ?? "");
     setSheetOpen(true);
   };
 
@@ -201,21 +194,22 @@ const CourseGroupsTab = () => {
     if (!trimmedName) return;
 
     if (editingCourse) {
-      setCourses((current) =>
-        current.map((course) =>
+      setDraftCourses((current) =>
+        (current ?? serverCourses).map((course) =>
           course.id === editingCourse.id
-            ? { ...course, name: trimmedName, code: code.trim() }
+            ? { ...course, name: trimmedName, code: code.trim() || null }
             : course,
         ),
       );
       notify("Course updated locally. API sync comes next.");
     } else {
-      const created = {
+      const created: CourseGroup = {
         id: `course-${Date.now()}`,
         name: trimmedName,
-        code: code.trim(),
+        code: code.trim() || null,
+        status: "ACTIVE",
       };
-      setCourses((current) => [...current, created]);
+      setDraftCourses((current) => [...(current ?? serverCourses), created]);
       setSelectedId(created.id);
       notify("Course added locally. API sync comes next.");
     }
@@ -265,11 +259,29 @@ const CourseGroupsTab = () => {
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
-            {filteredCourses.length ? (
+            {isLoading ? (
+              <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+                Loading courses...
+              </p>
+            ) : isError ? (
+              <div className="px-3 py-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Could not load courses.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => refetch()}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : filteredCourses.length ? (
               <ul className="space-y-0.5">
                 {filteredCourses.map((course) => {
                   const isSelected = course.id === selectedCourse?.id;
-                  const count = COURSE_RESPONSI[course.id]?.length ?? 0;
+                  const count = COURSE_RESPONSI[course.name]?.length ?? 0;
 
                   return (
                     <li key={course.id}>
@@ -313,14 +325,26 @@ const CourseGroupsTab = () => {
               </ul>
             ) : (
               <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                No courses match this search.
+                {courses.length
+                  ? "No courses match this search."
+                  : "No courses yet."}
               </p>
             )}
           </div>
         </aside>
 
         <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border">
-          {selectedCourse ? (
+          {isLoading ? (
+            <div className="flex flex-1 items-center justify-center p-6 text-center">
+              <p className="text-sm text-muted-foreground">Loading course...</p>
+            </div>
+          ) : isError ? (
+            <div className="flex flex-1 items-center justify-center p-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                Could not load course groups.
+              </p>
+            </div>
+          ) : selectedCourse ? (
             <>
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border p-4">
                 <div>
