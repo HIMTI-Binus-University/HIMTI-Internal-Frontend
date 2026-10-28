@@ -45,6 +45,27 @@ describe("EducationPage", () => {
     expect(screen.getByText("Showing 1-4 of 4 results")).toBeInTheDocument();
   });
 
+  it("opens the Responsi workspace from a row and returns to the table", () => {
+    renderPage();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Dynamic Programming" }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Document" }),
+    ).toBeInTheDocument();
+    expect(
+      (screen.getByLabelText("Responsi content") as HTMLTextAreaElement).value,
+    ).toContain("Dynamic Programming");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Back to Responsi list" }),
+    );
+
+    expect(screen.getByText("Showing 1-6 of 24 results")).toBeInTheDocument();
+  });
+
   it("switches tabs and keeps the shell tab state", () => {
     renderPage();
 

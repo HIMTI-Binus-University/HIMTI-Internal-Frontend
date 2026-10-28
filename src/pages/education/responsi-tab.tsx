@@ -10,8 +10,9 @@ import {
   Search,
 } from "lucide-react";
 
+import { RESPONSI_STATUS_META } from "@/components/education/responsi-status";
+import { ResponsiStatusBadge } from "@/components/education/ResponsiStatusBadge";
 import { Container } from "@/components/Utils";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { ResponsiStatus, ResponsiSummary } from "@/types/education";
+import ResponsiWorkspace from "./responsi-workspace";
 
 const ALL = "all";
 const PAGE_SIZE = 6;
@@ -113,19 +115,6 @@ const RESPONSI_ROWS: ResponsiSummary[] = [
   ),
 ];
 
-const STATUS_META: Record<
-  ResponsiStatus,
-  {
-    label: string;
-    variant: "success" | "warning" | "neutral" | "danger";
-  }
-> = {
-  PUBLISHED: { label: "Published", variant: "success" },
-  UNDER_REVIEW: { label: "Under Review", variant: "warning" },
-  DRAFT: { label: "Draft", variant: "neutral" },
-  ARCHIVED: { label: "Archived", variant: "danger" },
-};
-
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
   month: "short",
@@ -154,20 +143,6 @@ const formatLastUpdated = (value: string) => {
     date: dateFormatter.format(date),
     time: `${timeFormatter.format(date).replace(":", ".")} WIB`,
   };
-};
-
-const StatusBadge = ({ status }: { status: ResponsiStatus }) => {
-  const meta = STATUS_META[status];
-
-  return (
-    <Badge
-      variant={meta.variant}
-      className="gap-1.5 rounded-md px-2.5 py-0.5 font-medium"
-    >
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
-      {meta.label}
-    </Badge>
-  );
 };
 
 const Pagination = ({
@@ -225,15 +200,15 @@ const ResponsiTab = () => {
   const [examTypeFilter, setExamTypeFilter] = useState(ALL);
   const [statusFilter, setStatusFilter] = useState(ALL);
   const [page, setPage] = useState(1);
+  const [selectedRow, setSelectedRow] = useState<ResponsiSummary | null>(null);
 
-  const courseItems = toSelectItems(
-    uniqueValues(RESPONSI_ROWS.map((row) => row.course)),
-    "All Courses",
-  );
-  const periodItems = toSelectItems(
-    uniqueValues(RESPONSI_ROWS.map((row) => row.academicPeriod)).reverse(),
-    "All Academic Periods",
-  );
+  const courseOptions = uniqueValues(RESPONSI_ROWS.map((row) => row.course));
+  const periodOptions = uniqueValues(
+    RESPONSI_ROWS.map((row) => row.academicPeriod),
+  ).reverse();
+
+  const courseItems = toSelectItems(courseOptions, "All Courses");
+  const periodItems = toSelectItems(periodOptions, "All Academic Periods");
   const examTypeItems = toSelectItems(
     uniqueValues(RESPONSI_ROWS.map((row) => row.examType)),
     "All Exam Types",
@@ -246,7 +221,7 @@ const ResponsiTab = () => {
     label:
       item.value === ALL
         ? item.label
-        : STATUS_META[item.value as ResponsiStatus].label,
+        : RESPONSI_STATUS_META[item.value as ResponsiStatus].label,
   }));
 
   const keyword = search.trim().toLowerCase();
@@ -281,6 +256,30 @@ const ResponsiTab = () => {
     setPage(1);
   };
 
+  const createDraft = () => {
+    setSelectedRow({
+      id: `draft-${Date.now()}`,
+      title: "Untitled Responsi",
+      course: courseOptions[0] ?? "",
+      academicPeriod: periodOptions[0] ?? "",
+      examType: "Mid Exam",
+      pic: "Unassigned",
+      status: "DRAFT",
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  if (selectedRow) {
+    return (
+      <ResponsiWorkspace
+        summary={selectedRow}
+        courseOptions={courseOptions}
+        periodOptions={periodOptions}
+        onClose={() => setSelectedRow(null)}
+      />
+    );
+  }
+
   return (
     <Container className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -292,8 +291,7 @@ const ResponsiTab = () => {
             Create, edit, and manage Responsi summaries.
           </p>
         </div>
-        {/* shortcut: row actions and editor panels arrive with the Responsi workspace. */}
-        <Button size="sm" className="sm:shrink-0">
+        <Button size="sm" className="sm:shrink-0" onClick={createDraft}>
           <Plus />
           Create Responsi
         </Button>
@@ -459,16 +457,24 @@ const ResponsiTab = () => {
                   return (
                     <tr
                       key={row.id}
-                      className="transition-colors hover:bg-muted/30"
+                      className="cursor-pointer transition-colors hover:bg-muted/30"
+                      onClick={() => setSelectedRow(row)}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-semantic-info-background text-primary">
                             <FileText aria-hidden="true" className="size-4" />
                           </span>
-                          <span className="text-sm font-semibold text-foreground">
+                          <button
+                            type="button"
+                            className="text-left text-sm font-semibold text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedRow(row);
+                            }}
+                          >
                             {row.title}
-                          </span>
+                          </button>
                         </div>
                       </td>
                       <td className="max-w-[170px] px-4 py-3 text-sm text-muted-foreground">
@@ -484,7 +490,7 @@ const ResponsiTab = () => {
                         {row.pic}
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadge status={row.status} />
+                        <ResponsiStatusBadge status={row.status} />
                       </td>
                       <td className="px-4 py-3 text-xs leading-5 text-muted-foreground">
                         <span className="block">{updatedAt.date}</span>
@@ -496,6 +502,10 @@ const ResponsiTab = () => {
                             label={`Preview ${row.title}`}
                             tone="primary"
                             size="sm"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedRow(row);
+                            }}
                           >
                             <Eye />
                           </IconButton>
@@ -503,12 +513,17 @@ const ResponsiTab = () => {
                             label={`Edit ${row.title}`}
                             tone="primary"
                             size="sm"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedRow(row);
+                            }}
                           >
                             <Pencil />
                           </IconButton>
                           <IconButton
                             label={`More actions for ${row.title}`}
                             size="sm"
+                            onClick={(event) => event.stopPropagation()}
                           >
                             <EllipsisVertical />
                           </IconButton>
