@@ -287,7 +287,7 @@ const ResponsiTab = () => {
           <h2 className="text-ds-h4 font-semibold tracking-tight text-foreground">
             Responsi
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-base text-muted-foreground">
             Create, edit, and manage Responsi summaries.
           </p>
         </div>
@@ -349,7 +349,7 @@ const ResponsiTab = () => {
         >
           <SelectTrigger
             aria-label="Filter by academic period"
-            className="lg:w-[176px]"
+            className="lg:w-[196px]"
           >
             <SelectValue />
           </SelectTrigger>
@@ -407,7 +407,7 @@ const ResponsiTab = () => {
 
         <Button
           variant="outline"
-          className="lg:w-[84px]"
+          className="lg:w-[112px]"
           onClick={resetFilters}
         >
           Reset
@@ -421,7 +421,7 @@ const ResponsiTab = () => {
               Responsi summaries with course, academic period, exam type, PIC,
               status, last updated, and actions
             </caption>
-            <thead className="sticky top-0 z-10 bg-muted">
+            <thead className="sticky top-0 z-10 bg-muted/50">
               <tr className="text-xs text-muted-foreground">
                 <th scope="col" className="px-4 py-2.5 font-semibold">
                   Title

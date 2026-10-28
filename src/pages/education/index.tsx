@@ -119,7 +119,7 @@ const EducationPage = () => {
           >
             Education
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-base text-muted-foreground">
             Manage Responsi content, Study Clubs, videos, and course groups.
           </p>
         </section>
