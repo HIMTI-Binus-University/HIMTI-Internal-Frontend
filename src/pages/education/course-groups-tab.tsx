@@ -393,7 +393,7 @@ const CourseGroupsTab = () => {
                           Summaries available
                         </p>
                       </div>
-                      <div className="mt-4 flex flex-col gap-1.5 border-t border-border pt-3">
+                      <div className="mt-4 border-t border-border pt-3">
                         <Button
                           variant="default"
                           size="sm"
@@ -404,18 +404,6 @@ const CourseGroupsTab = () => {
                             to={`/education?tab=responsi&course=${encodeURIComponent(selectedCourse.name)}`}
                           >
                             Open in Responsi tab &rarr;
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full justify-center text-xs text-muted-foreground"
-                          asChild
-                        >
-                          <Link
-                            to={`/education?tab=responsi&course=${encodeURIComponent(selectedCourse.name)}&action=create`}
-                          >
-                            <Plus className="mr-1 size-3.5" /> Create Responsi
                           </Link>
                         </Button>
                       </div>
