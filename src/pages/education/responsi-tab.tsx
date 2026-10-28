@@ -9,7 +9,9 @@ import {
   Plus,
   Search,
 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
+import { useGetCourseGroups } from "@/api/education/queries";
 import { RESPONSI_STATUS_META } from "@/components/education/responsi-status";
 import { ResponsiStatusBadge } from "@/components/education/ResponsiStatusBadge";
 import { Container } from "@/components/Utils";
@@ -41,6 +43,16 @@ const CURRENT_RESPONSI: ResponsiSummary[] = [
     pic: "Joshua Alexander Larido",
     status: "PUBLISHED",
     lastUpdated: "2026-10-25T16:56:00Z",
+  },
+  {
+    id: "limits-and-continuity",
+    title: "Limits and Continuity",
+    course: "Calculus",
+    academicPeriod: "2026/2027",
+    examType: "Mid Exam",
+    pic: "Abyan Ikram Muhammad",
+    status: "PUBLISHED",
+    lastUpdated: "2026-10-22T11:30:00Z",
   },
   {
     id: "database-normalization",
@@ -194,18 +206,47 @@ const Pagination = ({
 );
 
 const ResponsiTab = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: dbCourses } = useGetCourseGroups();
+
+  const urlCourse = searchParams.get("course");
+  const urlId = searchParams.get("id");
+  const urlAction = searchParams.get("action");
+
+  const dbCourseNames = (dbCourses ?? []).map((course) => course.name);
+  const courseOptions = uniqueValues([
+    ...dbCourseNames,
+    ...RESPONSI_ROWS.map((row) => row.course),
+  ]);
+  const periodOptions = uniqueValues(
+    RESPONSI_ROWS.map((row) => row.academicPeriod),
+  ).reverse();
+
   const [search, setSearch] = useState("");
-  const [courseFilter, setCourseFilter] = useState(ALL);
+  const [courseFilter, setCourseFilter] = useState(urlCourse || ALL);
   const [periodFilter, setPeriodFilter] = useState(ALL);
   const [examTypeFilter, setExamTypeFilter] = useState(ALL);
   const [statusFilter, setStatusFilter] = useState(ALL);
   const [page, setPage] = useState(1);
-  const [selectedRow, setSelectedRow] = useState<ResponsiSummary | null>(null);
-
-  const courseOptions = uniqueValues(RESPONSI_ROWS.map((row) => row.course));
-  const periodOptions = uniqueValues(
-    RESPONSI_ROWS.map((row) => row.academicPeriod),
-  ).reverse();
+  const [selectedRow, setSelectedRow] = useState<ResponsiSummary | null>(() => {
+    if (urlId) {
+      const match = RESPONSI_ROWS.find((row) => row.id === urlId);
+      if (match) return match;
+    }
+    if (urlAction === "create") {
+      return {
+        id: `draft-${Date.now()}`,
+        title: "Untitled Responsi",
+        course: urlCourse || courseOptions[0] || "",
+        academicPeriod: periodOptions[0] || "",
+        examType: "Mid Exam",
+        pic: "Unassigned",
+        status: "DRAFT",
+        lastUpdated: new Date().toISOString(),
+      };
+    }
+    return null;
+  });
 
   const courseItems = toSelectItems(courseOptions, "All Courses");
   const periodItems = toSelectItems(periodOptions, "All Academic Periods");
@@ -254,13 +295,28 @@ const ResponsiTab = () => {
     setExamTypeFilter(ALL);
     setStatusFilter(ALL);
     setPage(1);
+    if (searchParams.has("course")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("course");
+      setSearchParams(next, { replace: true });
+    }
+  };
+
+  const closeWorkspace = () => {
+    setSelectedRow(null);
+    if (searchParams.has("id") || searchParams.has("action")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("id");
+      next.delete("action");
+      setSearchParams(next, { replace: true });
+    }
   };
 
   const createDraft = () => {
     setSelectedRow({
       id: `draft-${Date.now()}`,
       title: "Untitled Responsi",
-      course: courseOptions[0] ?? "",
+      course: courseFilter !== ALL ? courseFilter : (courseOptions[0] ?? ""),
       academicPeriod: periodOptions[0] ?? "",
       examType: "Mid Exam",
       pic: "Unassigned",
@@ -275,7 +331,7 @@ const ResponsiTab = () => {
         summary={selectedRow}
         courseOptions={courseOptions}
         periodOptions={periodOptions}
-        onClose={() => setSelectedRow(null)}
+        onClose={closeWorkspace}
       />
     );
   }

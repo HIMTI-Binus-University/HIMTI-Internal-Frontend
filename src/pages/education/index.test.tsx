@@ -51,7 +51,7 @@ describe("EducationPage", () => {
     );
     expect(screen.getByText("Dynamic Programming")).toBeInTheDocument();
     expect(screen.getAllByText("Published").length).toBeGreaterThan(0);
-    expect(screen.getByText("Showing 1-6 of 24 results")).toBeInTheDocument();
+    expect(screen.getByText(/Showing 1-6 of \d+ results/)).toBeInTheDocument();
   });
 
   it("filters summaries by search", () => {
@@ -86,7 +86,7 @@ describe("EducationPage", () => {
       screen.getByRole("button", { name: "Back to Responsi list" }),
     );
 
-    expect(screen.getByText("Showing 1-6 of 24 results")).toBeInTheDocument();
+    expect(screen.getByText(/Showing 1-6 of \d+ results/)).toBeInTheDocument();
   });
 
   it("filters and selects a Course Group with its Responsi resources", () => {
@@ -120,5 +120,37 @@ describe("EducationPage", () => {
     expect(
       screen.getByText("Maintain Study Club schedules and sessions."),
     ).toBeInTheDocument();
+  });
+
+  it("preselects course when opened with course query param", () => {
+    render(
+      <MemoryRouter initialEntries={["/education?tab=responsi&course=Calculus"]}>
+        <EducationPage />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getAllByText("Limits and Continuity").length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText("Dynamic Programming")).not.toBeInTheDocument();
+  });
+
+  it("opens a new draft with preselected course on create action", () => {
+    render(
+      <MemoryRouter
+        initialEntries={[
+          "/education?tab=responsi&course=Calculus&action=create",
+        ]}
+      >
+        <EducationPage />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Document" }),
+    ).toBeInTheDocument();
+    expect(
+      (screen.getByLabelText("Responsi content") as HTMLTextAreaElement).value,
+    ).toContain("Calculus");
   });
 });

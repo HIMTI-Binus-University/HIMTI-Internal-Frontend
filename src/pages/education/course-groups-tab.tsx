@@ -380,7 +380,9 @@ const CourseGroupsTab = () => {
                       </span>
                     </div>
                     <Button variant="outline" size="sm" asChild>
-                      <Link to="/education?tab=responsi">
+                      <Link
+                        to={`/education?tab=responsi&course=${encodeURIComponent(selectedCourse.name)}&action=create`}
+                      >
                         <Plus />
                         Create
                       </Link>
@@ -390,19 +392,21 @@ const CourseGroupsTab = () => {
                   {selectedResponsi.length ? (
                     <ul className="mt-2 divide-y divide-border overflow-hidden rounded-xl border border-border">
                       {selectedResponsi.map((responsi) => (
-                        <li
-                          key={responsi.id}
-                          className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5"
-                        >
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-foreground">
-                              {responsi.title}
-                            </p>
-                            <p className="mt-0.5 text-xs text-muted-foreground">
-                              {responsi.examType} · {responsi.academicPeriod}
-                            </p>
-                          </div>
-                          <ResponsiStatusBadge status={responsi.status} />
+                        <li key={responsi.id}>
+                          <Link
+                            to={`/education?tab=responsi&id=${encodeURIComponent(responsi.id)}`}
+                            className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 transition-colors hover:bg-muted/50"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-foreground">
+                                {responsi.title}
+                              </p>
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                {responsi.examType} · {responsi.academicPeriod}
+                              </p>
+                            </div>
+                            <ResponsiStatusBadge status={responsi.status} />
+                          </Link>
                         </li>
                       ))}
                     </ul>
