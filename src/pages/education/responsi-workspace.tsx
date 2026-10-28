@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Clock3,
@@ -10,9 +10,15 @@ import {
   Users,
 } from "lucide-react";
 
+import {
+  useCreateResponsi,
+  useGetResponsi,
+  useGetResponsiVersions,
+  useUpdateResponsi,
+} from "@/api/education/queries";
 import { ResponsiStatusBadge } from "@/components/education/ResponsiStatusBadge";
 import { MarkdownTextarea } from "@/components/markdown-textarea";
-import { useNotification } from "@/components/notification";
+import { backendMessage, useNotification } from "@/components/notification";
 import { ResourceMarkdown } from "@/components/resource-markdown";
 import { Container } from "@/components/Utils";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +47,7 @@ type ResponsiWorkspaceProps = {
   courseOptions: string[];
   periodOptions: string[];
   onClose: () => void;
+  onSaved?: (updated: ResponsiSummary) => void;
 };
 
 const EXAM_TYPE_OPTIONS = ["Mid Exam", "Final Exam"];
@@ -62,37 +69,15 @@ Responsi ini merangkum materi ${summary.course} untuk ${summary.examType} ${summ
 
 Gunakan editor ini untuk menyusun materi bersama PIC dan kontributor.`;
 
-const HISTORY_ITEMS = [
-  {
-    version: "v4",
-    label: "Current draft",
-    detail: "Edited by Joshua Alexander",
-    time: "25 Oct 2026, 23.56 WIB",
-    status: "DRAFT" as ResponsiStatus,
-  },
-  {
-    version: "v3",
-    label: "Published snapshot",
-    detail: "Published by Rachel Vanesssa",
-    time: "24 Oct 2026, 18.10 WIB",
-    status: "PUBLISHED" as ResponsiStatus,
-  },
-  {
-    version: "v2",
-    label: "Submitted for review",
-    detail: "Submitted by Abyan Ikram",
-    time: "22 Oct 2026, 14.42 WIB",
-    status: "UNDER_REVIEW" as ResponsiStatus,
-  },
-];
-
 const ResponsiWorkspace = ({
   summary,
   courseOptions,
   periodOptions,
   onClose,
+  onSaved,
 }: ResponsiWorkspaceProps) => {
   const notify = useNotification();
+  const [activeId, setActiveId] = useState(summary.id);
   const [title, setTitle] = useState(summary.title);
   const [course, setCourse] = useState(summary.course);
   const [academicPeriod, setAcademicPeriod] = useState(
@@ -105,6 +90,26 @@ const ResponsiWorkspace = ({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
+  const isDraftId = activeId.startsWith("draft-");
+
+  const { data: detailData } = useGetResponsi(isDraftId ? undefined : activeId);
+  const { data: versions = [], isLoading: isLoadingVersions } =
+    useGetResponsiVersions(isDraftId ? undefined : activeId);
+
+  const createResponsiMutation = useCreateResponsi();
+  const updateResponsiMutation = useUpdateResponsi();
+  const isPending =
+    createResponsiMutation.isPending || updateResponsiMutation.isPending;
+
+  useEffect(() => {
+    if (detailData?.content !== undefined) {
+      setContent(detailData.content);
+    }
+    if (detailData?.status) {
+      setStatus(detailData.status);
+    }
+  }, [detailData]);
+
   const reviewAction =
     status === "DRAFT"
       ? { label: "Submit for review", next: "UNDER_REVIEW" as const }
@@ -112,14 +117,78 @@ const ResponsiWorkspace = ({
         ? { label: "Publish Responsi", next: "PUBLISHED" as const }
         : null;
 
-  const saveDraft = () => {
-    notify("Draft saved locally. API sync comes next.");
+  const saveDraft = async () => {
+    try {
+      if (isDraftId) {
+        const created = await createResponsiMutation.mutateAsync({
+          title: title.trim() || "Untitled Responsi",
+          course,
+          academicPeriod,
+          examType: (examType as "Mid Exam" | "Final Exam") || "Mid Exam",
+          pic: pic.trim() || "Unassigned",
+          content,
+          status: "DRAFT",
+        });
+        setActiveId(created.id);
+        setStatus(created.status);
+        notify("Responsi draft saved successfully.", "success");
+        onSaved?.(created);
+      } else {
+        const updated = await updateResponsiMutation.mutateAsync({
+          id: activeId,
+          title: title.trim() || "Untitled Responsi",
+          course,
+          academicPeriod,
+          examType: (examType as "Mid Exam" | "Final Exam") || "Mid Exam",
+          pic: pic.trim() || "Unassigned",
+          content,
+          status,
+        });
+        setStatus(updated.status);
+        notify("Draft saved successfully.", "success");
+        onSaved?.(updated);
+      }
+    } catch (err) {
+      notify(backendMessage(err, "Failed to save draft."), "error");
+    }
   };
 
-  const moveStatus = () => {
+  const moveStatus = async () => {
     if (!reviewAction) return;
-    setStatus(reviewAction.next);
-    notify(`${reviewAction.label} done locally. API sync comes next.`);
+    const nextStatus = reviewAction.next;
+    try {
+      if (isDraftId) {
+        const created = await createResponsiMutation.mutateAsync({
+          title: title.trim() || "Untitled Responsi",
+          course,
+          academicPeriod,
+          examType: (examType as "Mid Exam" | "Final Exam") || "Mid Exam",
+          pic: pic.trim() || "Unassigned",
+          content,
+          status: nextStatus,
+        });
+        setActiveId(created.id);
+        setStatus(created.status);
+        notify(`${reviewAction.label} completed.`, "success");
+        onSaved?.(created);
+      } else {
+        const updated = await updateResponsiMutation.mutateAsync({
+          id: activeId,
+          title: title.trim() || "Untitled Responsi",
+          course,
+          academicPeriod,
+          examType: (examType as "Mid Exam" | "Final Exam") || "Mid Exam",
+          pic: pic.trim() || "Unassigned",
+          content,
+          status: nextStatus,
+        });
+        setStatus(updated.status);
+        notify(`${reviewAction.label} completed.`);
+        onSaved?.(updated);
+      }
+    } catch (err) {
+      notify(backendMessage(err, "Failed to update status."), "error");
+    }
   };
 
   return (
@@ -159,12 +228,21 @@ const ResponsiWorkspace = ({
               <Eye />
               Preview
             </Button>
-            <Button size="sm" variant="secondary" onClick={saveDraft}>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={isPending}
+              onClick={saveDraft}
+            >
               <Save />
-              Save draft
+              {isPending ? "Saving..." : "Save draft"}
             </Button>
             {reviewAction && (
-              <Button size="sm" onClick={moveStatus}>
+              <Button
+                size="sm"
+                disabled={isPending}
+                onClick={moveStatus}
+              >
                 <Send />
                 {reviewAction.label}
               </Button>
@@ -193,7 +271,7 @@ const ResponsiWorkspace = ({
               </div>
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Users aria-hidden="true" className="size-3.5" />
-                Joshua is editing
+                {pic || "PIC"} is editing
               </span>
             </div>
             <label className="sr-only" htmlFor="responsi-content">
@@ -346,6 +424,7 @@ const ResponsiWorkspace = ({
                 <Button
                   className="mt-3 w-full"
                   size="sm"
+                  disabled={isPending}
                   onClick={moveStatus}
                 >
                   <Send />
@@ -372,26 +451,48 @@ const ResponsiWorkspace = ({
             </SheetDescription>
           </SheetHeader>
 
-          <ol className="mt-5 space-y-3">
-            {HISTORY_ITEMS.map((item) => (
-              <li
-                key={item.version}
-                className="rounded-xl border border-border p-3"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold">{item.version}</span>
-                  <span className="text-sm">{item.label}</span>
-                  <ResponsiStatusBadge status={item.status} />
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {item.detail}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {item.time}
-                </p>
-              </li>
-            ))}
-          </ol>
+          <div className="mt-5 space-y-3">
+            {isLoadingVersions ? (
+              <p className="py-4 text-center text-xs text-muted-foreground">
+                Loading versions...
+              </p>
+            ) : versions.length > 0 ? (
+              <ol className="space-y-3">
+                {versions.map((item) => (
+                  <li
+                    key={item.id || item.version}
+                    className="rounded-xl border border-border p-3"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold">
+                        {item.version}
+                      </span>
+                      <span className="text-sm">
+                        {item.summary || "Published snapshot"}
+                      </span>
+                      <ResponsiStatusBadge status="PUBLISHED" />
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {item.author
+                        ? `Published by ${item.author}`
+                        : "Snapshot created on publish"}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {new Date(item.createdAt).toLocaleString("en-GB", {
+                        timeZone: "Asia/Jakarta",
+                      })}{" "}
+                      WIB
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+                No published snapshots yet. A new version is automatically
+                generated every time this Responsi is published.
+              </p>
+            )}
+          </div>
         </SheetContent>
       </Sheet>
 

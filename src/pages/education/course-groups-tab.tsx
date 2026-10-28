@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import {
   useCreateCourseGroup,
   useGetCourseGroups,
+  useGetResponsies,
   useUpdateCourseGroup,
 } from "@/api/education/queries";
 import { ResponsiStatusBadge } from "@/components/education/ResponsiStatusBadge";
@@ -150,6 +151,26 @@ const CourseGroupsTab = () => {
     isError,
     refetch,
   } = useGetCourseGroups();
+  const { data: responsiData } = useGetResponsies({ limit: 100 });
+  const responsiesList = responsiData?.data;
+
+  const responsiByCourse = useMemo(() => {
+    const map: Record<string, ResponsiSummary[]> = {};
+    if (responsiesList && responsiesList.length > 0) {
+      for (const r of responsiesList) {
+        if (!map[r.course]) {
+          map[r.course] = [];
+        }
+        map[r.course].push(r);
+      }
+    } else {
+      for (const [courseName, list] of Object.entries(COURSE_RESPONSI)) {
+        map[courseName] = list;
+      }
+    }
+    return map;
+  }, [responsiesList]);
+
   const createMutation = useCreateCourseGroup();
   const updateMutation = useUpdateCourseGroup();
   const isSaving = createMutation.isPending || updateMutation.isPending;
@@ -164,7 +185,7 @@ const CourseGroupsTab = () => {
   const selectedCourse =
     courses.find((course) => course.id === selectedId) ?? courses[0];
   const selectedResponsi = selectedCourse
-    ? (COURSE_RESPONSI[selectedCourse.name] ?? [])
+    ? (responsiByCourse[selectedCourse.name] ?? [])
     : [];
 
   const filteredCourses = useMemo(() => {
@@ -285,7 +306,7 @@ const CourseGroupsTab = () => {
               <ul className="space-y-0.5">
                 {filteredCourses.map((course) => {
                   const isSelected = course.id === selectedCourse?.id;
-                  const count = COURSE_RESPONSI[course.name]?.length ?? 0;
+                  const count = responsiByCourse[course.name]?.length ?? 0;
 
                   return (
                     <li key={course.id}>

@@ -17,6 +17,26 @@ const mockCreate = vi.fn().mockResolvedValue({
   code: "NC-101",
   status: "ACTIVE",
 });
+const mockCreateResponsi = vi.fn().mockResolvedValue({
+  id: "created-responsi",
+  title: "New Responsi",
+  course: "Algorithm & Programming",
+  academicPeriod: "2026/2027",
+  examType: "Mid Exam",
+  pic: "Joshua",
+  status: "DRAFT",
+  lastUpdated: new Date().toISOString(),
+});
+const mockUpdateResponsi = vi.fn().mockResolvedValue({
+  id: "dynamic-programming",
+  title: "Dynamic Programming",
+  course: "Algorithm & Programming",
+  academicPeriod: "2026/2027",
+  examType: "Mid Exam",
+  pic: "Joshua",
+  status: "UNDER_REVIEW",
+  lastUpdated: new Date().toISOString(),
+});
 const mockUpdate = vi.fn().mockResolvedValue({
   id: "algorithm-programming",
   name: "Algorithm & Programming Updated",
@@ -51,6 +71,34 @@ vi.mock("@/api/education/queries", () => ({
   }),
   useUpdateCourseGroup: () => ({
     mutateAsync: mockUpdate,
+    isPending: false,
+  }),
+  useGetResponsies: () => ({
+    data: undefined,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+  useGetResponsi: () => ({
+    data: undefined,
+    isLoading: false,
+    isError: false,
+  }),
+  useGetResponsiVersions: () => ({
+    data: [],
+    isLoading: false,
+    isError: false,
+  }),
+  useCreateResponsi: () => ({
+    mutateAsync: mockCreateResponsi,
+    isPending: false,
+  }),
+  useUpdateResponsi: () => ({
+    mutateAsync: mockUpdateResponsi,
+    isPending: false,
+  }),
+  useDeleteResponsi: () => ({
+    mutateAsync: vi.fn().mockResolvedValue({ success: true }),
     isPending: false,
   }),
 }));
@@ -213,5 +261,20 @@ describe("EducationPage", () => {
       name: "Algorithm & Programming Advanced",
       code: "CS-101",
     });
+  });
+  it("saves responsi draft in workspace via mutation", async () => {
+    renderPage();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Dynamic Programming" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+
+    expect(mockUpdateResponsi).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "dynamic-programming",
+        title: "Dynamic Programming",
+      }),
+    );
   });
 });

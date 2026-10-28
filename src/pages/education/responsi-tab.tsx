@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
-import { useGetCourseGroups } from "@/api/education/queries";
+import { useGetCourseGroups, useGetResponsies } from "@/api/education/queries";
 import { RESPONSI_STATUS_META } from "@/components/education/responsi-status";
 import { ResponsiStatusBadge } from "@/components/education/ResponsiStatusBadge";
 import { Container } from "@/components/Utils";
@@ -32,7 +32,17 @@ const ALL = "all";
 const PAGE_SIZE = 6;
 const DAY_MS = 86_400_000;
 
-// shortcut: mock rows stand in until the education API ships.
+const DEFAULT_COURSES = [
+  "Algorithm & Programming",
+  "Calculus",
+  "Database Systems",
+  "Computer Architecture",
+  "Operating Systems",
+  "Computer Networks",
+];
+
+const DEFAULT_PERIODS = ["2026/2027", "2025/2026", "2024/2025", "2023/2024"];
+
 const CURRENT_RESPONSI: ResponsiSummary[] = [
   {
     id: "dynamic-programming",
@@ -112,7 +122,7 @@ const ARCHIVE_PERIODS = [
   { period: "2023/2024", daysAgo: 1_095 },
 ];
 
-const RESPONSI_ROWS: ResponsiSummary[] = [
+const FALLBACK_RESPONSI_ROWS: ResponsiSummary[] = [
   ...CURRENT_RESPONSI,
   ...ARCHIVE_PERIODS.flatMap(({ period, daysAgo }) =>
     CURRENT_RESPONSI.map((row) => ({
@@ -141,7 +151,9 @@ const timeFormatter = new Intl.DateTimeFormat("en-GB", {
 });
 
 const uniqueValues = (values: string[]) =>
-  Array.from(new Set(values)).sort((left, right) => left.localeCompare(right));
+  Array.from(new Set(values.filter(Boolean))).sort((left, right) =>
+    left.localeCompare(right),
+  );
 
 const toSelectItems = (values: string[], allLabel: string) => [
   { value: ALL, label: allLabel },
@@ -150,6 +162,9 @@ const toSelectItems = (values: string[], allLabel: string) => [
 
 const formatLastUpdated = (value: string) => {
   const date = new Date(value);
+  if (isNaN(date.getTime())) {
+    return { date: "-", time: "-" };
+  }
 
   return {
     date: dateFormatter.format(date),
@@ -207,20 +222,11 @@ const Pagination = ({
 
 const ResponsiTab = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: dbCourses } = useGetCourseGroups();
+  const { data: dbCourses = [] } = useGetCourseGroups();
 
   const urlCourse = searchParams.get("course");
   const urlId = searchParams.get("id");
   const urlAction = searchParams.get("action");
-
-  const dbCourseNames = (dbCourses ?? []).map((course) => course.name);
-  const courseOptions = uniqueValues([
-    ...dbCourseNames,
-    ...RESPONSI_ROWS.map((row) => row.course),
-  ]);
-  const periodOptions = uniqueValues(
-    RESPONSI_ROWS.map((row) => row.academicPeriod),
-  ).reverse();
 
   const [search, setSearch] = useState("");
   const [courseFilter, setCourseFilter] = useState(urlCourse || ALL);
@@ -228,17 +234,55 @@ const ResponsiTab = () => {
   const [examTypeFilter, setExamTypeFilter] = useState(ALL);
   const [statusFilter, setStatusFilter] = useState(ALL);
   const [page, setPage] = useState(1);
+
+  const queryParams = useMemo(
+    () => ({
+      search: search.trim() || undefined,
+      course: courseFilter !== ALL ? courseFilter : undefined,
+      academicPeriod: periodFilter !== ALL ? periodFilter : undefined,
+      examType: examTypeFilter !== ALL ? examTypeFilter : undefined,
+      status: statusFilter !== ALL ? (statusFilter as ResponsiStatus) : undefined,
+      page,
+      limit: PAGE_SIZE,
+    }),
+    [search, courseFilter, periodFilter, examTypeFilter, statusFilter, page],
+  );
+
+  const {
+    data: responsiResponse,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetResponsies(queryParams);
+
+  const courseOptions = useMemo(() => {
+    const fromDb = dbCourses.map((course) => course.name);
+    return uniqueValues([...DEFAULT_COURSES, ...fromDb]);
+  }, [dbCourses]);
+
+  const periodOptions = DEFAULT_PERIODS;
+
   const [selectedRow, setSelectedRow] = useState<ResponsiSummary | null>(() => {
     if (urlId) {
-      const match = RESPONSI_ROWS.find((row) => row.id === urlId);
+      const match = FALLBACK_RESPONSI_ROWS.find((row) => row.id === urlId);
       if (match) return match;
+      return {
+        id: urlId,
+        title: "Untitled Responsi",
+        course: urlCourse || DEFAULT_COURSES[0],
+        academicPeriod: periodOptions[0],
+        examType: "Mid Exam",
+        pic: "Unassigned",
+        status: "DRAFT",
+        lastUpdated: new Date().toISOString(),
+      };
     }
     if (urlAction === "create") {
       return {
         id: `draft-${Date.now()}`,
         title: "Untitled Responsi",
-        course: urlCourse || courseOptions[0] || "",
-        academicPeriod: periodOptions[0] || "",
+        course: urlCourse || DEFAULT_COURSES[0],
+        academicPeriod: periodOptions[0],
         examType: "Mid Exam",
         pic: "Unassigned",
         status: "DRAFT",
@@ -251,22 +295,25 @@ const ResponsiTab = () => {
   const courseItems = toSelectItems(courseOptions, "All Courses");
   const periodItems = toSelectItems(periodOptions, "All Academic Periods");
   const examTypeItems = toSelectItems(
-    uniqueValues(RESPONSI_ROWS.map((row) => row.examType)),
+    ["Mid Exam", "Final Exam"],
     "All Exam Types",
   );
   const statusItems = toSelectItems(
-    uniqueValues(RESPONSI_ROWS.map((row) => row.status)),
+    ["DRAFT", "UNDER_REVIEW", "PUBLISHED", "ARCHIVED"],
     "All Status",
   ).map((item) => ({
     ...item,
     label:
       item.value === ALL
         ? item.label
-        : RESPONSI_STATUS_META[item.value as ResponsiStatus].label,
+        : RESPONSI_STATUS_META[item.value as ResponsiStatus]?.label || item.value,
   }));
 
+  // Fallback to client-side filtering if response data is undefined (e.g., initial or test mock fallback)
+  const isServerDriven = Boolean(responsiResponse?.pagination);
+
   const keyword = search.trim().toLowerCase();
-  const filteredRows = RESPONSI_ROWS.filter((row) => {
+  const fallbackFilteredRows = FALLBACK_RESPONSI_ROWS.filter((row) => {
     const matchesKeyword =
       !keyword ||
       [row.title, row.course, row.pic].some((value) =>
@@ -282,11 +329,23 @@ const ResponsiTab = () => {
     );
   });
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const visibleRows: ResponsiSummary[] = isServerDriven
+    ? (responsiResponse?.data ?? [])
+    : fallbackFilteredRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const totalResults = isServerDriven
+    ? (responsiResponse?.pagination.total ?? 0)
+    : fallbackFilteredRows.length;
+
+  const totalPages = isServerDriven
+    ? Math.max(1, responsiResponse?.pagination.totalPages ?? 1)
+    : Math.max(1, Math.ceil(fallbackFilteredRows.length / PAGE_SIZE));
+
   const currentPage = Math.min(page, totalPages);
-  const firstRow = (currentPage - 1) * PAGE_SIZE;
-  const visibleRows = filteredRows.slice(firstRow, firstRow + PAGE_SIZE);
-  const lastRow = Math.min(firstRow + PAGE_SIZE, filteredRows.length);
+  const firstRow = totalResults === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const lastRow = isServerDriven
+    ? Math.min(currentPage * PAGE_SIZE, totalResults)
+    : Math.min((currentPage - 1) * PAGE_SIZE + PAGE_SIZE, totalResults);
 
   const resetFilters = () => {
     setSearch("");
@@ -317,7 +376,7 @@ const ResponsiTab = () => {
       id: `draft-${Date.now()}`,
       title: "Untitled Responsi",
       course: courseFilter !== ALL ? courseFilter : (courseOptions[0] ?? ""),
-      academicPeriod: periodOptions[0] ?? "",
+      academicPeriod: periodOptions[0] ?? "2026/2027",
       examType: "Mid Exam",
       pic: "Unassigned",
       status: "DRAFT",
@@ -332,6 +391,9 @@ const ResponsiTab = () => {
         courseOptions={courseOptions}
         periodOptions={periodOptions}
         onClose={closeWorkspace}
+        onSaved={(updated) => {
+          setSelectedRow(updated);
+        }}
       />
     );
   }
@@ -506,7 +568,32 @@ const ResponsiTab = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {visibleRows.length ? (
+              {isLoading ? (
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="px-4 py-8 text-center text-sm text-muted-foreground"
+                  >
+                    Loading Responsi...
+                  </td>
+                </tr>
+              ) : isError ? (
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="px-4 py-8 text-center text-sm text-muted-foreground"
+                  >
+                    Could not load Responsi.{" "}
+                    <button
+                      type="button"
+                      className="underline"
+                      onClick={() => refetch()}
+                    >
+                      Retry
+                    </button>
+                  </td>
+                </tr>
+              ) : visibleRows.length ? (
                 visibleRows.map((row) => {
                   const updatedAt = formatLastUpdated(row.lastUpdated);
 
@@ -605,8 +692,7 @@ const ResponsiTab = () => {
 
       <div className="mt-4 flex flex-none flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          Showing {filteredRows.length ? firstRow + 1 : 0}-{lastRow} of{" "}
-          {filteredRows.length} results
+          Showing {firstRow}-{lastRow} of {totalResults} results
         </p>
         <Pagination
           page={currentPage}

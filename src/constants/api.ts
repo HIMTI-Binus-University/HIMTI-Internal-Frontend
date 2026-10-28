@@ -80,6 +80,7 @@ export const Api = {
     "/api/internal/events/:id/registration-form/:action",
   // Education administration endpoints
   courseGroups: "/api/internal/education/course-groups",
+  responsi: "/api/internal/education/responsi",
 
   // Election administration endpoints
   elections: "/api/internal/elections",
