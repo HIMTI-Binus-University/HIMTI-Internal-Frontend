@@ -395,9 +395,9 @@ const CourseGroupsTab = () => {
                       </div>
                       <div className="mt-4 flex flex-col gap-1.5 border-t border-border pt-3">
                         <Button
-                          variant="outline"
+                          variant="default"
                           size="sm"
-                          className="w-full justify-center text-xs"
+                          className="w-full justify-center text-xs font-semibold"
                           asChild
                         >
                           <Link
@@ -442,9 +442,9 @@ const CourseGroupsTab = () => {
                       </div>
                       <div className="mt-4 border-t border-border pt-3">
                         <Button
-                          variant="outline"
+                          variant="default"
                           size="sm"
-                          className="w-full justify-center text-xs"
+                          className="w-full justify-center text-xs font-semibold"
                           asChild
                         >
                           <Link to="/education?tab=study-clubs">
@@ -475,9 +475,9 @@ const CourseGroupsTab = () => {
                       </div>
                       <div className="mt-4 border-t border-border pt-3">
                         <Button
-                          variant="outline"
+                          variant="default"
                           size="sm"
-                          className="w-full justify-center text-xs"
+                          className="w-full justify-center text-xs font-semibold"
                           asChild
                         >
                           <Link to="/education?tab=videos">
