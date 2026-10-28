@@ -284,7 +284,7 @@ const ResponsiTab = () => {
     <Container className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold leading-7 tracking-tight text-foreground">
+          <h2 className="text-ds-h4 font-semibold tracking-tight text-foreground">
             Responsi
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">

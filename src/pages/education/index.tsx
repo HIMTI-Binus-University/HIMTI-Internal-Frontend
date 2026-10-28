@@ -114,7 +114,7 @@ const EducationPage = () => {
         <section aria-labelledby="education-heading">
           <h2
             id="education-heading"
-            className="text-ds-h3 font-bold tracking-tight text-foreground"
+            className="text-ds-h2 font-bold tracking-tight text-foreground"
           >
             Education
           </h2>
@@ -127,11 +127,12 @@ const EducationPage = () => {
           role="tablist"
           aria-label="Education sections"
           onKeyDown={moveTabFocus}
-          className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border lg:grid-cols-4"
+          className="grid grid-cols-2 gap-0 rounded-xl border border-border bg-card p-1 lg:grid-cols-4"
         >
-          {EDUCATION_TABS.map((tab) => {
+          {EDUCATION_TABS.map((tab, index) => {
             const Icon = tab.icon;
             const isActive = tab.id === activeTab.id;
+            const previousIsActive = EDUCATION_TABS[index - 1]?.id === activeTab.id;
 
             return (
               <button
@@ -146,10 +147,14 @@ const EducationPage = () => {
                 aria-controls={`education-panel-${tab.id}`}
                 tabIndex={isActive ? 0 : -1}
                 onClick={() => selectTab(tab)}
-                className={`flex min-h-14 items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
+                className={`flex min-h-12 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
                   isActive
-                    ? "bg-semantic-info-background font-semibold text-primary shadow-[inset_0_-2px_0_0_hsl(var(--primary))]"
-                    : "bg-card text-foreground hover:bg-muted/50"
+                    ? "bg-semantic-info-background font-semibold text-primary"
+                    : "text-foreground hover:bg-muted/60"
+                } ${
+                  index > 0 && !isActive && !previousIsActive
+                    ? "lg:border-l lg:border-border"
+                    : ""
                 }`}
               >
                 <Icon
