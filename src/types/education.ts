@@ -18,17 +18,20 @@ export interface CourseGroup {
   id: string;
   name: string;
   code: string | null;
+  description?: string | null;
   status: CourseGroupStatus;
 }
 
 export interface CreateCourseGroupPayload {
   name: string;
   code?: string | null;
+  description?: string | null;
 }
 
 export interface UpdateCourseGroupPayload {
   name?: string;
   code?: string | null;
+  description?: string | null;
   status?: CourseGroupStatus;
 }
 

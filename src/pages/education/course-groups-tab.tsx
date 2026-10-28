@@ -8,7 +8,6 @@ import {
   Pencil,
   Plus,
   Search,
-  type LucideIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -18,7 +17,6 @@ import {
   useGetResponsies,
   useUpdateCourseGroup,
 } from "@/api/education/queries";
-import { ResponsiStatusBadge } from "@/components/education/ResponsiStatusBadge";
 import { backendMessage, useNotification } from "@/components/notification";
 import { Container } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
@@ -32,116 +30,42 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import type { CourseGroup, ResponsiSummary } from "@/types/education";
+import type { CourseGroup } from "@/types/education";
 
-// shortcut: connected resources are mock data until the Responsi API ships.
-const COURSE_RESPONSI: Record<string, ResponsiSummary[]> = {
-  "Algorithm & Programming": [
-    {
-      id: "dynamic-programming",
-      title: "Dynamic Programming",
-      course: "Algorithm & Programming",
-      academicPeriod: "2026/2027",
-      examType: "Mid Exam",
-      pic: "Joshua Alexander Larido",
-      status: "PUBLISHED",
-      lastUpdated: "2026-10-25T16:56:00Z",
-    },
-    {
-      id: "graph-algorithms",
-      title: "Graph Algorithms",
-      course: "Algorithm & Programming",
-      academicPeriod: "2026/2027",
-      examType: "Final Exam",
-      pic: "Rachel Vanesssa",
-      status: "DRAFT",
-      lastUpdated: "2026-10-20T07:02:00Z",
-    },
-  ],
-  Calculus: [
-    {
-      id: "limits-and-continuity",
-      title: "Limits and Continuity",
-      course: "Calculus",
-      academicPeriod: "2026/2027",
-      examType: "Mid Exam",
-      pic: "Abyan Ikram Muhammad",
-      status: "PUBLISHED",
-      lastUpdated: "2026-10-22T11:30:00Z",
-    },
-  ],
-  "Database Systems": [
-    {
-      id: "database-normalization",
-      title: "Database Normalization",
-      course: "Database Systems",
-      academicPeriod: "2026/2027",
-      examType: "Mid Exam",
-      pic: "Abyan Ikram Muhammad",
-      status: "PUBLISHED",
-      lastUpdated: "2026-10-25T09:36:00Z",
-    },
-  ],
-  "Computer Architecture": [
-    {
-      id: "computer-architecture-basics",
-      title: "Computer Architecture Basics",
-      course: "Computer Architecture",
-      academicPeriod: "2026/2027",
-      examType: "Mid Exam",
-      pic: "Joshua Alexander Larido",
-      status: "UNDER_REVIEW",
-      lastUpdated: "2026-10-21T09:19:00Z",
-    },
-  ],
-  "Operating Systems": [
-    {
-      id: "operating-systems",
-      title: "Operating Systems",
-      course: "Operating Systems",
-      academicPeriod: "2026/2027",
-      examType: "Mid Exam",
-      pic: "Abyan Ikram Muhammad",
-      status: "DRAFT",
-      lastUpdated: "2026-10-18T04:20:00Z",
-    },
-  ],
-  "Computer Networks": [
-    {
-      id: "network-fundamentals",
-      title: "Network Fundamentals",
-      course: "Computer Networks",
-      academicPeriod: "2026/2027",
-      examType: "Final Exam",
-      pic: "Christopher Sebastian",
-      status: "ARCHIVED",
-      lastUpdated: "2026-10-10T02:14:00Z",
-    },
-  ],
+const DEFAULT_SYLLABUS_SUMMARIES: Record<string, string> = {
+  "Algorithm & Programming":
+    "Fundamental concepts of algorithm design, flowcharting, pseudocode, and procedural programming in C/C++, covering variables, control structures, functions, pointers, arrays, and file handling.",
+  Calculus:
+    "Differential and integral calculus, limits, continuity, derivatives, optimization problems, and integration techniques with applications in computational science.",
+  "Database Systems":
+    "Relational database concepts, entity-relationship modeling, relational algebra, SQL querying and DDL/DML, normalization up to BCNF, indexing, and transaction management.",
+  "Computer Architecture":
+    "Von Neumann architecture, instruction set architecture (ISA), processor datapath and control unit, memory hierarchy and cache, pipelining, and I/O subsystems.",
+  "Operating Systems":
+    "Operating system concepts, process and thread management, CPU scheduling, synchronization primitives (mutex, semaphores), deadlock handling, virtual memory, and file systems.",
+  "Computer Networks":
+    "OSI and TCP/IP network architectures, physical and data link protocols, IP addressing and subnetting, routing protocols, transport protocols (TCP/UDP), and socket programming.",
+  "Data Structures":
+    "Abstract data types, dynamic memory allocation, linked lists, stacks, queues, trees, binary search trees, heaps, hash tables, and graph representations with complexity analysis.",
+  "Program Design Methods":
+    "Structured programming methodologies, modular program design, algorithm efficiency, defensive coding, testing, and problem decomposition techniques.",
+  "Discrete Mathematics":
+    "Set theory, mathematical logic, relations and functions, combinatorics, graph theory, Boolean algebra, and tree structures essential for computing.",
+  "Linear Algebra":
+    "Systems of linear equations, matrices, determinants, vector spaces, eigenvalues, eigenvectors, and linear transformations applied to computer graphics and data analysis.",
+  "Object Oriented Programming":
+    "Object-oriented paradigm using Java, encapsulation, inheritance, polymorphism, abstract classes, interfaces, exception handling, design patterns, and GUI programming.",
+  "Design and Analysis of Algorithms":
+    "Advanced algorithm design paradigms including divide-and-conquer, greedy algorithms, dynamic programming, network flow, and computational complexity (P vs NP).",
+  "Software Engineering":
+    "Software lifecycle models, Agile/Scrum methodologies, requirements engineering, UML modeling, architectural patterns, software testing, and quality assurance.",
+  "Web Programming":
+    "Modern web application development covering full-stack architecture, frontend frameworks, RESTful API design, server-side development, authentication, and web security.",
+  "Artificial Intelligence":
+    "Search algorithms, heuristic search, knowledge representation, expert systems, probabilistic reasoning, introduction to machine learning, and neural networks.",
+  "Human and Computer Interaction":
+    "User-centered design principles, usability heuristics, user research, wireframing, interactive prototyping, and usability evaluation of digital interfaces.",
 };
-
-const ResourcePlaceholder = ({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: LucideIcon;
-  title: string;
-  description: string;
-}) => (
-  <section className="rounded-xl border border-dashed border-border p-4">
-    <div className="flex flex-wrap items-center gap-2">
-      <Icon aria-hidden="true" className="size-4 text-muted-foreground" />
-      <h4 className="text-sm font-semibold text-foreground">{title}</h4>
-      <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-        Managed in its own tab
-      </span>
-    </div>
-    <p className="mt-2 text-xs leading-5 text-muted-foreground">
-      {description}
-    </p>
-  </section>
-);
 
 const CourseGroupsTab = () => {
   const notify = useNotification();
@@ -154,18 +78,18 @@ const CourseGroupsTab = () => {
   const { data: responsiData } = useGetResponsies({ limit: 100 });
   const responsiesList = responsiData?.data;
 
-  const responsiByCourse = useMemo(() => {
-    const map: Record<string, ResponsiSummary[]> = {};
+  const responsiCountByCourse = useMemo(() => {
+    const map: Record<string, number> = {
+      "Algorithm & Programming": 2,
+      Calculus: 1,
+      "Database Systems": 1,
+      "Computer Architecture": 1,
+      "Operating Systems": 1,
+      "Computer Networks": 1,
+    };
     if (responsiesList && responsiesList.length > 0) {
       for (const r of responsiesList) {
-        if (!map[r.course]) {
-          map[r.course] = [];
-        }
-        map[r.course].push(r);
-      }
-    } else {
-      for (const [courseName, list] of Object.entries(COURSE_RESPONSI)) {
-        map[courseName] = list;
+        map[r.course] = (map[r.course] || 0) + 1;
       }
     }
     return map;
@@ -181,12 +105,18 @@ const CourseGroupsTab = () => {
   const [editingCourse, setEditingCourse] = useState<CourseGroup | null>(null);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+  const [description, setDescription] = useState("");
 
   const selectedCourse =
     courses.find((course) => course.id === selectedId) ?? courses[0];
-  const selectedResponsi = selectedCourse
-    ? (responsiByCourse[selectedCourse.name] ?? [])
-    : [];
+  const selectedResponsiCount = selectedCourse
+    ? (responsiCountByCourse[selectedCourse.name] ?? 0)
+    : 0;
+  const courseSummary = selectedCourse
+    ? selectedCourse.description ||
+      DEFAULT_SYLLABUS_SUMMARIES[selectedCourse.name] ||
+      "Overview of topics and core competencies covered in this course from the Binus Computer Science syllabus."
+    : "";
 
   const filteredCourses = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -203,6 +133,7 @@ const CourseGroupsTab = () => {
     setEditingCourse(null);
     setName("");
     setCode("");
+    setDescription("");
     setSheetOpen(true);
   };
 
@@ -211,6 +142,7 @@ const CourseGroupsTab = () => {
     setEditingCourse(selectedCourse);
     setName(selectedCourse.name);
     setCode(selectedCourse.code ?? "");
+    setDescription(selectedCourse.description ?? "");
     setSheetOpen(true);
   };
 
@@ -225,37 +157,42 @@ const CourseGroupsTab = () => {
           id: editingCourse.id,
           name: trimmedName,
           code: code.trim() || null,
+          description: description.trim() || null,
         });
-        notify("Course updated successfully.");
+        notify("Course updated successfully.", "success");
       } else {
         const created = await createMutation.mutateAsync({
           name: trimmedName,
           code: code.trim() || null,
+          description: description.trim() || null,
         });
         setSelectedId(created.id);
-        notify("Course added successfully.");
+        notify("Course added successfully.", "success");
       }
 
       setSearch("");
       setSheetOpen(false);
-    } catch (error) {
-      notify(backendMessage(error, "Failed to save course."), "error");
+    } catch (cause) {
+      notify(
+        backendMessage(cause, "Could not save course. Please try again."),
+        "error",
+      );
     }
   };
 
   return (
     <Container className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
-      <div>
+      <div className="flex flex-col gap-1">
         <h2 className="text-ds-h4 font-semibold tracking-tight text-foreground">
           Course Groups
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Organize courses and see the resources connected to each one.
+        <p className="text-base text-muted-foreground">
+          Academic syllabus courses from Binus CS curriculum and associated learning resources.
         </p>
       </div>
 
-      <div className="mt-4 grid min-h-0 flex-1 gap-4 overflow-y-auto lg:grid-cols-[280px_minmax(0,1fr)] lg:overflow-hidden">
-        <aside className="flex max-h-[340px] min-h-0 flex-col overflow-hidden rounded-xl border border-border lg:max-h-none">
+      <div className="mt-4 grid min-h-0 flex-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <aside className="flex min-h-0 flex-col rounded-xl border border-border">
           <div className="border-b border-border p-3">
             <label className="sr-only" htmlFor="course-group-search">
               Search courses
@@ -306,7 +243,7 @@ const CourseGroupsTab = () => {
               <ul className="space-y-0.5">
                 {filteredCourses.map((course) => {
                   const isSelected = course.id === selectedCourse?.id;
-                  const count = responsiByCourse[course.name]?.length ?? 0;
+                  const count = responsiCountByCourse[course.name] ?? 0;
 
                   return (
                     <li key={course.id}>
@@ -373,11 +310,16 @@ const CourseGroupsTab = () => {
             <>
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border p-4">
                 <div>
-                  <h3 className="text-lg font-semibold leading-7 tracking-tight text-foreground">
-                    {selectedCourse.name}
-                  </h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-lg font-semibold leading-7 tracking-tight text-foreground">
+                      {selectedCourse.name}
+                    </h3>
+                    <span className="rounded-md bg-semantic-info-background px-2 py-0.5 text-xs font-semibold text-primary">
+                      {selectedCourse.code || "No code"}
+                    </span>
+                  </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {selectedCourse.code || "No course code"}
+                    Academic Year 2026/2027 · Binus Computer Science Syllabus
                   </p>
                 </div>
                 <Button variant="outline" size="sm" onClick={openEditCourse}>
@@ -387,71 +329,165 @@ const CourseGroupsTab = () => {
               </div>
 
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-                <section aria-labelledby="course-responsi-heading">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                {/* Brief Summary Section */}
+                <section
+                  aria-labelledby="course-summary-heading"
+                  className="rounded-xl border border-border bg-card p-4"
+                >
+                  <div className="flex items-center justify-between gap-2 border-b border-border pb-3">
                     <div className="flex items-center gap-2">
-                      <FileText
+                      <BookOpen
                         aria-hidden="true"
-                        className="size-4 text-muted-foreground"
+                        className="size-4 text-primary"
                       />
                       <h4
-                        id="course-responsi-heading"
+                        id="course-summary-heading"
                         className="text-sm font-semibold text-foreground"
                       >
-                        Responsi
+                        Brief Summary
                       </h4>
-                      <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                        {selectedResponsi.length}
-                      </span>
                     </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link
-                        to={`/education?tab=responsi&course=${encodeURIComponent(selectedCourse.name)}&action=create`}
-                      >
-                        <Plus />
-                        Create
-                      </Link>
-                    </Button>
+                    <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      Binus CS Syllabus
+                    </span>
                   </div>
-
-                  {selectedResponsi.length ? (
-                    <ul className="mt-2 divide-y divide-border overflow-hidden rounded-xl border border-border">
-                      {selectedResponsi.map((responsi) => (
-                        <li key={responsi.id}>
-                          <Link
-                            to={`/education?tab=responsi&id=${encodeURIComponent(responsi.id)}`}
-                            className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 transition-colors hover:bg-muted/50"
-                          >
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-foreground">
-                                {responsi.title}
-                              </p>
-                              <p className="mt-0.5 text-xs text-muted-foreground">
-                                {responsi.examType} · {responsi.academicPeriod}
-                              </p>
-                            </div>
-                            <ResponsiStatusBadge status={responsi.status} />
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-2 rounded-xl border border-dashed border-border px-3 py-5 text-center text-sm text-muted-foreground">
-                      No Responsi for this course yet.
-                    </p>
-                  )}
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                    {courseSummary}
+                  </p>
                 </section>
 
-                <ResourcePlaceholder
-                  icon={CalendarDays}
-                  title="Study Clubs"
-                  description="Session schedules for this course are managed in the Study Clubs tab. This section is read-only here."
-                />
-                <ResourcePlaceholder
-                  icon={CirclePlay}
-                  title="Videos"
-                  description="Recordings for this course are managed in the Videos tab. This section is read-only here."
-                />
+                {/* Associated Resources Section */}
+                <section
+                  aria-labelledby="course-resources-heading"
+                  className="space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <h4
+                      id="course-resources-heading"
+                      className="text-sm font-semibold text-foreground"
+                    >
+                      Associated Resources
+                    </h4>
+                    <span className="text-xs text-muted-foreground">
+                      Managed in dedicated feature tabs
+                    </span>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {/* Responsi Card */}
+                    <div className="flex flex-col justify-between rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40">
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Responsi
+                          </span>
+                          <FileText
+                            aria-hidden="true"
+                            className="size-4 text-primary"
+                          />
+                        </div>
+                        <p className="mt-3 text-2xl font-bold tracking-tight text-foreground">
+                          {selectedResponsiCount}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          Summaries available
+                        </p>
+                      </div>
+                      <div className="mt-4 flex flex-col gap-1.5 border-t border-border pt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full justify-center text-xs"
+                          asChild
+                        >
+                          <Link
+                            to={`/education?tab=responsi&course=${encodeURIComponent(selectedCourse.name)}`}
+                          >
+                            Open in Responsi tab &rarr;
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-center text-xs text-muted-foreground"
+                          asChild
+                        >
+                          <Link
+                            to={`/education?tab=responsi&course=${encodeURIComponent(selectedCourse.name)}&action=create`}
+                          >
+                            <Plus className="mr-1 size-3.5" /> Create Responsi
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Study Clubs Card */}
+                    <div className="flex flex-col justify-between rounded-xl border border-border bg-card p-4">
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Study Clubs
+                          </span>
+                          <CalendarDays
+                            aria-hidden="true"
+                            className="size-4 text-muted-foreground"
+                          />
+                        </div>
+                        <p className="mt-3 text-2xl font-bold tracking-tight text-foreground">
+                          --
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          Scheduled peer sessions
+                        </p>
+                      </div>
+                      <div className="mt-4 border-t border-border pt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full justify-center text-xs"
+                          asChild
+                        >
+                          <Link to="/education?tab=study-clubs">
+                            View Study Clubs &rarr;
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Videos Card */}
+                    <div className="flex flex-col justify-between rounded-xl border border-border bg-card p-4">
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Videos
+                          </span>
+                          <CirclePlay
+                            aria-hidden="true"
+                            className="size-4 text-muted-foreground"
+                          />
+                        </div>
+                        <p className="mt-3 text-2xl font-bold tracking-tight text-foreground">
+                          --
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          Recorded tutorials
+                        </p>
+                      </div>
+                      <div className="mt-4 border-t border-border pt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full justify-center text-xs"
+                          asChild
+                        >
+                          <Link to="/education?tab=videos">
+                            View Videos &rarr;
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
               </div>
             </>
           ) : (
@@ -465,17 +501,19 @@ const CourseGroupsTab = () => {
       </div>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
+        <SheetContent side="right" className="w-full sm:max-w-md">
           <SheetHeader>
             <SheetTitle>
               {editingCourse ? "Edit course" : "Add course"}
             </SheetTitle>
             <SheetDescription>
-              Course names are shared by Responsi, Study Clubs, and Videos.
+              {editingCourse
+                ? "Update the course name, syllabus code, or brief summary."
+                : "Add a course group to organize Responsi, Study Clubs, and Videos."}
             </SheetDescription>
           </SheetHeader>
 
-          <form className="mt-5 space-y-3" onSubmit={saveCourse}>
+          <form onSubmit={saveCourse} className="mt-5 space-y-4">
             <div>
               <Label htmlFor="course-name" className="mb-1.5">
                 Course name
@@ -488,6 +526,7 @@ const CourseGroupsTab = () => {
                 required
               />
             </div>
+
             <div>
               <Label htmlFor="course-code" className="mb-1.5">
                 Course code
@@ -496,10 +535,24 @@ const CourseGroupsTab = () => {
                 id="course-code"
                 value={code}
                 onChange={(event) => setCode(event.target.value)}
-                placeholder="e.g. CS-101"
+                placeholder="e.g. COMP6047001"
               />
             </div>
-            <div className="flex justify-end gap-2 pt-2">
+
+            <div>
+              <Label htmlFor="course-description" className="mb-1.5">
+                Brief summary / Syllabus overview
+              </Label>
+              <textarea
+                id="course-description"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder="Overview of topics and concepts covered in this course..."
+                className="flex min-h-[100px] w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:bg-muted"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
               <Button
                 type="button"
                 variant="outline"
@@ -507,7 +560,7 @@ const CourseGroupsTab = () => {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSaving}>
+              <Button type="submit" disabled={isSaving || !name.trim()}>
                 {isSaving
                   ? "Saving..."
                   : editingCourse

@@ -158,7 +158,7 @@ describe("EducationPage", () => {
     expect(screen.getByText(/Showing 1-6 of \d+ results/)).toBeInTheDocument();
   });
 
-  it("filters and selects a Course Group with its Responsi resources", () => {
+  it("filters and selects a Course Group with its brief summary", () => {
     renderPage();
 
     fireEvent.click(screen.getByRole("tab", { name: "Course Groups" }));
@@ -174,7 +174,7 @@ describe("EducationPage", () => {
     expect(
       screen.getByRole("heading", { name: "Calculus" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Limits and Continuity")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Brief Summary" })).toBeInTheDocument();
   });
 
   it("switches tabs and keeps the shell tab state", () => {
@@ -238,10 +238,12 @@ describe("EducationPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Add course" }));
 
-    expect(mockCreate).toHaveBeenCalledWith({
-      name: "Linear Algebra",
-      code: "MA-201",
-    });
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "Linear Algebra",
+        code: "MA-201",
+      }),
+    );
   });
 
   it("calls update course mutation when editing a course", async () => {
@@ -256,11 +258,13 @@ describe("EducationPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
-    expect(mockUpdate).toHaveBeenCalledWith({
-      id: "algorithm-programming",
-      name: "Algorithm & Programming Advanced",
-      code: "CS-101",
-    });
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "algorithm-programming",
+        name: "Algorithm & Programming Advanced",
+        code: "CS-101",
+      }),
+    );
   });
   it("saves responsi draft in workspace via mutation", async () => {
     renderPage();
