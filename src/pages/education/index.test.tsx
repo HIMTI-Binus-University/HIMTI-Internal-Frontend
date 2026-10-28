@@ -66,6 +66,25 @@ describe("EducationPage", () => {
     expect(screen.getByText("Showing 1-6 of 24 results")).toBeInTheDocument();
   });
 
+  it("filters and selects a Course Group with its Responsi resources", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Course Groups" }));
+    expect(
+      screen.getByRole("heading", { name: "Course Groups" }),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Search courses"), {
+      target: { value: "Calculus" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Calculus/ }));
+
+    expect(
+      screen.getByRole("heading", { name: "Calculus" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Limits and Continuity")).toBeInTheDocument();
+  });
+
   it("switches tabs and keeps the shell tab state", () => {
     renderPage();
 
