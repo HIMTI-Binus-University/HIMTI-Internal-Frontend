@@ -15,6 +15,17 @@ export interface CourseGroup {
   status: CourseGroupStatus;
 }
 
+export interface CreateCourseGroupPayload {
+  name: string;
+  code?: string | null;
+}
+
+export interface UpdateCourseGroupPayload {
+  name?: string;
+  code?: string | null;
+  status?: CourseGroupStatus;
+}
+
 export interface CourseGroupListResponse {
   data: CourseGroup[];
 }

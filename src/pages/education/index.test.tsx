@@ -11,6 +11,19 @@ vi.mock("@/components/Utils", async (original) => ({
   ),
 }));
 
+const mockCreate = vi.fn().mockResolvedValue({
+  id: "new-course",
+  name: "New Course",
+  code: "NC-101",
+  status: "ACTIVE",
+});
+const mockUpdate = vi.fn().mockResolvedValue({
+  id: "algorithm-programming",
+  name: "Algorithm & Programming Updated",
+  code: "CS-101",
+  status: "ACTIVE",
+});
+
 vi.mock("@/api/education/queries", () => ({
   useGetCourseGroups: () => ({
     data: [
@@ -31,6 +44,14 @@ vi.mock("@/api/education/queries", () => ({
     isLoading: false,
     isError: false,
     refetch: vi.fn(),
+  }),
+  useCreateCourseGroup: () => ({
+    mutateAsync: mockCreate,
+    isPending: false,
+  }),
+  useUpdateCourseGroup: () => ({
+    mutateAsync: mockUpdate,
+    isPending: false,
   }),
 }));
 
@@ -152,5 +173,45 @@ describe("EducationPage", () => {
     expect(
       (screen.getByLabelText("Responsi content") as HTMLTextAreaElement).value,
     ).toContain("Calculus");
+  });
+
+  it("calls create course mutation when submitting add course form", async () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Course Groups" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add course" }));
+
+    fireEvent.change(screen.getByLabelText("Course name"), {
+      target: { value: "Linear Algebra" },
+    });
+    fireEvent.change(screen.getByLabelText("Course code"), {
+      target: { value: "MA-201" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add course" }));
+
+    expect(mockCreate).toHaveBeenCalledWith({
+      name: "Linear Algebra",
+      code: "MA-201",
+    });
+  });
+
+  it("calls update course mutation when editing a course", async () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Course Groups" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit course" }));
+
+    fireEvent.change(screen.getByLabelText("Course name"), {
+      target: { value: "Algorithm & Programming Advanced" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(mockUpdate).toHaveBeenCalledWith({
+      id: "algorithm-programming",
+      name: "Algorithm & Programming Advanced",
+      code: "CS-101",
+    });
   });
 });

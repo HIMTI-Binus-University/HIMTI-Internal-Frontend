@@ -12,9 +12,13 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { useGetCourseGroups } from "@/api/education/queries";
+import {
+  useCreateCourseGroup,
+  useGetCourseGroups,
+  useUpdateCourseGroup,
+} from "@/api/education/queries";
 import { ResponsiStatusBadge } from "@/components/education/ResponsiStatusBadge";
-import { useNotification } from "@/components/notification";
+import { backendMessage, useNotification } from "@/components/notification";
 import { Container } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -141,14 +145,15 @@ const ResourcePlaceholder = ({
 const CourseGroupsTab = () => {
   const notify = useNotification();
   const {
-    data: serverCourses = [],
+    data: courses = [],
     isLoading,
     isError,
     refetch,
   } = useGetCourseGroups();
-  // shortcut: local edits stay in this draft until the Course Group write API ships.
-  const [draftCourses, setDraftCourses] = useState<CourseGroup[] | null>(null);
-  const courses = draftCourses ?? serverCourses;
+  const createMutation = useCreateCourseGroup();
+  const updateMutation = useUpdateCourseGroup();
+  const isSaving = createMutation.isPending || updateMutation.isPending;
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -188,34 +193,33 @@ const CourseGroupsTab = () => {
     setSheetOpen(true);
   };
 
-  const saveCourse = (event: FormEvent<HTMLFormElement>) => {
+  const saveCourse = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedName = name.trim();
-    if (!trimmedName) return;
+    if (!trimmedName || isSaving) return;
 
-    if (editingCourse) {
-      setDraftCourses((current) =>
-        (current ?? serverCourses).map((course) =>
-          course.id === editingCourse.id
-            ? { ...course, name: trimmedName, code: code.trim() || null }
-            : course,
-        ),
-      );
-      notify("Course updated locally. API sync comes next.");
-    } else {
-      const created: CourseGroup = {
-        id: `course-${Date.now()}`,
-        name: trimmedName,
-        code: code.trim() || null,
-        status: "ACTIVE",
-      };
-      setDraftCourses((current) => [...(current ?? serverCourses), created]);
-      setSelectedId(created.id);
-      notify("Course added locally. API sync comes next.");
+    try {
+      if (editingCourse) {
+        await updateMutation.mutateAsync({
+          id: editingCourse.id,
+          name: trimmedName,
+          code: code.trim() || null,
+        });
+        notify("Course updated successfully.");
+      } else {
+        const created = await createMutation.mutateAsync({
+          name: trimmedName,
+          code: code.trim() || null,
+        });
+        setSelectedId(created.id);
+        notify("Course added successfully.");
+      }
+
+      setSearch("");
+      setSheetOpen(false);
+    } catch (error) {
+      notify(backendMessage(error, "Failed to save course."), "error");
     }
-
-    setSearch("");
-    setSheetOpen(false);
   };
 
   return (
@@ -482,8 +486,12 @@ const CourseGroupsTab = () => {
               >
                 Cancel
               </Button>
-              <Button type="submit">
-                {editingCourse ? "Save changes" : "Add course"}
+              <Button type="submit" disabled={isSaving}>
+                {isSaving
+                  ? "Saving..."
+                  : editingCourse
+                    ? "Save changes"
+                    : "Add course"}
               </Button>
             </div>
           </form>
