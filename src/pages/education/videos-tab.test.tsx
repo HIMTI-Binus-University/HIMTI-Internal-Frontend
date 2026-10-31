@@ -115,6 +115,14 @@ describe("VideosTab", () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
 
+  it("explains when session integration is unavailable", () => {
+    mocks.sessions.mockReturnValue({ data: [], isLoading: false, isError: false, isUnavailable: true, refetch: mocks.refetch });
+    render(<VideosTab />);
+    fireEvent.click(screen.getByRole("button", { name: "Add video" }));
+    expect(screen.getByText(/Session integration is not available yet/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add draft" })).toBeDisabled();
+  });
+
   it("offers a retry and prevents saving when sessions cannot be loaded", () => {
     mocks.sessions.mockReturnValue({ data: undefined, isLoading: false, isError: true, refetch: mocks.refetch });
     render(<VideosTab />);

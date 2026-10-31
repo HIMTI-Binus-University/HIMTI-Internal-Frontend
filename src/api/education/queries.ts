@@ -32,15 +32,14 @@ export const educationKeys = {
     ["education", "responsies", id, "versions"] as const,
 };
 
-export const useGetEducationSessions = (enabled = true) =>
-  useQuery({
-    queryKey: educationKeys.sessions,
-    queryFn: () =>
-      apiClient
-        .get<{ data: EducationSession[] }>(Api.educationSessions)
-        .then((response) => response.data.data),
-    enabled,
-  });
+// Videos need a session provider before session selection can be enabled.
+export const useGetEducationSessions = (_enabled = true) => ({
+  data: [] as EducationSession[],
+  isLoading: false,
+  isError: false,
+  isUnavailable: true,
+  refetch: () => undefined,
+});
 
 export const useGetEducationVideos = (params: EducationVideoQueryParams) =>
   useQuery({

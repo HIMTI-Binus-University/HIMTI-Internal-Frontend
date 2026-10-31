@@ -228,7 +228,8 @@ const VideosTab = () => {
               </select>
               {sessions.isLoading && <p role="status" className="text-sm text-muted-foreground">Loading sessions...</p>}
               {sessions.isError && <p role="alert" className="text-sm text-destructive">Could not load sessions. <button type="button" className="underline" onClick={() => void sessions.refetch()}>Retry</button></p>}
-              {!sessions.isLoading && !sessions.isError && sessions.data?.length === 0 && <p className="text-sm text-muted-foreground">No Education sessions are available. Create a session first, then add its recording.</p>}
+              {sessions.isUnavailable && <p className="text-sm text-muted-foreground">Session integration is not available yet. Video creation will be available after sessions are integrated.</p>}
+              {!sessions.isUnavailable && !sessions.isLoading && !sessions.isError && sessions.data?.length === 0 && <p className="text-sm text-muted-foreground">No Education sessions are available. Create a session first, then add its recording.</p>}
               <p className="text-xs text-muted-foreground">The course is taken from the selected session.</p>
             </div>
             <div className="space-y-2"><Label htmlFor="video-url">YouTube video URL</Label><Input id="video-url" type="url" value={youtubeUrl} maxLength={2048} onChange={(event) => setYoutubeUrl(event.target.value)} placeholder="https://www.youtube.com/watch?v=..." required aria-describedby="video-url-help" /><p id="video-url-help" className="text-xs text-muted-foreground">Use a YouTube video link. Playlists and other sites are not supported.</p></div>
