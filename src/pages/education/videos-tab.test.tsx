@@ -50,6 +50,18 @@ beforeEach(() => {
 });
 
 describe("VideosTab", () => {
+  it("waits for typing to stop before searching and matches API input limits", async () => {
+    render(<VideosTab />);
+    const search = screen.getByLabelText("Search videos");
+    expect(search).toHaveAttribute("maxLength", "255");
+    fireEvent.change(search, { target: { value: "Limi" } });
+    fireEvent.change(search, { target: { value: "Limits" } });
+    expect(mocks.videos).toHaveBeenLastCalledWith(expect.objectContaining({ search: undefined }));
+    await waitFor(() => expect(mocks.videos).toHaveBeenLastCalledWith(expect.objectContaining({ search: "Limits" })));
+    fireEvent.click(screen.getByRole("button", { name: "Add video" }));
+    expect(screen.getByLabelText("YouTube video URL")).toHaveAttribute("maxLength", "2048");
+  });
+
   it("renders session type, course, status and sends filters to the list", () => {
     render(<VideosTab />);
     expect(screen.getByText("Limits recording")).toBeInTheDocument();

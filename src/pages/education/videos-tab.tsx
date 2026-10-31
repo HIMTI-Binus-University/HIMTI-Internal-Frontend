@@ -48,6 +48,7 @@ const formatSessionDate = (value: string | null) => {
 const VideosTab = () => {
   const notify = useNotification();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [courseId, setCourseId] = useState("");
   const [status, setStatus] = useState<"" | EducationVideoStatus>("");
   const [page, setPage] = useState(1);
@@ -58,7 +59,7 @@ const VideosTab = () => {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [formError, setFormError] = useState("");
   const videos = useGetEducationVideos({
-    search: search.trim() || undefined,
+    search: debouncedSearch.trim() || undefined,
     courseId: courseId || undefined,
     status: status || undefined,
     page,
@@ -73,6 +74,11 @@ const VideosTab = () => {
   const videoId = getYouTubeVideoId(youtubeUrl);
   const totalPages = Math.max(1, videos.data?.pagination.totalPages ?? 1);
   const total = videos.data?.pagination.total ?? 0;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     const pagination = videos.data?.pagination;
@@ -140,7 +146,7 @@ const VideosTab = () => {
         <div className="relative">
           <Label htmlFor="video-search" className="sr-only">Search videos</Label>
           <Search aria-hidden="true" className="absolute left-3 top-3 size-4 text-muted-foreground" />
-          <Input id="video-search" className="pl-9" placeholder="Search video titles..." value={search}
+          <Input id="video-search" className="pl-9" placeholder="Search video titles..." value={search} maxLength={255}
             onChange={(event) => { setSearch(event.target.value); setPage(1); }} />
         </div>
         <div>
@@ -217,7 +223,7 @@ const VideosTab = () => {
               {!sessions.isLoading && !sessions.isError && sessions.data?.length === 0 && <p className="text-sm text-muted-foreground">No Education sessions are available. Create a session first, then add its recording.</p>}
               <p className="text-xs text-muted-foreground">The course is taken from the selected session.</p>
             </div>
-            <div className="space-y-2"><Label htmlFor="video-url">YouTube video URL</Label><Input id="video-url" type="url" value={youtubeUrl} onChange={(event) => setYoutubeUrl(event.target.value)} placeholder="https://www.youtube.com/watch?v=..." required aria-describedby="video-url-help" /><p id="video-url-help" className="text-xs text-muted-foreground">Use a YouTube video link. Playlists and other sites are not supported.</p></div>
+            <div className="space-y-2"><Label htmlFor="video-url">YouTube video URL</Label><Input id="video-url" type="url" value={youtubeUrl} maxLength={2048} onChange={(event) => setYoutubeUrl(event.target.value)} placeholder="https://www.youtube.com/watch?v=..." required aria-describedby="video-url-help" /><p id="video-url-help" className="text-xs text-muted-foreground">Use a YouTube video link. Playlists and other sites are not supported.</p></div>
             {youtubeUrl.trim() && !videoId && <p className="text-sm text-destructive" role="alert">Enter a valid YouTube video URL.</p>}
             {videoId && <div className="space-y-2"><p className="text-sm font-medium text-foreground">Preview</p><iframe title="YouTube video preview" src={`https://www.youtube-nocookie.com/embed/${videoId}`} className="aspect-video w-full rounded-lg border border-border" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen /></div>}
             {formError && <p role="alert" className="text-sm text-destructive">{formError}</p>}
