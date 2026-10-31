@@ -34,7 +34,7 @@ const EDUCATION_TABS: EducationTab[] = [
     id: "videos",
     label: "Videos",
     icon: CirclePlay,
-    description: "Publish Responsi recordings and connect them to summaries.",
+    description: "Manage recordings for Study Club and Responsi sessions.",
   },
   {
     id: "course-groups",
