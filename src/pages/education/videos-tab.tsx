@@ -1,5 +1,5 @@
 import { CirclePlay, Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import {
   useCreateEducationVideo,
@@ -57,6 +57,13 @@ const VideosTab = () => {
   const videoId = getYouTubeVideoId(youtubeUrl);
   const totalPages = Math.max(1, videos.data?.pagination.totalPages ?? 1);
   const total = videos.data?.pagination.total ?? 0;
+
+  useEffect(() => {
+    const pagination = videos.data?.pagination;
+    if (pagination?.page === page && page > Math.max(1, pagination.totalPages)) {
+      setPage(Math.max(1, pagination.totalPages));
+    }
+  }, [page, videos.data?.pagination]);
 
   const openEditor = (video: EducationVideo | null) => {
     setEditing(video);

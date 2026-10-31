@@ -99,6 +99,23 @@ describe("VideosTab", () => {
     await waitFor(() => expect(mocks.remove).toHaveBeenCalledWith("video-1"));
   });
 
+  it("returns to the previous page when the last video on a page is removed", async () => {
+    let removed = false;
+    mocks.videos.mockImplementation(({ page }: { page: number }) => ({
+      data: { data: page === 2 && removed ? [] : [video], pagination: { page, limit: 10, total: removed ? 10 : 11, totalPages: removed ? 1 : 2 } },
+      isLoading: false, isError: false, refetch: mocks.refetch,
+    }));
+    mocks.remove.mockImplementation(async () => { removed = true; });
+    const { rerender } = render(<VideosTab />);
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete Limits recording" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete video" }));
+    await waitFor(() => expect(mocks.remove).toHaveBeenCalledWith("video-1"));
+    rerender(<VideosTab />);
+    await waitFor(() => expect(mocks.videos).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1 })));
+    expect(screen.getByText("Limits recording")).toBeInTheDocument();
+  });
+
   it("shows list failure without displaying fabricated videos", () => {
     mocks.videos.mockReturnValue({ data: undefined, isLoading: false, isError: true, refetch: mocks.refetch });
     render(<VideosTab />);
