@@ -81,6 +81,30 @@ describe("VideosTab", () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
 
+  it("offers a retry and prevents saving when sessions cannot be loaded", () => {
+    mocks.sessions.mockReturnValue({ data: undefined, isLoading: false, isError: true, refetch: mocks.refetch });
+    render(<VideosTab />);
+    fireEvent.click(screen.getByRole("button", { name: "Add video" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Could not load sessions.");
+    expect(screen.getByLabelText("Session")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add draft" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(mocks.refetch).toHaveBeenCalled();
+  });
+
+  it("keeps the form open when saving fails", async () => {
+    mocks.create.mockRejectedValueOnce(new Error("network unavailable"));
+    render(<VideosTab />);
+    fireEvent.click(screen.getByRole("button", { name: "Add video" }));
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: video.title } });
+    fireEvent.change(screen.getByLabelText("Session"), { target: { value: session.id } });
+    fireEvent.change(screen.getByLabelText("YouTube video URL"), { target: { value: video.youtubeUrl } });
+    fireEvent.click(screen.getByRole("button", { name: "Add draft" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not save this video.");
+    expect(screen.getByLabelText("Title")).toHaveValue(video.title);
+    expect(screen.getByLabelText("Session")).toHaveValue(session.id);
+  });
+
   it("does not preview an attacker-controlled URL", () => {
     render(<VideosTab />);
     fireEvent.click(screen.getByRole("button", { name: "Add video" }));
