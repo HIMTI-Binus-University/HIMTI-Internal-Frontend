@@ -167,6 +167,7 @@ const VideosTab = () => {
         </div>
       </div>
 
+      {!!videos.data?.data.length && <p className="mt-4 text-xs text-muted-foreground sm:hidden">Swipe the table sideways to see all actions.</p>}
       <div className="mt-5 min-h-0 overflow-auto rounded-xl border border-border">
         <table className="w-full min-w-[760px] text-left text-sm">
           <caption className="sr-only">Education video recordings</caption>
@@ -178,9 +179,9 @@ const VideosTab = () => {
             <th scope="col" className="px-4 py-3 font-medium">Actions</th>
           </tr></thead>
           <tbody className="divide-y divide-border">
-            {videos.isLoading && <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground" role="status">Loading videos...</td></tr>}
-            {videos.isError && <tr><td colSpan={5} className="px-4 py-10 text-center text-destructive" role="alert">Could not load videos. <button type="button" className="underline" onClick={() => void videos.refetch()}>Retry</button></td></tr>}
-            {!videos.isLoading && !videos.isError && videos.data?.data.length === 0 && <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">No videos found. Add a video or adjust the filters.</td></tr>}
+            {videos.isLoading && <tr><td colSpan={5} className="py-10 text-muted-foreground" role="status"><div className="sticky left-0 w-[calc(100vw-5rem)] max-w-full px-4 text-center">Loading videos...</div></td></tr>}
+            {videos.isError && <tr><td colSpan={5} className="py-10 text-destructive" role="alert"><div className="sticky left-0 w-[calc(100vw-5rem)] max-w-full px-4 text-center">Could not load videos. <button type="button" className="underline" onClick={() => void videos.refetch()}>Retry</button></div></td></tr>}
+            {!videos.isLoading && !videos.isError && videos.data?.data.length === 0 && <tr><td colSpan={5} className="py-10 text-muted-foreground"><div className="sticky left-0 w-[calc(100vw-5rem)] max-w-full px-4 text-center">No videos found. Add a video or adjust the filters.</div></td></tr>}
             {!videos.isError && videos.data?.data.map((video) => {
               const safeId = /^[A-Za-z0-9_-]{11}$/.test(video.youtubeVideoId) ? video.youtubeVideoId : null;
               return <tr key={video.id}>
