@@ -72,6 +72,18 @@ describe("VideosTab", () => {
     await waitFor(() => expect(mocks.create).toHaveBeenCalledWith({ title: "Limits recording", sessionId: "session-1", youtubeUrl: "https://youtu.be/dQw4w9WgXcQ?t=20" }));
   });
 
+  it("distinguishes sessions by date and identifies missing dates", () => {
+    mocks.sessions.mockReturnValue({
+      data: [session, { ...session, id: "session-2", startsAt: "2026-10-31T03:00:00.000Z" }],
+      isLoading: false, isError: false, refetch: mocks.refetch,
+    });
+    render(<VideosTab />);
+    expect(screen.getByText("Date unavailable")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Add video" }));
+    expect(screen.getByRole("option", { name: /Limits review.*Date unavailable/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Limits review.*31 Oct 2026, 10:00 WIB/ })).toBeInTheDocument();
+  });
+
   it("shows a useful empty-session state and prevents creating a video", () => {
     mocks.sessions.mockReturnValue({ data: [], isLoading: false, isError: false, refetch: mocks.refetch });
     render(<VideosTab />);

@@ -29,6 +29,22 @@ const PAGE_SIZE = 10;
 const selectClass =
   "h-10 w-full rounded-lg border border-input bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
 
+const sessionDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: "Asia/Jakarta",
+});
+
+const formatSessionDate = (value: string | null) => {
+  if (!value) return "Date unavailable";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Date unavailable" : `${sessionDateFormatter.format(date)} WIB`;
+};
+
 const VideosTab = () => {
   const notify = useNotification();
   const [search, setSearch] = useState("");
@@ -166,7 +182,7 @@ const VideosTab = () => {
                   {safeId ? <img src={`https://i.ytimg.com/vi/${safeId}/default.jpg`} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-12 w-20 shrink-0 rounded-md bg-muted object-cover" /> : <span className="flex h-12 w-20 shrink-0 items-center justify-center rounded-md bg-muted"><CirclePlay aria-hidden="true" className="size-5" /></span>}
                   <span className="font-semibold text-foreground">{video.title}</span>
                 </div></td>
-                <td className="px-4 py-3"><span className="block">{video.session.title}</span><span className="text-xs text-muted-foreground">{video.session.type === "STUDY_CLUB" ? "Study Club" : "Responsi"}</span></td>
+                <td className="px-4 py-3"><span className="block">{video.session.title}</span><span className="block text-xs text-muted-foreground">{video.session.type === "STUDY_CLUB" ? "Study Club" : "Responsi"}</span><span className="block text-xs text-muted-foreground">{formatSessionDate(video.session.startsAt)}</span></td>
                 <td className="px-4 py-3 text-muted-foreground">{video.session.course.name}</td>
                 <td className="px-4 py-3"><span className={video.status === "PUBLISHED" ? "rounded-md bg-semantic-success-background px-2 py-1 text-xs font-medium text-semantic-success" : "rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"}>{video.status === "PUBLISHED" ? "Published" : "Draft"}</span></td>
                 <td className="px-4 py-3"><div className="flex flex-wrap gap-2">
@@ -194,7 +210,7 @@ const VideosTab = () => {
             <div className="space-y-2"><Label htmlFor="video-session">Session</Label>
               <select id="video-session" className={selectClass} value={sessionId} onChange={(event) => setSessionId(event.target.value)} required disabled={sessions.isLoading || sessions.isError}>
                 <option value="">Select a session</option>
-                {(sessions.data ?? []).map((session) => <option key={session.id} value={session.id}>{session.title} — {session.type === "STUDY_CLUB" ? "Study Club" : "Responsi"} — {session.course.name}</option>)}
+                {(sessions.data ?? []).map((session) => <option key={session.id} value={session.id}>{session.title} — {session.type === "STUDY_CLUB" ? "Study Club" : "Responsi"} — {session.course.name} — {formatSessionDate(session.startsAt)}</option>)}
               </select>
               {sessions.isLoading && <p role="status" className="text-sm text-muted-foreground">Loading sessions...</p>}
               {sessions.isError && <p role="alert" className="text-sm text-destructive">Could not load sessions. <button type="button" className="underline" onClick={() => void sessions.refetch()}>Retry</button></p>}
