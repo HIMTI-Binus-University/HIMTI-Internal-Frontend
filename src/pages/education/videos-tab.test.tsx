@@ -50,6 +50,16 @@ beforeEach(() => {
 });
 
 describe("VideosTab", () => {
+  it("returns keyboard focus to the editor button after closing", async () => {
+    render(<VideosTab />);
+    const add = screen.getByRole("button", { name: "Add video" });
+    add.focus();
+    fireEvent.click(add);
+    await waitFor(() => expect(screen.getByLabelText("Title")).toHaveFocus());
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() => expect(add).toHaveFocus());
+  });
+
   it("waits for typing to stop before searching and matches API input limits", async () => {
     render(<VideosTab />);
     const search = screen.getByLabelText("Search videos");

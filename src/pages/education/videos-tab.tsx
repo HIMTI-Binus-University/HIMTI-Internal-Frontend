@@ -1,5 +1,5 @@
 import { CirclePlay, Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import {
   useCreateEducationVideo,
@@ -47,6 +47,7 @@ const formatSessionDate = (value: string | null) => {
 
 const VideosTab = () => {
   const notify = useNotification();
+  const editorTrigger = useRef<HTMLElement | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [courseId, setCourseId] = useState("");
@@ -87,7 +88,8 @@ const VideosTab = () => {
     }
   }, [page, videos.data?.pagination]);
 
-  const openEditor = (video: EducationVideo | null) => {
+  const openEditor = (video: EducationVideo | null, trigger: HTMLElement) => {
+    editorTrigger.current = trigger;
     setEditing(video);
     setTitle(video?.title ?? "");
     setSessionId(video?.sessionId ?? "");
@@ -139,7 +141,7 @@ const VideosTab = () => {
             Manage YouTube recordings for Study Club and Responsi sessions.
           </p>
         </div>
-        <Button type="button" onClick={() => openEditor(null)}><Plus aria-hidden="true" /> Add video</Button>
+        <Button type="button" onClick={(event) => openEditor(null, event.currentTarget)}><Plus aria-hidden="true" /> Add video</Button>
       </div>
 
       <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(10rem,14rem)_minmax(9rem,12rem)]">
@@ -193,7 +195,7 @@ const VideosTab = () => {
                 <td className="px-4 py-3 text-muted-foreground">{video.session.course.name}</td>
                 <td className="px-4 py-3"><span className={video.status === "PUBLISHED" ? "rounded-md bg-semantic-success-background px-2 py-1 text-xs font-medium text-semantic-success" : "rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"}>{video.status === "PUBLISHED" ? "Published" : "Draft"}</span></td>
                 <td className="px-4 py-3"><div className="flex flex-wrap gap-2">
-                  <Button type="button" size="sm" variant="outline" onClick={() => openEditor(video)} aria-label={`Edit ${video.title}`}><Pencil aria-hidden="true" /> Edit</Button>
+                  <Button type="button" size="sm" variant="outline" onClick={(event) => openEditor(video, event.currentTarget)} aria-label={`Edit ${video.title}`}><Pencil aria-hidden="true" /> Edit</Button>
                   <Button type="button" size="sm" variant="outline" disabled={updateVideo.isPending} onClick={() => void changeStatus(video)} aria-label={`${video.status === "DRAFT" ? "Publish" : "Unpublish"} ${video.title}`}>{video.status === "DRAFT" ? "Publish" : "Unpublish"}</Button>
                   <ConfirmAction label="Delete video" description={`Delete “${video.title}”? This removes the video record, not the YouTube upload.`} onConfirm={() => deleteVideo.mutateAsync(video.id)} successMessage="Video deleted.">
                     <Button type="button" size="icon" variant="ghost" aria-label={`Delete ${video.title}`}><Trash2 aria-hidden="true" /></Button>
@@ -210,7 +212,12 @@ const VideosTab = () => {
       </nav>}
 
       <Sheet open={sheetOpen} onOpenChange={(open) => { if (!isSaving) setSheetOpen(open); }}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetContent className="w-full overflow-y-auto sm:max-w-xl" onCloseAutoFocus={(event) => {
+          if (editorTrigger.current?.isConnected) {
+            event.preventDefault();
+            editorTrigger.current.focus();
+          }
+        }}>
           <SheetHeader><SheetTitle>{editing ? "Edit video" : "Add video"}</SheetTitle><SheetDescription>Connect a YouTube recording to an Education session. New videos start as drafts.</SheetDescription></SheetHeader>
           <form onSubmit={(event) => void save(event)} className="mt-6 space-y-5">
             <div className="space-y-2"><Label htmlFor="video-title">Title</Label><Input id="video-title" value={title} maxLength={255} onChange={(event) => setTitle(event.target.value)} required /></div>
