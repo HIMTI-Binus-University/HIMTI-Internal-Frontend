@@ -14,6 +14,48 @@ export type ResponsiExamType = "Mid Exam" | "Final Exam";
 
 export type CourseGroupStatus = "ACTIVE" | "INACTIVE";
 
+export type EducationVideoStatus = "DRAFT" | "PUBLISHED";
+
+export interface EducationSession {
+  id: string;
+  title: string;
+  type: "STUDY_CLUB" | "RESPONSI";
+  courseId: string;
+  course: { id: string; name: string };
+  startsAt: string | null;
+}
+
+export interface EducationVideo {
+  id: string;
+  title: string;
+  sessionId: string;
+  session: EducationSession;
+  youtubeUrl: string;
+  youtubeVideoId: string;
+  status: EducationVideoStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EducationVideoPayload {
+  title: string;
+  sessionId: string;
+  youtubeUrl: string;
+}
+
+export interface EducationVideoListResponse {
+  data: EducationVideo[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
+export interface EducationVideoQueryParams {
+  search?: string;
+  courseId?: string;
+  status?: EducationVideoStatus;
+  page?: number;
+  limit?: number;
+}
+
 export interface CourseGroup {
   id: string;
   name: string;

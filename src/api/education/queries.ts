@@ -14,14 +14,75 @@ import type {
   ResponsiVersionsResponse,
   UpdateCourseGroupPayload,
   UpdateResponsiPayload,
+  EducationVideo,
+  EducationVideoPayload,
+  EducationVideoListResponse,
+  EducationVideoQueryParams,
+  EducationVideoStatus,
+  EducationSession,
 } from "@/types/education";
 
 export const educationKeys = {
   courseGroups: ["education", "course-groups"] as const,
+  videos: ["education", "videos"] as const,
+  sessions: ["education", "sessions"] as const,
   responsies: ["education", "responsies"] as const,
   responsi: (id: string) => ["education", "responsies", id] as const,
   responsiVersions: (id: string) =>
     ["education", "responsies", id, "versions"] as const,
+};
+
+export const useGetEducationSessions = (enabled = true) =>
+  useQuery({
+    queryKey: educationKeys.sessions,
+    queryFn: () =>
+      apiClient
+        .get<{ data: EducationSession[] }>(Api.educationSessions)
+        .then((response) => response.data.data),
+    enabled,
+  });
+
+export const useGetEducationVideos = (params: EducationVideoQueryParams) =>
+  useQuery({
+    queryKey: [...educationKeys.videos, params],
+    queryFn: () =>
+      apiClient
+        .get<EducationVideoListResponse>(Api.educationVideos, { params })
+        .then((response) => response.data),
+  });
+
+export const useCreateEducationVideo = () => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: EducationVideoPayload) =>
+      apiClient
+        .post<{ data: EducationVideo }>(Api.educationVideos, payload)
+        .then((response) => response.data.data),
+    onSuccess: () => client.invalidateQueries({ queryKey: educationKeys.videos }),
+  });
+};
+
+export const useUpdateEducationVideo = () => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...payload }: Partial<EducationVideoPayload> & {
+      id: string;
+      status?: EducationVideoStatus;
+    }) =>
+      apiClient
+        .patch<{ data: EducationVideo }>(`${Api.educationVideos}/${encodeURIComponent(id)}`, payload)
+        .then((response) => response.data.data),
+    onSuccess: () => client.invalidateQueries({ queryKey: educationKeys.videos }),
+  });
+};
+
+export const useDeleteEducationVideo = () => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient.delete(`${Api.educationVideos}/${encodeURIComponent(id)}`),
+    onSuccess: () => client.invalidateQueries({ queryKey: educationKeys.videos }),
+  });
 };
 
 export const useGetCourseGroups = (search?: string) =>

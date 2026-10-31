@@ -8,6 +8,7 @@ import { Container, PageLayout } from "@/components/Utils";
 import type { EducationTabId } from "@/types/education";
 import CourseGroupsTab from "./course-groups-tab";
 import ResponsiTab from "./responsi-tab";
+import VideosTab from "./videos-tab";
 
 type EducationTab = {
   id: EducationTabId;
@@ -178,6 +179,8 @@ const EducationPage = () => {
             <ResponsiTab />
           ) : activeTab.id === "course-groups" ? (
             <CourseGroupsTab />
+          ) : activeTab.id === "videos" ? (
+            <VideosTab />
           ) : (
             <PlaceholderTab tab={activeTab} />
           )}
