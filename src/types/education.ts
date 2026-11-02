@@ -1,16 +1,11 @@
 export type EducationTabId =
-  | "responsi"
-  | "study-clubs"
-  | "videos"
-  | "course-groups";
+  "summaries" | "schedules" | "videos" | "course-groups";
 
 export type ResponsiStatus =
-  | "DRAFT"
-  | "UNDER_REVIEW"
-  | "PUBLISHED"
-  | "ARCHIVED";
+  "DRAFT" | "UNDER_REVIEW" | "PUBLISHED" | "ARCHIVED";
 
 export type ResponsiExamType = "Mid Exam" | "Final Exam";
+export type SummaryType = "Responsi" | "Study Club";
 
 export type CourseGroupStatus = "ACTIVE" | "INACTIVE";
 
@@ -40,6 +35,7 @@ export interface CourseGroupListResponse {
 }
 
 export interface ResponsiSummary {
+  summaryType?: SummaryType;
   id: string;
   title: string;
   course: string;
@@ -88,6 +84,7 @@ export interface ResponsiVersionsResponse {
 }
 
 export interface ResponsiQueryParams {
+  summaryType?: SummaryType;
   search?: string;
   course?: string;
   academicPeriod?: string;
@@ -98,6 +95,7 @@ export interface ResponsiQueryParams {
 }
 
 export interface CreateResponsiPayload {
+  summaryType?: SummaryType;
   title: string;
   course: string;
   academicPeriod: string;
@@ -108,6 +106,7 @@ export interface CreateResponsiPayload {
 }
 
 export interface UpdateResponsiPayload {
+  summaryType?: SummaryType;
   title?: string;
   course?: string;
   academicPeriod?: string;

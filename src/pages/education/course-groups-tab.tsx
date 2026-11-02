@@ -187,7 +187,8 @@ const CourseGroupsTab = () => {
           Course Groups
         </h2>
         <p className="text-base text-muted-foreground">
-          Academic syllabus courses from Binus CS curriculum and associated learning resources.
+          Academic syllabus courses from Binus CS curriculum and associated
+          learning resources.
         </p>
       </div>
 
@@ -273,7 +274,7 @@ const CourseGroupsTab = () => {
                             {course.name}
                           </span>
                           <span className="block truncate text-xs text-muted-foreground">
-                            {course.code || "No code"} · {count} Responsi
+                            {course.code || "No code"} · {count} summaries
                           </span>
                         </span>
                         <ChevronRight
@@ -379,7 +380,7 @@ const CourseGroupsTab = () => {
                       <div>
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Responsi
+                            Summaries
                           </span>
                           <FileText
                             aria-hidden="true"
@@ -401,9 +402,9 @@ const CourseGroupsTab = () => {
                           asChild
                         >
                           <Link
-                            to={`/education?tab=responsi&course=${encodeURIComponent(selectedCourse.name)}`}
+                            to={`/education?tab=summaries&course=${encodeURIComponent(selectedCourse.name)}`}
                           >
-                            Open in Responsi tab &rarr;
+                            Open Summaries &rarr;
                           </Link>
                         </Button>
                       </div>
@@ -414,7 +415,7 @@ const CourseGroupsTab = () => {
                       <div>
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Study Clubs
+                            Schedules
                           </span>
                           <CalendarDays
                             aria-hidden="true"
@@ -425,7 +426,7 @@ const CourseGroupsTab = () => {
                           --
                         </p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          Scheduled peer sessions
+                          Study Club and Responsi sessions
                         </p>
                       </div>
                       <div className="mt-4 border-t border-border pt-3">
@@ -435,8 +436,10 @@ const CourseGroupsTab = () => {
                           className="w-full justify-center text-xs font-semibold"
                           asChild
                         >
-                          <Link to="/education?tab=study-clubs">
-                            View Study Clubs &rarr;
+                          <Link
+                            to={`/education?tab=schedules&course=${encodeURIComponent(selectedCourse.name)}`}
+                          >
+                            View Schedules &rarr;
                           </Link>
                         </Button>
                       </div>
@@ -497,7 +500,7 @@ const CourseGroupsTab = () => {
             <SheetDescription>
               {editingCourse
                 ? "Update the course name, syllabus code, or brief summary."
-                : "Add a course group to organize Responsi, Study Clubs, and Videos."}
+                : "Add a course group to organize summaries, schedules, and videos."}
             </SheetDescription>
           </SheetHeader>
 

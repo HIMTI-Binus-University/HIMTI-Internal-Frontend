@@ -40,7 +40,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import type { ResponsiStatus, ResponsiSummary } from "@/types/education";
+import type {
+  ResponsiStatus,
+  ResponsiSummary,
+  SummaryType,
+} from "@/types/education";
 
 type ResponsiWorkspaceProps = {
   summary: ResponsiSummary;
@@ -57,7 +61,7 @@ const buildEditorContent = (summary: ResponsiSummary) =>
 
 ## Ringkasan
 
-Responsi ini merangkum materi ${summary.course} untuk ${summary.examType} ${summary.academicPeriod}.
+Ringkasan ini merangkum materi ${summary.course} untuk ${summary.examType} ${summary.academicPeriod}.
 
 ## Poin utama
 
@@ -79,10 +83,11 @@ const ResponsiWorkspace = ({
   const notify = useNotification();
   const [activeId, setActiveId] = useState(summary.id);
   const [title, setTitle] = useState(summary.title);
-  const [course, setCourse] = useState(summary.course);
-  const [academicPeriod, setAcademicPeriod] = useState(
-    summary.academicPeriod,
+  const [summaryType, setSummaryType] = useState<SummaryType>(
+    summary.summaryType ?? "Responsi",
   );
+  const [course, setCourse] = useState(summary.course);
+  const [academicPeriod, setAcademicPeriod] = useState(summary.academicPeriod);
   const [examType, setExamType] = useState(summary.examType);
   const [pic, setPic] = useState(summary.pic);
   const [content, setContent] = useState(() => buildEditorContent(summary));
@@ -108,20 +113,22 @@ const ResponsiWorkspace = ({
     if (detailData?.status) {
       setStatus(detailData.status);
     }
+    if (detailData?.summaryType) setSummaryType(detailData.summaryType);
   }, [detailData]);
 
   const reviewAction =
     status === "DRAFT"
       ? { label: "Submit for review", next: "UNDER_REVIEW" as const }
       : status === "UNDER_REVIEW"
-        ? { label: "Publish Responsi", next: "PUBLISHED" as const }
+        ? { label: "Publish summary", next: "PUBLISHED" as const }
         : null;
 
   const saveDraft = async () => {
     try {
       if (isDraftId) {
         const created = await createResponsiMutation.mutateAsync({
-          title: title.trim() || "Untitled Responsi",
+          title: title.trim() || "Untitled summary",
+          summaryType,
           course,
           academicPeriod,
           examType: (examType as "Mid Exam" | "Final Exam") || "Mid Exam",
@@ -131,12 +138,13 @@ const ResponsiWorkspace = ({
         });
         setActiveId(created.id);
         setStatus(created.status);
-        notify("Responsi draft saved successfully.", "success");
+        notify("Summary draft saved successfully.", "success");
         onSaved?.(created);
       } else {
         const updated = await updateResponsiMutation.mutateAsync({
           id: activeId,
-          title: title.trim() || "Untitled Responsi",
+          summaryType,
+          title: title.trim() || "Untitled summary",
           course,
           academicPeriod,
           examType: (examType as "Mid Exam" | "Final Exam") || "Mid Exam",
@@ -159,7 +167,8 @@ const ResponsiWorkspace = ({
     try {
       if (isDraftId) {
         const created = await createResponsiMutation.mutateAsync({
-          title: title.trim() || "Untitled Responsi",
+          title: title.trim() || "Untitled summary",
+          summaryType,
           course,
           academicPeriod,
           examType: (examType as "Mid Exam" | "Final Exam") || "Mid Exam",
@@ -174,7 +183,8 @@ const ResponsiWorkspace = ({
       } else {
         const updated = await updateResponsiMutation.mutateAsync({
           id: activeId,
-          title: title.trim() || "Untitled Responsi",
+          summaryType,
+          title: title.trim() || "Untitled summary",
           course,
           academicPeriod,
           examType: (examType as "Mid Exam" | "Final Exam") || "Mid Exam",
@@ -195,14 +205,18 @@ const ResponsiWorkspace = ({
     <>
       <Container className="flex min-h-0 flex-1 flex-col p-0">
         <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 sm:px-5">
-          <IconButton label="Back to Responsi list" size="sm" onClick={onClose}>
+          <IconButton
+            label="Back to summaries list"
+            size="sm"
+            onClick={onClose}
+          >
             <ArrowLeft />
           </IconButton>
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="truncate text-base font-semibold text-foreground">
-                {title || "Untitled Responsi"}
+                {title || "Untitled summary"}
               </h2>
               <ResponsiStatusBadge status={status} />
             </div>
@@ -238,11 +252,7 @@ const ResponsiWorkspace = ({
               {isPending ? "Saving..." : "Save draft"}
             </Button>
             {reviewAction && (
-              <Button
-                size="sm"
-                disabled={isPending}
-                onClick={moveStatus}
-              >
+              <Button size="sm" disabled={isPending} onClick={moveStatus}>
                 <Send />
                 {reviewAction.label}
               </Button>
@@ -275,7 +285,7 @@ const ResponsiWorkspace = ({
               </span>
             </div>
             <label className="sr-only" htmlFor="responsi-content">
-              Responsi content
+              Summary content
             </label>
             <MarkdownTextarea
               id="responsi-content"
@@ -307,6 +317,31 @@ const ResponsiWorkspace = ({
                     value={title}
                     onChange={(event) => setTitle(event.target.value)}
                   />
+                </div>
+
+                <div>
+                  <Label htmlFor="summary-type" className="mb-1.5">
+                    Summary type
+                  </Label>
+                  <Select
+                    items={[
+                      { value: "Responsi", label: "Responsi" },
+                      { value: "Study Club", label: "Study Club" },
+                    ]}
+                    value={summaryType}
+                    onValueChange={(value) => {
+                      if (value === "Responsi" || value === "Study Club")
+                        setSummaryType(value);
+                    }}
+                  >
+                    <SelectTrigger id="summary-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Responsi">Responsi</SelectItem>
+                      <SelectItem value="Study Club">Study Club</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
@@ -489,7 +524,7 @@ const ResponsiWorkspace = ({
             ) : (
               <p className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
                 No published snapshots yet. A new version is automatically
-                generated every time this Responsi is published.
+                generated every time this summary is published.
               </p>
             )}
           </div>
@@ -502,7 +537,7 @@ const ResponsiWorkspace = ({
           className="w-full overflow-y-auto sm:max-w-2xl"
         >
           <SheetHeader>
-            <SheetTitle>Responsi preview</SheetTitle>
+            <SheetTitle>Summary preview</SheetTitle>
             <SheetDescription>
               How the summary reads once it is published. Preview reflects
               unsaved edits in this workspace.
@@ -513,7 +548,7 @@ const ResponsiWorkspace = ({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h3 className="text-xl font-semibold leading-7 text-foreground">
-                  {title || "Untitled Responsi"}
+                  {title || "Untitled summary"}
                 </h3>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {course} · {academicPeriod} · {examType}

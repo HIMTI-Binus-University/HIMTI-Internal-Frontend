@@ -7,6 +7,7 @@ import {
   FileText,
   Pencil,
   Plus,
+  RotateCcw,
   Search,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
@@ -25,7 +26,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { ResponsiStatus, ResponsiSummary } from "@/types/education";
+import type {
+  ResponsiStatus,
+  ResponsiSummary,
+  SummaryType,
+} from "@/types/education";
 import ResponsiWorkspace from "./responsi-workspace";
 
 const ALL = "all";
@@ -181,7 +186,7 @@ const Pagination = ({
   totalPages: number;
   onPageChange: (page: number) => void;
 }) => (
-  <nav aria-label="Responsi pagination" className="flex items-center gap-1.5">
+  <nav aria-label="Summaries pagination" className="flex items-center gap-1.5">
     <Button
       aria-label="Previous page"
       variant="outline"
@@ -233,19 +238,32 @@ const ResponsiTab = () => {
   const [periodFilter, setPeriodFilter] = useState(ALL);
   const [examTypeFilter, setExamTypeFilter] = useState(ALL);
   const [statusFilter, setStatusFilter] = useState(ALL);
+  const [summaryTypeFilter, setSummaryTypeFilter] = useState<
+    SummaryType | typeof ALL
+  >(ALL);
   const [page, setPage] = useState(1);
 
   const queryParams = useMemo(
     () => ({
       search: search.trim() || undefined,
+      summaryType: summaryTypeFilter !== ALL ? summaryTypeFilter : undefined,
       course: courseFilter !== ALL ? courseFilter : undefined,
       academicPeriod: periodFilter !== ALL ? periodFilter : undefined,
       examType: examTypeFilter !== ALL ? examTypeFilter : undefined,
-      status: statusFilter !== ALL ? (statusFilter as ResponsiStatus) : undefined,
+      status:
+        statusFilter !== ALL ? (statusFilter as ResponsiStatus) : undefined,
       page,
       limit: PAGE_SIZE,
     }),
-    [search, courseFilter, periodFilter, examTypeFilter, statusFilter, page],
+    [
+      search,
+      courseFilter,
+      periodFilter,
+      examTypeFilter,
+      statusFilter,
+      summaryTypeFilter,
+      page,
+    ],
   );
 
   const {
@@ -268,7 +286,7 @@ const ResponsiTab = () => {
       if (match) return match;
       return {
         id: urlId,
-        title: "Untitled Responsi",
+        title: "Untitled summary",
         course: urlCourse || DEFAULT_COURSES[0],
         academicPeriod: periodOptions[0],
         examType: "Mid Exam",
@@ -280,7 +298,7 @@ const ResponsiTab = () => {
     if (urlAction === "create") {
       return {
         id: `draft-${Date.now()}`,
-        title: "Untitled Responsi",
+        title: "Untitled summary",
         course: urlCourse || DEFAULT_COURSES[0],
         academicPeriod: periodOptions[0],
         examType: "Mid Exam",
@@ -293,6 +311,10 @@ const ResponsiTab = () => {
   });
 
   const courseItems = toSelectItems(courseOptions, "All Courses");
+  const summaryTypeItems = toSelectItems(
+    ["Responsi", "Study Club"],
+    "All Types",
+  );
   const periodItems = toSelectItems(periodOptions, "All Academic Periods");
   const examTypeItems = toSelectItems(
     ["Mid Exam", "Final Exam"],
@@ -306,7 +328,8 @@ const ResponsiTab = () => {
     label:
       item.value === ALL
         ? item.label
-        : RESPONSI_STATUS_META[item.value as ResponsiStatus]?.label || item.value,
+        : RESPONSI_STATUS_META[item.value as ResponsiStatus]?.label ||
+          item.value,
   }));
 
   // Fallback to client-side filtering if response data is undefined (e.g., initial or test mock fallback)
@@ -322,6 +345,8 @@ const ResponsiTab = () => {
 
     return (
       matchesKeyword &&
+      (summaryTypeFilter === ALL ||
+        (row.summaryType ?? "Responsi") === summaryTypeFilter) &&
       (courseFilter === ALL || row.course === courseFilter) &&
       (periodFilter === ALL || row.academicPeriod === periodFilter) &&
       (examTypeFilter === ALL || row.examType === examTypeFilter) &&
@@ -353,6 +378,7 @@ const ResponsiTab = () => {
     setPeriodFilter(ALL);
     setExamTypeFilter(ALL);
     setStatusFilter(ALL);
+    setSummaryTypeFilter(ALL);
     setPage(1);
     if (searchParams.has("course")) {
       const next = new URLSearchParams(searchParams);
@@ -374,7 +400,8 @@ const ResponsiTab = () => {
   const createDraft = () => {
     setSelectedRow({
       id: `draft-${Date.now()}`,
-      title: "Untitled Responsi",
+      title: "Untitled summary",
+      summaryType: summaryTypeFilter === ALL ? "Responsi" : summaryTypeFilter,
       course: courseFilter !== ALL ? courseFilter : (courseOptions[0] ?? ""),
       academicPeriod: periodOptions[0] ?? "2026/2027",
       examType: "Mid Exam",
@@ -403,22 +430,22 @@ const ResponsiTab = () => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-ds-h4 font-semibold tracking-tight text-foreground">
-            Responsi
+            Summaries
           </h2>
           <p className="mt-1 text-base text-muted-foreground">
-            Create, edit, and manage Responsi summaries.
+            Create, edit, and manage Responsi and Study Club summaries.
           </p>
         </div>
         <Button size="sm" className="sm:shrink-0" onClick={createDraft}>
           <Plus />
-          Create Responsi
+          Create summary
         </Button>
       </div>
 
       <div className="mt-4 flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
         <div className="relative min-w-[220px] flex-1">
           <label className="sr-only" htmlFor="responsi-search">
-            Search Responsi
+            Search summaries
           </label>
           <Search
             aria-hidden="true"
@@ -438,6 +465,31 @@ const ResponsiTab = () => {
         </div>
 
         <Select
+          items={summaryTypeItems}
+          value={summaryTypeFilter}
+          onValueChange={(value) => {
+            setSummaryTypeFilter(
+              value === "Responsi" || value === "Study Club" ? value : ALL,
+            );
+            setPage(1);
+          }}
+        >
+          <SelectTrigger
+            aria-label="Filter by summary type"
+            className="lg:w-[144px]"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {summaryTypeItems.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
           items={courseItems}
           value={courseFilter}
           onValueChange={(value) => {
@@ -445,7 +497,7 @@ const ResponsiTab = () => {
             setPage(1);
           }}
         >
-          <SelectTrigger aria-label="Filter by course" className="lg:w-[160px]">
+          <SelectTrigger aria-label="Filter by course" className="lg:w-[152px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -490,7 +542,7 @@ const ResponsiTab = () => {
         >
           <SelectTrigger
             aria-label="Filter by exam type"
-            className="lg:w-[160px]"
+            className="lg:w-[148px]"
           >
             <SelectValue />
           </SelectTrigger>
@@ -511,7 +563,7 @@ const ResponsiTab = () => {
             setPage(1);
           }}
         >
-          <SelectTrigger aria-label="Filter by status" className="lg:w-[140px]">
+          <SelectTrigger aria-label="Filter by status" className="lg:w-[128px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -523,21 +575,22 @@ const ResponsiTab = () => {
           </SelectContent>
         </Select>
 
-        <Button
-          variant="outline"
-          className="lg:w-[112px]"
+        <IconButton
+          label="Reset filters"
+          tone="danger"
+          className="size-11 border border-danger-border lg:size-10"
           onClick={resetFilters}
         >
-          Reset
-        </Button>
+          <RotateCcw aria-hidden="true" />
+        </IconButton>
       </div>
 
       <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border">
         <div className="min-h-0 flex-1 overflow-auto">
           <table className="w-full min-w-[980px] text-left">
             <caption className="sr-only">
-              Responsi summaries with course, academic period, exam type, PIC,
-              status, last updated, and actions
+              Responsi and Study Club summaries with course, academic period,
+              exam type, PIC, status, last updated, and actions
             </caption>
             <thead className="sticky top-0 z-10 bg-muted/50">
               <tr className="text-xs text-muted-foreground">
@@ -574,7 +627,7 @@ const ResponsiTab = () => {
                     colSpan={8}
                     className="px-4 py-8 text-center text-sm text-muted-foreground"
                   >
-                    Loading Responsi...
+                    Loading summaries...
                   </td>
                 </tr>
               ) : isError ? (
@@ -583,7 +636,7 @@ const ResponsiTab = () => {
                     colSpan={8}
                     className="px-4 py-8 text-center text-sm text-muted-foreground"
                   >
-                    Could not load Responsi.{" "}
+                    Could not load summaries.{" "}
                     <button
                       type="button"
                       className="underline"
@@ -681,7 +734,7 @@ const ResponsiTab = () => {
                     colSpan={8}
                     className="px-4 py-8 text-center text-sm text-muted-foreground"
                   >
-                    No Responsi matches these filters.
+                    No summaries match these filters.
                   </td>
                 </tr>
               )}

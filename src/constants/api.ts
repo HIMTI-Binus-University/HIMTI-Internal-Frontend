@@ -81,6 +81,7 @@ export const Api = {
   // Education administration endpoints
   courseGroups: "/api/internal/education/course-groups",
   responsi: "/api/internal/education/responsi",
+  studyClubs: "/api/internal/education/study-clubs",
 
   // Election administration endpoints
   elections: "/api/internal/elections",

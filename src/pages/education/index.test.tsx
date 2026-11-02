@@ -1,8 +1,23 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 import EducationPage from ".";
+const mockResponsiQueries = vi.hoisted(() => vi.fn());
+
+vi.mock("@/api/study-clubs/queries", () => ({
+  useGetStudyClubs: () => ({
+    data: {
+      data: [],
+      pagination: { page: 1, limit: 6, total: 0, totalPages: 1 },
+    },
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+  useCreateStudyClub: () => ({ mutateAsync: vi.fn() }),
+  useUpdateStudyClub: () => ({ mutateAsync: vi.fn() }),
+}));
 
 vi.mock("@/components/Utils", async (original) => ({
   ...(await original<object>()),
@@ -73,12 +88,15 @@ vi.mock("@/api/education/queries", () => ({
     mutateAsync: mockUpdate,
     isPending: false,
   }),
-  useGetResponsies: () => ({
-    data: undefined,
-    isLoading: false,
-    isError: false,
-    refetch: vi.fn(),
-  }),
+  useGetResponsies: (params: unknown) => {
+    mockResponsiQueries(params);
+    return {
+      data: undefined,
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    };
+  },
   useGetResponsi: () => ({
     data: undefined,
     isLoading: false,
@@ -110,11 +128,22 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
+const selectEducationOption = async (label: string, option: string) => {
+  const trigger = screen.getByRole("combobox", { name: label });
+  fireEvent.click(trigger);
+  const item = await screen.findByRole("option", { name: option });
+  fireEvent.mouseMove(item);
+  fireEvent.click(item);
+  await waitFor(() =>
+    expect(trigger).toHaveAttribute("aria-expanded", "false"),
+  );
+};
+
 describe("EducationPage", () => {
-  it("opens on the Responsi tab with its summary table", () => {
+  it("opens on the Summaries tab with its summary table", () => {
     renderPage();
 
-    expect(screen.getByRole("tab", { name: "Responsi" })).toHaveAttribute(
+    expect(screen.getByRole("tab", { name: "Summaries" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
@@ -126,7 +155,7 @@ describe("EducationPage", () => {
   it("filters summaries by search", () => {
     renderPage();
 
-    fireEvent.change(screen.getByLabelText("Search Responsi"), {
+    fireEvent.change(screen.getByLabelText("Search summaries"), {
       target: { value: "Database Normalization" },
     });
 
@@ -135,6 +164,55 @@ describe("EducationPage", () => {
       screen.getAllByText("Database Normalization").length,
     ).toBeGreaterThan(0);
     expect(screen.getByText("Showing 1-4 of 4 results")).toBeInTheDocument();
+  });
+
+  it("filters summary type before pagination and resets all filters with the icon button", async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "Page 2" }));
+    await selectEducationOption("Filter by summary type", "Study Club");
+    expect(mockResponsiQueries).toHaveBeenLastCalledWith(
+      expect.objectContaining({ summaryType: "Study Club", page: 1 }),
+    );
+    expect(
+      screen.getByText("No summaries match these filters."),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Search summaries"), {
+      target: { value: "nothing matches" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Reset filters" }));
+    expect(screen.getByLabelText("Search summaries")).toHaveValue("");
+    expect(
+      screen.getByRole("combobox", { name: "Filter by summary type" }),
+    ).toHaveTextContent("All Types");
+    expect(mockResponsiQueries).toHaveBeenLastCalledWith(
+      expect.objectContaining({ summaryType: undefined, page: 1 }),
+    );
+    expect(screen.getByText("Dynamic Programming")).toBeInTheDocument();
+  });
+
+  it("preselects the filtered type for new summaries and sends type on create and edit", async () => {
+    renderPage();
+    await selectEducationOption("Filter by summary type", "Study Club");
+    fireEvent.click(screen.getByRole("button", { name: "Create summary" }));
+    expect(
+      screen.getByRole("combobox", { name: "Summary type" }),
+    ).toHaveTextContent("Study Club");
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await waitFor(() =>
+      expect(mockCreateResponsi).toHaveBeenLastCalledWith(
+        expect.objectContaining({ summaryType: "Study Club" }),
+      ),
+    );
+    await selectEducationOption("Summary type", "Responsi");
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await waitFor(() =>
+      expect(mockUpdateResponsi).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          id: "created-responsi",
+          summaryType: "Responsi",
+        }),
+      ),
+    );
   });
 
   it("opens the Responsi workspace from a row and returns to the table", () => {
@@ -148,11 +226,11 @@ describe("EducationPage", () => {
       screen.getByRole("heading", { name: "Document" }),
     ).toBeInTheDocument();
     expect(
-      (screen.getByLabelText("Responsi content") as HTMLTextAreaElement).value,
+      (screen.getByLabelText("Summary content") as HTMLTextAreaElement).value,
     ).toContain("Dynamic Programming");
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Back to Responsi list" }),
+      screen.getByRole("button", { name: "Back to summaries list" }),
     );
 
     expect(screen.getByText(/Showing 1-6 of \d+ results/)).toBeInTheDocument();
@@ -174,33 +252,55 @@ describe("EducationPage", () => {
     expect(
       screen.getByRole("heading", { name: "Calculus" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Brief Summary" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Brief Summary" }),
+    ).toBeInTheDocument();
   });
 
   it("switches tabs and keeps the shell tab state", () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole("tab", { name: "Study Clubs" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Schedules" }));
 
-    expect(screen.getByRole("tab", { name: "Study Clubs" })).toHaveAttribute(
+    expect(screen.getByRole("tab", { name: "Schedules" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
     expect(
-      screen.getByText("Maintain Study Club schedules and sessions."),
+      screen.getByText("Manage Study Club and Responsi schedules."),
     ).toBeInTheDocument();
+  });
+
+  it.each([
+    ["summaries", "Summaries"],
+    ["schedules", "Schedules"],
+    ["responsi", "Summaries"],
+    ["study-clubs", "Schedules"],
+  ])("opens %s links on the %s tab", (tab, label) => {
+    render(
+      <MemoryRouter initialEntries={[`/education?tab=${tab}`]}>
+        <EducationPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("tab", { name: label })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("heading", { name: label })).toBeInTheDocument();
   });
 
   it("preselects course when opened with course query param", () => {
     render(
-      <MemoryRouter initialEntries={["/education?tab=responsi&course=Calculus"]}>
+      <MemoryRouter
+        initialEntries={["/education?tab=responsi&course=Calculus"]}
+      >
         <EducationPage />
       </MemoryRouter>,
     );
 
-    expect(
-      screen.getAllByText("Limits and Continuity").length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText("Limits and Continuity").length).toBeGreaterThan(
+      0,
+    );
     expect(screen.queryByText("Dynamic Programming")).not.toBeInTheDocument();
   });
 
@@ -219,7 +319,7 @@ describe("EducationPage", () => {
       screen.getByRole("heading", { name: "Document" }),
     ).toBeInTheDocument();
     expect(
-      (screen.getByLabelText("Responsi content") as HTMLTextAreaElement).value,
+      (screen.getByLabelText("Summary content") as HTMLTextAreaElement).value,
     ).toContain("Calculus");
   });
 
