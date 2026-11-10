@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import apiClient from "@/config/api-client";
 import { Api } from "@/constants/api";
+import type { components } from "@/generated/openapi";
 import type {
   CourseGroup,
   CourseGroupListResponse,
@@ -25,21 +26,46 @@ import type {
 export const educationKeys = {
   courseGroups: ["education", "course-groups"] as const,
   videos: ["education", "videos"] as const,
-  sessions: ["education", "sessions"] as const,
+  sessions: ["education", "study-clubs", "video-options"] as const,
   responsies: ["education", "responsies"] as const,
   responsi: (id: string) => ["education", "responsies", id] as const,
   responsiVersions: (id: string) =>
     ["education", "responsies", id, "versions"] as const,
 };
 
-// Videos need a session provider before session selection can be enabled.
-export const useGetEducationSessions = (_enabled = true) => ({
-  data: [] as EducationSession[],
-  isLoading: false,
-  isError: false,
-  isUnavailable: true,
-  refetch: () => undefined,
-});
+export const useGetEducationSessions = (enabled = true) =>
+  useQuery({
+    queryKey: educationKeys.sessions,
+    enabled,
+    queryFn: async ({ signal }): Promise<EducationSession[]> => {
+      const sessions: EducationSession[] = [];
+      let page = 1;
+      let totalPages: number;
+
+      do {
+        const { data } = await apiClient.get<components["schemas"]["StudyClubListResponse"]>(
+          Api.studyClubs,
+          { params: { schedule: "all", page, limit: 100 }, signal },
+        );
+
+        for (const session of data.data) {
+          sessions.push({
+            id: session.id,
+            title: session.title,
+            type: session.type === "Study Club" ? "STUDY_CLUB" : "RESPONSI",
+            courseId: session.courseId,
+            course: { id: session.courseId, name: session.course },
+            startsAt: session.startsAt,
+          });
+        }
+
+        totalPages = data.pagination.totalPages;
+        page += 1;
+      } while (page <= totalPages);
+
+      return sessions;
+    },
+  });
 
 export const useGetEducationVideos = (params: EducationVideoQueryParams) =>
   useQuery({
