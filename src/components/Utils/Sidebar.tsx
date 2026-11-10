@@ -13,6 +13,7 @@ import type { Route } from "@/types/route";
 import { authClient } from "@/utils/auth-client";
 import {
   BadgeCheck,
+  BookOpen,
   CalendarDays,
   Vote,
   ChevronDown,
@@ -37,6 +38,7 @@ const routeIconMap: Record<string, LucideIcon> = {
   "router-events": CalendarDays,
   "router-event-groups": Layers3,
   "router-elections": Vote,
+  "router-education": BookOpen,
   "router-batches": Layers3,
   "router-rbac-permissions": KeyRound,
   "router-rbac-roles": BadgeCheck,

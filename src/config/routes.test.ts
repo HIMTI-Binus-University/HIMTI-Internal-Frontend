@@ -32,6 +32,12 @@ describe("internal route access helpers", () => {
     expect(getFirstAccessibleInternalRoute(["view_dashboard"])).toBeUndefined();
   });
 
+  it("allows Admin users to open Education while manage_education is not seeded", () => {
+    expect(
+      getAccessibleInternalRoutes([], ["Admin"]).map((route) => route.path),
+    ).toContain("/education");
+  });
+
   it("allows Admin users to access URL management without manage_urls", () => {
     expect(getAccessibleInternalRoutes([], ["Admin"]).map((route) => route.path)).toContain(
       "/url-shortener",
