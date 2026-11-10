@@ -195,7 +195,7 @@ export const publicRoutes: Route[] = [
   {
     key: "router-education",
     title: "Education",
-    description: "Responsi, Study Clubs, videos, and course groups",
+    description: "Summaries, schedules, videos, and course groups",
     component: EducationPage,
     path: "/education",
     isEnabled: true,

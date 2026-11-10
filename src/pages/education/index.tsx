@@ -9,6 +9,7 @@ import type { EducationTabId } from "@/types/education";
 import CourseGroupsTab from "./course-groups-tab";
 import ResponsiTab from "./responsi-tab";
 import VideosTab from "./videos-tab";
+import StudyClubsTab from "./study-clubs-tab";
 
 type EducationTab = {
   id: EducationTabId;
@@ -19,16 +20,16 @@ type EducationTab = {
 
 const EDUCATION_TABS: EducationTab[] = [
   {
-    id: "responsi",
-    label: "Responsi",
+    id: "summaries",
+    label: "Summaries",
     icon: FileText,
-    description: "Create, edit, and manage Responsi summaries.",
+    description: "Create, edit, and manage Responsi and Study Club summaries.",
   },
   {
-    id: "study-clubs",
-    label: "Study Clubs",
+    id: "schedules",
+    label: "Schedules",
     icon: CalendarDays,
-    description: "Maintain Study Club schedules and sessions.",
+    description: "Manage Study Club and Responsi schedules.",
   },
   {
     id: "videos",
@@ -41,11 +42,15 @@ const EDUCATION_TABS: EducationTab[] = [
     label: "Course Groups",
     icon: BookOpen,
     description:
-      "Organize courses and connect their Responsi, Study Clubs, and videos.",
+      "Organize courses and connect their summaries, schedules, and videos.",
   },
 ];
 
 const DEFAULT_TAB = EDUCATION_TABS[0];
+const LEGACY_TABS: Record<string, EducationTabId> = {
+  responsi: "summaries",
+  "study-clubs": "schedules",
+};
 
 const PlaceholderTab = ({ tab }: { tab: EducationTab }) => {
   const Icon = tab.icon;
@@ -68,7 +73,8 @@ const PlaceholderTab = ({ tab }: { tab: EducationTab }) => {
 const EducationPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const requestedTab = searchParams.get("tab");
+  const tabParam = searchParams.get("tab") ?? "";
+  const requestedTab = LEGACY_TABS[tabParam] ?? tabParam;
   const activeTab =
     EDUCATION_TABS.find((tab) => tab.id === requestedTab) ?? DEFAULT_TAB;
 
@@ -121,7 +127,7 @@ const EducationPage = () => {
             Education
           </h2>
           <p className="mt-1 text-base text-muted-foreground">
-            Manage Responsi content, Study Clubs, videos, and course groups.
+            Manage summaries, schedules, videos, and course groups.
           </p>
         </section>
 
@@ -134,7 +140,8 @@ const EducationPage = () => {
           {EDUCATION_TABS.map((tab, index) => {
             const Icon = tab.icon;
             const isActive = tab.id === activeTab.id;
-            const previousIsActive = EDUCATION_TABS[index - 1]?.id === activeTab.id;
+            const previousIsActive =
+              EDUCATION_TABS[index - 1]?.id === activeTab.id;
 
             return (
               <button
@@ -175,10 +182,12 @@ const EducationPage = () => {
           aria-labelledby={`education-tab-${activeTab.id}`}
           className="flex min-h-0 flex-1 flex-col"
         >
-          {activeTab.id === "responsi" ? (
+          {activeTab.id === "summaries" ? (
             <ResponsiTab />
           ) : activeTab.id === "course-groups" ? (
             <CourseGroupsTab />
+          ) : activeTab.id === "schedules" ? (
+            <StudyClubsTab />
           ) : activeTab.id === "videos" ? (
             <VideosTab />
           ) : (
