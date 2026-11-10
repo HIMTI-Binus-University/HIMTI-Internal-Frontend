@@ -70,6 +70,7 @@ export const useGetEducationSessions = (enabled = true) =>
 export const useGetEducationVideos = (params: EducationVideoQueryParams) =>
   useQuery({
     queryKey: [...educationKeys.videos, params],
+    refetchOnMount: "always",
     queryFn: () =>
       apiClient
         .get<EducationVideoListResponse>(Api.educationVideos, { params })
