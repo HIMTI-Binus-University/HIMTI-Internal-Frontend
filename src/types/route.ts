@@ -14,6 +14,7 @@ export type HimtiPermission =
   | "manage_certificates"
   | "view_election_results"
   | "manage_batch"
+  | "manage_himti_kit"
   | "create_events"
   | "view_dashboard";
 

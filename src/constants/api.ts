@@ -92,4 +92,15 @@ export const Api = {
   electionLiveReveal: "/api/internal/elections/:electionId/live-reveal",
   electionTurnout: "/api/internal/elections/:electionId/turnout",
   electionTally: "/api/internal/elections/:electionId/tally",
+
+  // HIMTI KIT administration endpoints
+  himtiKitResources: "/api/himti-kit/resources",
+  himtiKitResource: "/api/himti-kit/resources/:id",
+  himtiKitSoftwares: "/api/himti-kit/software",
+  himtiKitSoftware: "/api/himti-kit/software/:id",
+  himtiKitAttendees: "/api/himti-kit/attendees",
+  himtiKitAttendeeBulk: "/api/himti-kit/attendees/bulk-import",
+  himtiKitAttendee: "/api/himti-kit/attendees/:id",
+  himtiKitAppearance: "/api/himti-kit/appearance",
+  himtiKitAppearanceReset: "/api/himti-kit/appearance/reset",
 };
