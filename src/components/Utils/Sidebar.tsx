@@ -12,6 +12,7 @@ import { gsap, useGSAP } from "@/lib/motion";
 import type { Route } from "@/types/route";
 import { authClient } from "@/utils/auth-client";
 import {
+  Award,
   BadgeCheck,
   CalendarDays,
   Vote,
@@ -38,6 +39,7 @@ const routeIconMap: Record<string, LucideIcon> = {
   "router-event-groups": Layers3,
   "router-elections": Vote,
   "router-batches": Layers3,
+  "router-certificate-generator": Award,
   "router-rbac-permissions": KeyRound,
   "router-rbac-roles": BadgeCheck,
   "router-rbac-users": Users,

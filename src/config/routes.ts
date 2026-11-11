@@ -15,6 +15,7 @@ import EventGroupEditorPage from "@/pages/event-groups/editor";
 import EventGroupWorkspacePage from "@/pages/event-groups/workspace";
 import BatchesPage from "@/pages/batches";
 import CompleteRegistrationPage from "@/pages/complete-registration";
+import CertificateGeneratorPage from "@/pages/certificates";
 import ElectionsPage from "@/pages/elections";
 import ElectionEditorPage from "@/pages/elections/editor";
 import ElectionWorkspacePage from "@/pages/elections/workspace";
@@ -107,6 +108,17 @@ export const publicRoutes: Route[] = [
     isEnabled: true,
     isProtected: true,
     requiredPermission: "manage_batch",
+    group: "Tools",
+  },
+  {
+    key: "router-certificate-generator",
+    title: "Certificate Generator",
+    description: "Batch Certificate Generator",
+    component: CertificateGeneratorPage,
+    path: "/certificates/generator",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_certificates",
     group: "Tools",
   },
   {
