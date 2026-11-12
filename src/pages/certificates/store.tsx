@@ -1,0 +1,147 @@
+import {
+  createContext,
+  useContext,
+  useReducer,
+  useMemo,
+  type ReactNode,
+} from "react";
+import type {
+  CertificateState,
+  CertificateAction,
+  TextSettings,
+  CertificateTemplate,
+  NameEntry,
+} from "./types";
+import { findLongestName } from "./utils";
+
+const defaultTextSettings: TextSettings = {
+  x: 50,
+  y: 50,
+  width: 30,
+  height: 20,
+  rotation: 0,
+  opacity: 100,
+  fontFamily: "Plus Jakarta Sans",
+  fontSize: 72,
+  minFontSize: 24,
+  fontWeight: "bold",
+  textAlign: "center",
+  color: "#000000",
+  letterSpacing: 0,
+  lineHeight: 1.2,
+  maxLines: 1,
+  uppercase: false,
+  autoFit: true,
+  abbreviate: {
+    firstName: false,
+    middleName: false,
+    lastName: false,
+  },
+  shadow: {
+    enabled: false,
+    color: "#000000",
+    blur: 4,
+    offsetX: 2,
+    offsetY: 2,
+  },
+  stroke: {
+    enabled: false,
+    color: "#ffffff",
+    width: 2,
+  },
+};
+
+// Initial state - No mock data
+const initialState: CertificateState = {
+  currentStep: 1,
+  template: null,
+  names: [],
+  textSettings: defaultTextSettings,
+};
+
+const certificateReducer = (
+  state: CertificateState,
+  action: CertificateAction,
+): CertificateState => {
+  switch (action.type) {
+    case "SET_STEP":
+      return { ...state, currentStep: action.payload };
+    case "SET_TEMPLATE": {
+      const template = action.payload;
+      if (template) {
+        const calculatedFontSize = Math.round(template.height * 0.06);
+        const fontSize = Math.max(24, Math.min(200, calculatedFontSize));
+        
+        return {
+          ...state,
+          template,
+          textSettings: {
+            ...state.textSettings,
+            fontSize,
+          },
+        };
+      }
+      return { ...state, template: null };
+    }
+    case "SET_NAMES":
+      return { ...state, names: action.payload };
+    case "UPDATE_TEXT_SETTINGS":
+      return {
+        ...state,
+        textSettings: { ...state.textSettings, ...action.payload },
+      };
+    case "RESET_TEXT_SETTINGS":
+      return { ...state, textSettings: defaultTextSettings };
+    case "RESET_ALL":
+      return initialState;
+    default:
+      return state;
+  }
+};
+
+type Store = {
+  state: CertificateState;
+  setStep: (step: 1 | 2 | 3) => void;
+  setTemplate: (template: CertificateTemplate | null) => void;
+  setNames: (names: NameEntry[]) => void;
+  updateTextSettings: (settings: Partial<TextSettings>) => void;
+  resetTextSettings: () => void;
+  resetAll: () => void;
+  getLongestName: () => NameEntry | null;
+};
+
+const StoreContext = createContext<Store | null>(null);
+
+export const CertificateProvider = ({ children }: { children: ReactNode }) => {
+  const [state, dispatch] = useReducer(certificateReducer, initialState);
+
+  const value = useMemo<Store>(
+    () => ({
+      state,
+      setStep: (step) => dispatch({ type: "SET_STEP", payload: step }),
+      setTemplate: (template) =>
+        dispatch({ type: "SET_TEMPLATE", payload: template }),
+      setNames: (names) => dispatch({ type: "SET_NAMES", payload: names }),
+      updateTextSettings: (settings) =>
+        dispatch({ type: "UPDATE_TEXT_SETTINGS", payload: settings }),
+      resetTextSettings: () => dispatch({ type: "RESET_TEXT_SETTINGS" }),
+      resetAll: () => dispatch({ type: "RESET_ALL" }),
+      getLongestName: () => findLongestName(state.names),
+    }),
+    [state],
+  );
+
+  return (
+    <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
+  );
+};
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const useCertificateStore = () => {
+  const store = useContext(StoreContext);
+  if (!store)
+    throw new Error(
+      "useCertificateStore must be used inside CertificateProvider",
+    );
+  return store;
+};
