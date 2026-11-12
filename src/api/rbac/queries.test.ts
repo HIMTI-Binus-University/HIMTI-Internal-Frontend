@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import apiClient from "@/config/api-client";
-import { getAllRoles, cleanUserListParams } from "./queries";
+import { getAllPermissions, getAllRoles, cleanUserListParams } from "./queries";
 
 vi.mock("@/config/api-client", () => ({
   default: { get: vi.fn() },
@@ -27,6 +27,38 @@ describe("getAllRoles", () => {
     const roles = await getAllRoles();
 
     expect(roles.map((role) => role.id)).toEqual(["role-1", "role-2", "role-3"]);
+    expect(mockedClient.get).toHaveBeenNthCalledWith(1, expect.any(String), {
+      params: { page: 1, limit: 100, status: "ACTIVE" },
+    });
+    expect(mockedClient.get).toHaveBeenNthCalledWith(2, expect.any(String), {
+      params: { page: 2, limit: 100, status: "ACTIVE" },
+    });
+    expect(mockedClient.get).toHaveBeenNthCalledWith(3, expect.any(String), {
+      params: { page: 3, limit: 100, status: "ACTIVE" },
+    });
+  });
+});
+
+describe("getAllPermissions", () => {
+  it("fetches and combines every active-permission page", async () => {
+    mockedClient.get
+      .mockResolvedValueOnce({
+        data: {
+          msg: "success",
+          data: [{ id: "permission-1" }],
+          meta: { page: 1, limit: 100, totalRecords: 201, totalPages: 3 },
+        },
+      })
+      .mockResolvedValueOnce({ data: { data: [{ id: "permission-2" }] } })
+      .mockResolvedValueOnce({ data: { data: [{ id: "permission-3" }] } });
+
+    const permissions = await getAllPermissions();
+
+    expect(permissions.map((permission) => permission.id)).toEqual([
+      "permission-1",
+      "permission-2",
+      "permission-3",
+    ]);
     expect(mockedClient.get).toHaveBeenNthCalledWith(1, expect.any(String), {
       params: { page: 1, limit: 100, status: "ACTIVE" },
     });
