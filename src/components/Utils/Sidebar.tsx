@@ -12,12 +12,15 @@ import { gsap, useGSAP } from "@/lib/motion";
 import type { Route } from "@/types/route";
 import { authClient } from "@/utils/auth-client";
 import {
+  Award,
   BadgeCheck,
+  BookOpen,
   CalendarDays,
   Vote,
   ChevronDown,
   ChevronLeft,
   CircleUserRound,
+  FolderKanban,
   KeyRound,
   Link2,
   LogOut,
@@ -34,10 +37,13 @@ type SidebarProps = {
 
 const routeIconMap: Record<string, LucideIcon> = {
   "router-url-shortener": Link2,
+  "router-himti-kit": FolderKanban,
   "router-events": CalendarDays,
   "router-event-groups": Layers3,
   "router-elections": Vote,
+  "router-education": BookOpen,
   "router-batches": Layers3,
+  "router-certificate-generator": Award,
   "router-rbac-permissions": KeyRound,
   "router-rbac-roles": BadgeCheck,
   "router-rbac-users": Users,
