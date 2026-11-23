@@ -236,11 +236,6 @@ export function AttendeeImportDialog({
       if (mode === "manual") {
         if (!name.trim() || !nim.trim()) return;
         const single = [{ name: name.trim(), nim: nim.trim().replace(/\s+/g, "") }];
-        console.log(
-          "%c[HIMTI-KIT:Attendees] Submitting manual attendee:",
-          "font-weight: bold; color: #0284c7;",
-          single
-        );
         await onSubmit(single);
         resetState();
         onOpenChange(false);
@@ -257,11 +252,6 @@ export function AttendeeImportDialog({
           return;
         }
 
-        console.log(
-          `%c[HIMTI-KIT:Attendees] Submitting ${cleaned.length} modified attendee rows to Backend:`,
-          "font-weight: bold; color: #0284c7;",
-          cleaned
-        );
         await onSubmit(cleaned);
         resetState();
         onOpenChange(false);
