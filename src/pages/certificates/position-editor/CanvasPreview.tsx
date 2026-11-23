@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, FabricImage, Line, Rect, Textbox, Text } from "fabric";
-import { Minus, Plus, Maximize2 } from "lucide-react";
+import { Minus, Plus, Maximize2, MousePointer2 } from "lucide-react";
+import { ContainerSection } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -11,7 +12,16 @@ import {
 } from "@/components/ui/select";
 import { useCertificateStore } from "../store";
 import type { TextSettings } from "../types";
+import { ZOOM_CONFIG } from "../constants";
+import InlineNotice from "../components/InlineNotice";
+import { describeFit } from "../components/describeFit";
+import { createCanvasMeasure, fitName, getBoxWidth } from "../utils/fitName";
+import { computeFitWidth } from "../utils/fitCanvas";
 import { GUIDELINE_MARGIN, snapToTargets, type SnapResult } from "./snap";
+
+// Space around the canvas inside the measured area: the area's own padding
+// (p-3 = 24px) plus the canvas frame (p-2 + 1px border each side = 18px).
+const FRAME_CHROME = 42;
 
 const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
 const roundPosition = (value: number) => Number(value.toFixed(2));
@@ -65,7 +75,10 @@ const drawSnapGuides = (
 const CanvasPreview = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<Canvas | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  // The scrollable area the canvas is sized to fit inside.
+  const areaRef = useRef<HTMLDivElement>(null);
+  const zoomRef = useRef<number>(ZOOM_CONFIG.DEFAULT);
+  const resizeRef = useRef<() => void>(() => {});
 
   // The Textbox itself is the editable text area.
   const textRef = useRef<Textbox | null>(null);
@@ -78,7 +91,7 @@ const CanvasPreview = () => {
   const { state, updateTextSettings } = useCertificateStore();
   const { template, names, textSettings } = state;
 
-  const [zoom, setZoom] = useState(100);
+  const [zoom, setZoom] = useState<number>(ZOOM_CONFIG.DEFAULT);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
   const [previewNameIndex, setPreviewNameIndex] = useState(0);
 
@@ -116,8 +129,8 @@ const CanvasPreview = () => {
     const bounds = textbox.getBoundingRect();
 
     label.set({
-      left: bounds.left + 5,
-      top: bounds.top - 20,
+      left: bounds.left,
+      top: bounds.top - 17,
     });
 
     label.setCoords();
@@ -251,6 +264,7 @@ const CanvasPreview = () => {
 
     (marginRect as any).isGuideline = true;
     canvas.add(marginRect);
+    // (z-order is restored after all guidelines are added, see below)
 
     const verticalLine = new Line(
       [size.width / 2, 0, size.width / 2, size.height],
@@ -277,6 +291,15 @@ const CanvasPreview = () => {
 
     (horizontalLine as any).isGuideline = true;
     canvas.add(horizontalLine);
+
+    // Guidelines are redrawn on every resize/zoom, which adds them on top of
+    // the name box. Send them to the back (above the template image only).
+    const objects = canvas.getObjects();
+    objects
+      .filter((obj: any) => obj.isGuideline)
+      .forEach((obj) => canvas.sendObjectToBack(obj));
+    const background = objects.find((obj: any) => obj.isTemplateBackground);
+    if (background) canvas.sendObjectToBack(background);
   };
 
   const createTextArea = (
@@ -355,11 +378,13 @@ const CanvasPreview = () => {
 
     textRef.current = textbox;
 
-    const label = new Text("Name area", {
+    // A solid chip, so it stays readable over the template's own text.
+    const label = new Text(" Name area ", {
       left: centerX,
       top: centerY,
-      fontSize: 12,
-      fill: "#3b82f6",
+      fontSize: 11,
+      fill: "#ffffff",
+      backgroundColor: "#3b82f6",
       fontFamily: "Plus Jakarta Sans",
       selectable: false,
       evented: false,
@@ -486,7 +511,9 @@ const CanvasPreview = () => {
       const newY = (center.y / liveHeight) * 100;
       const newWidth = (finalWidth / liveWidth) * 100;
       
-      const scaleFactor = size.width / template!.width;
+      // Use the live width, like the position above: `size` was captured when
+      // the box was created and is wrong after a resize or zoom.
+      const scaleFactor = liveWidth / template!.width;
       const originalFontSize = Math.round(finalFontSize / scaleFactor);
 
       isTransformingRef.current = false;
@@ -523,38 +550,70 @@ const CanvasPreview = () => {
 
     fabricRef.current = canvas;
 
+    // Fits the canvas inside the area (width, and height on large screens),
+    // then applies the zoom as a multiplier on that fitted size. Everything
+    // else (position %, font scale) is derived from the canvas size, so the
+    // template image and guidelines are rescaled here as well.
     const updateCanvasSize = () => {
-      if (!containerRef.current) return;
-
-      const containerWidth = Math.max(
-        1,
-        containerRef.current.clientWidth - 32
-      );
+      const area = areaRef.current;
+      if (!area) return;
 
       const aspectRatio = template.height / template.width;
-      const newWidth = Math.min(containerWidth, template.width);
+      const availableWidth = Math.max(1, area.clientWidth - FRAME_CHROME);
+      const availableHeight =
+        window.innerWidth >= 1024 && area.clientHeight > 0
+          ? Math.max(1, area.clientHeight - FRAME_CHROME)
+          : Number.POSITIVE_INFINITY;
+
+      const fitWidth = computeFitWidth({
+        availableWidth,
+        availableHeight,
+        aspectRatio,
+        templateWidth: template.width,
+      });
+      const newWidth = (fitWidth * zoomRef.current) / 100;
       const newHeight = newWidth * aspectRatio;
 
-      setCanvasSize({
-        width: newWidth,
-        height: newHeight,
-      });
+      canvas.setDimensions({ width: newWidth, height: newHeight });
 
-      canvas.setDimensions({
-        width: newWidth,
-        height: newHeight,
-      });
+      const background = canvas
+        .getObjects()
+        .find((obj: any) => obj.isTemplateBackground);
+      if (background) {
+        background.set({
+          left: 0,
+          top: 0,
+          scaleX: newWidth / template.width,
+          scaleY: newHeight / template.height,
+        });
+        drawGuidelines(canvas, { width: newWidth, height: newHeight });
+      }
+
+      setCanvasSize((prev) =>
+        prev.width === newWidth && prev.height === newHeight
+          ? prev
+          : { width: newWidth, height: newHeight }
+      );
+      canvas.requestRenderAll();
     };
 
+    resizeRef.current = updateCanvasSize;
     updateCanvasSize();
-    window.addEventListener("resize", updateCanvasSize);
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" && areaRef.current
+        ? new ResizeObserver(updateCanvasSize)
+        : null;
+    if (areaRef.current) resizeObserver?.observe(areaRef.current);
+
+    let cancelled = false;
 
     FabricImage.fromURL(
       template.url,
       {},
       { crossOrigin: "anonymous" }
     ).then((img) => {
-      if (!fabricRef.current) return;
+      if (cancelled || !fabricRef.current) return;
 
       const actualWidth = canvas.getWidth();
       const actualHeight = canvas.getHeight();
@@ -568,6 +627,7 @@ const CanvasPreview = () => {
         scaleY: actualHeight / template.height,
       });
 
+      (img as any).isTemplateBackground = true;
       canvas.add(img);
       canvas.sendObjectToBack(img);
 
@@ -586,7 +646,9 @@ const CanvasPreview = () => {
     });
 
     return () => {
-      window.removeEventListener("resize", updateCanvasSize);
+      cancelled = true;
+      resizeObserver?.disconnect();
+      resizeRef.current = () => {};
 
       if (renderFrameRef.current !== null) {
         cancelAnimationFrame(renderFrameRef.current);
@@ -635,113 +697,134 @@ const CanvasPreview = () => {
     previewNameIndex,
   ]);
 
-  const handleZoomIn = () => {
-    if (zoom >= 200) return;
-
-    const newZoom = zoom + 10;
-    setZoom(newZoom);
-
-    fabricRef.current?.setZoom(newZoom / 100);
-    fabricRef.current?.requestRenderAll();
+  const applyZoom = (next: number) => {
+    const clamped = Math.max(ZOOM_CONFIG.MIN, Math.min(ZOOM_CONFIG.MAX, next));
+    zoomRef.current = clamped;
+    setZoom(clamped);
+    // Re-fit the canvas at the new zoom (size, template and guidelines).
+    resizeRef.current();
   };
 
-  const handleZoomOut = () => {
-    if (zoom <= 50) return;
+  const handleZoomIn = () => applyZoom(zoom + ZOOM_CONFIG.STEP);
+  const handleZoomOut = () => applyZoom(zoom - ZOOM_CONFIG.STEP);
+  const handleFit = () => applyZoom(ZOOM_CONFIG.DEFAULT);
 
-    const newZoom = zoom - 10;
-    setZoom(newZoom);
+  // How the previewed name will really be drawn (shrunk, shortened, too long).
+  const fitNote = useMemo(() => {
+    if (!template || names.length === 0) return null;
 
-    fabricRef.current?.setZoom(newZoom / 100);
-    fabricRef.current?.requestRenderAll();
-  };
+    const entry = names[previewNameIndex] ?? names[0];
+    const fit = fitName(
+      entry.name,
+      textSettings,
+      getBoxWidth(textSettings, template.width),
+      createCanvasMeasure(textSettings)
+    );
 
-  const handleFit = () => {
-    setZoom(100);
-    fabricRef.current?.setZoom(1);
-    fabricRef.current?.requestRenderAll();
-  };
+    return describeFit(fit);
+  }, [template, names, previewNameIndex, textSettings]);
 
   if (!template) {
     return (
-      <div className="flex h-full items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/20 p-8">
-        <p className="text-sm text-muted-foreground">
-          No template loaded. Please go back to Step 1.
-        </p>
-      </div>
+      <ContainerSection
+        icon={MousePointer2}
+        title="Preview editor"
+        description="Drag the name box to place it."
+      >
+        <InlineNotice tone="warning">
+          No template loaded. Go back to Step 1 to add one.
+        </InlineNotice>
+      </ContainerSection>
     );
   }
 
   return (
-    <div ref={containerRef} className="flex h-full flex-col">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-base font-semibold text-foreground">
-          Preview editor
-        </h3>
-
-        <div className="flex flex-wrap items-center gap-2">
+    <ContainerSection
+      icon={MousePointer2}
+      title="Preview editor"
+      description="Drag the name box to place it. Drag a corner to resize."
+      actions={
+        <div
+          role="group"
+          aria-label="Zoom"
+          className="flex items-center gap-1.5"
+        >
           <Button
             variant="outline"
             size="icon"
+            aria-label="Zoom out"
             onClick={handleZoomOut}
-            disabled={zoom <= 50}
+            disabled={zoom <= ZOOM_CONFIG.MIN}
           >
-            <Minus className="h-4 w-4" />
+            <Minus aria-hidden="true" />
           </Button>
 
-          <span className="min-w-[60px] text-center text-sm font-medium">
+          <span
+            className="min-w-[3.25rem] text-center text-sm font-medium tabular-nums"
+            aria-live="polite"
+          >
             {zoom}%
           </span>
 
           <Button
             variant="outline"
             size="icon"
+            aria-label="Zoom in"
             onClick={handleZoomIn}
-            disabled={zoom >= 200}
+            disabled={zoom >= ZOOM_CONFIG.MAX}
           >
-            <Plus className="h-4 w-4" />
+            <Plus aria-hidden="true" />
           </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleFit}
-          >
-            <Maximize2 className="mr-2 h-4 w-4" />
+          <Button variant="outline" size="sm" onClick={handleFit}>
+            <Maximize2 aria-hidden="true" />
             Fit
           </Button>
         </div>
-      </div>
+      }
+    >
+      <div className="flex flex-col gap-3 lg:h-full">
+        {names.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span id="preview-name-label" className="text-sm text-muted-foreground">
+              Preview name
+            </span>
+            <Select
+              value={previewNameIndex.toString()}
+              onValueChange={(value) => setPreviewNameIndex(Number(value))}
+            >
+              <SelectTrigger
+                aria-labelledby="preview-name-label"
+                className="w-full min-w-0 sm:w-[260px]"
+              >
+                <SelectValue>
+                  {names[previewNameIndex]?.name || "Select name"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {names.map((name, index) => (
+                  <SelectItem key={name.id} value={index.toString()}>
+                    {name.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-      {names.length > 0 && (
-        <div className="mb-3 flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Preview:</span>
-          <Select
-            value={previewNameIndex.toString()}
-            onValueChange={(value) => setPreviewNameIndex(Number(value))}
-          >
-            <SelectTrigger className="h-8 w-full min-w-0 text-xs sm:w-[250px] sm:min-w-[250px]">
-              <SelectValue>
-                {names[previewNameIndex]?.name || "Select name"}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {names.map((name, index) => (
-                <SelectItem key={name.id} value={index.toString()}>
-                  {name.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {fitNote && <InlineNotice tone={fitNote.tone}>{fitNote.text}</InlineNotice>}
+
+        {/* Measured area: the canvas is sized to fit inside it and scrolls when zoomed in. */}
+        <div
+          ref={areaRef}
+          className="min-h-[200px] w-full min-w-0 overflow-auto rounded-lg border border-border bg-muted/50 p-3 lg:min-h-0 lg:flex-1"
+        >
+          <div className="mx-auto w-fit rounded-lg border border-border bg-white p-2 shadow-sm">
+            <canvas ref={canvasRef} />
+          </div>
         </div>
-      )}
-
-      <div className="overflow-auto rounded-lg border border-border bg-gray-200 p-4">
-        <div className="flex items-center justify-center">
-          <canvas ref={canvasRef} />
-        </div>
       </div>
-
-    </div>
+    </ContainerSection>
   );
 };
 

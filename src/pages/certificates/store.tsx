@@ -1,8 +1,11 @@
 import {
   createContext,
+  useCallback,
   useContext,
+  useEffect,
   useReducer,
   useMemo,
+  useState,
   type ReactNode,
 } from "react";
 import type {
@@ -12,51 +15,17 @@ import type {
   CertificateTemplate,
   NameEntry,
 } from "./types";
+import { DEFAULT_TEXT_SETTINGS } from "./constants";
 import { findLongestName } from "./utils";
-
-const defaultTextSettings: TextSettings = {
-  x: 50,
-  y: 50,
-  width: 30,
-  height: 20,
-  rotation: 0,
-  opacity: 100,
-  fontFamily: "Plus Jakarta Sans",
-  fontSize: 72,
-  minFontSize: 24,
-  fontWeight: "bold",
-  textAlign: "center",
-  color: "#000000",
-  letterSpacing: 0,
-  lineHeight: 1.2,
-  maxLines: 1,
-  uppercase: false,
-  autoFit: true,
-  abbreviate: {
-    firstName: false,
-    middleName: false,
-    lastName: false,
-  },
-  shadow: {
-    enabled: false,
-    color: "#000000",
-    blur: 4,
-    offsetX: 2,
-    offsetY: 2,
-  },
-  stroke: {
-    enabled: false,
-    color: "#ffffff",
-    width: 2,
-  },
-};
+import { clearSession, loadSession, saveSession } from "./utils/persistence";
+import { clearCustomFonts } from "./utils/customFonts";
 
 // Initial state - No mock data
 const initialState: CertificateState = {
   currentStep: 1,
   template: null,
   names: [],
-  textSettings: defaultTextSettings,
+  textSettings: DEFAULT_TEXT_SETTINGS,
 };
 
 const certificateReducer = (
@@ -69,9 +38,18 @@ const certificateReducer = (
     case "SET_TEMPLATE": {
       const template = action.payload;
       if (template) {
+        // Replacing a template with one of the same size keeps the font size
+        // the user already chose; a different size gets a fresh suggestion.
+        const sameSize =
+          state.template !== null &&
+          state.template.width === template.width &&
+          state.template.height === template.height;
+
+        if (sameSize) return { ...state, template };
+
         const calculatedFontSize = Math.round(template.height * 0.06);
         const fontSize = Math.max(24, Math.min(200, calculatedFontSize));
-        
+
         return {
           ...state,
           template,
@@ -91,7 +69,9 @@ const certificateReducer = (
         textSettings: { ...state.textSettings, ...action.payload },
       };
     case "RESET_TEXT_SETTINGS":
-      return { ...state, textSettings: defaultTextSettings };
+      return { ...state, textSettings: DEFAULT_TEXT_SETTINGS };
+    case "HYDRATE":
+      return { ...state, ...action.payload };
     case "RESET_ALL":
       return initialState;
     default:
@@ -108,12 +88,66 @@ type Store = {
   resetTextSettings: () => void;
   resetAll: () => void;
   getLongestName: () => NameEntry | null;
+  /** True until saved work (if any) has been looked up on page load. */
+  isRestoring: boolean;
+  /** When the restored session was saved, or null if nothing was restored. */
+  restoredAt: number | null;
+  dismissRestored: () => void;
+  /** Clears all work and the saved copy. */
+  startOver: () => Promise<void>;
 };
 
 const StoreContext = createContext<Store | null>(null);
 
 export const CertificateProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(certificateReducer, initialState);
+  const [isRestoring, setIsRestoring] = useState(true);
+  const [restoredAt, setRestoredAt] = useState<number | null>(null);
+
+  // Look for saved work once, when the page opens.
+  useEffect(() => {
+    let cancelled = false;
+
+    void loadSession().then((restored) => {
+      if (cancelled) return;
+
+      if (restored) {
+        dispatch({
+          type: "HYDRATE",
+          payload: {
+            currentStep: restored.snapshot.currentStep,
+            template: restored.template,
+            names: restored.snapshot.names,
+            textSettings: restored.snapshot.textSettings,
+          },
+        });
+        setRestoredAt(restored.snapshot.savedAt);
+      }
+
+      setIsRestoring(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Save after every change (debounced), but never before the lookup above
+  // has finished, or an empty page would overwrite the saved work.
+  useEffect(() => {
+    if (isRestoring) return;
+
+    const timer = setTimeout(() => void saveSession(state), 400);
+    return () => clearTimeout(timer);
+  }, [state, isRestoring]);
+
+  const startOver = useCallback(async () => {
+    if (state.template) URL.revokeObjectURL(state.template.url);
+    clearCustomFonts();
+    dispatch({ type: "RESET_ALL" });
+    setRestoredAt(null);
+    await clearSession();
+  }, [state.template]);
 
   const value = useMemo<Store>(
     () => ({
@@ -127,8 +161,12 @@ export const CertificateProvider = ({ children }: { children: ReactNode }) => {
       resetTextSettings: () => dispatch({ type: "RESET_TEXT_SETTINGS" }),
       resetAll: () => dispatch({ type: "RESET_ALL" }),
       getLongestName: () => findLongestName(state.names),
+      isRestoring,
+      restoredAt,
+      dismissRestored: () => setRestoredAt(null),
+      startOver,
     }),
-    [state],
+    [state, isRestoring, restoredAt, startOver],
   );
 
   return (

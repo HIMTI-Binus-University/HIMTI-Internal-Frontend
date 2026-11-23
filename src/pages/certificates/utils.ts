@@ -85,29 +85,9 @@ export const findLongestName = (names: NameEntry[]): NameEntry | null => {
   );
 };
 
-/**
- * Abbreviate name parts
- */
-export const abbreviateName = (
-  name: string,
-  options: { firstName: boolean; middleName: boolean; lastName: boolean },
-): string => {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 0) return name;
-
-  const abbreviated = parts.map((part, index) => {
-    const isFirst = index === 0;
-    const isLast = index === parts.length - 1;
-    const isMiddle = !isFirst && !isLast;
-
-    if ((isFirst && options.firstName) || (isMiddle && options.middleName) || (isLast && options.lastName)) {
-      return part.charAt(0).toUpperCase() + ".";
-    }
-    return part;
-  });
-
-  return abbreviated.join(" ");
-};
+// Pure helper lives in its own file so it can be used (and tested) without
+// pulling in the spreadsheet parser this module imports.
+export { abbreviateName } from "./utils/nameFormat";
 
 /**
  * Generate unique ID

@@ -21,7 +21,6 @@ export interface TextSettings {
   x: number;
   y: number;
   width: number;
-  height: number;
   rotation: number;
   opacity: number;
   fontFamily: string;
@@ -68,4 +67,11 @@ export type CertificateAction =
   | { type: "SET_NAMES"; payload: NameEntry[] }
   | { type: "UPDATE_TEXT_SETTINGS"; payload: Partial<TextSettings> }
   | { type: "RESET_TEXT_SETTINGS" }
+  | {
+      type: "HYDRATE";
+      payload: Pick<
+        CertificateState,
+        "currentStep" | "template" | "names" | "textSettings"
+      >;
+    }
   | { type: "RESET_ALL" };

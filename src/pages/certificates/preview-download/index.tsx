@@ -1,75 +1,96 @@
-import { ArrowLeft } from "lucide-react";
-import { Container, ContainerHeader } from "@/components/Utils";
-import { Button } from "@/components/ui/button";
+import { useEffect, useMemo, useState } from "react";
+
 import { useCertificateStore } from "../store";
+import WizardFooter from "../components/WizardFooter";
 import CertificatePreview from "./CertificatePreview";
-import ResultInspection from './components/result-inspection';
-import OutputFormat from './components/output-format';
-import { useState } from "react";
-import { generateCertificates } from "../utils/generateCertificates";
+import ResultInspection from "./components/result-inspection";
+import OutputFormat, { type OutputOption } from "./components/output-format";
+import { generateCertificates, type CertificateFormat } from "../utils/generateCertificates";
+import {
+  createCanvasMeasure,
+  ensureFontReady,
+  fitName,
+  getBoxWidth,
+  summarizeFits,
+  type FitResult,
+} from "../utils/fitName";
 
-interface StatItem {
-  label: string;
-  value: number;
-  type?: 'positive' | 'warning' | 'danger' | 'info';
-}
-
-interface OutputOption {
-  id: string;
-  label: string;
-  description?: string;
-}
+const OUTPUT_OPTIONS: Array<OutputOption & { id: CertificateFormat; file: string }> = [
+  {
+    id: "png-zip",
+    label: "PNG per participant in ZIP",
+    shortLabel: "PNG ZIP",
+    description: "One PNG per participant, original size.",
+    file: "certificates.zip",
+  },
+  {
+    id: "pdf-zip",
+    label: "PDF per participant in ZIP",
+    shortLabel: "PDF ZIP",
+    description: "One single-page PDF per participant.",
+    file: "certificates.zip",
+  },
+  {
+    id: "pdf-multi",
+    label: "Single multi-page PDF",
+    shortLabel: "One PDF",
+    description: "One PDF, one participant per page.",
+    file: "certificates.pdf",
+  },
+];
 
 const PreviewDownload = () => {
   const { state, setStep } = useCertificateStore();
   const { template, names, textSettings } = state;
-  
+
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [result, setResult] = useState<{ tone: "success" | "error"; message: string } | null>(null);
+  // Measuring needs the font; bump this once it has loaded to re-measure.
+  const [fontVersion, setFontVersion] = useState(0);
 
-  const stats: StatItem[] = [
-    { label: 'Certificates ready', value: names.length, type: 'positive' },
-    { label: 'Using full name', value: names.length, type: 'positive' },
-    { label: 'Using smaller size', value: 0, type: 'info' },
-    { label: 'Using abbreviated name', value: 0, type: 'info' },
-    { label: 'Manual override', value: 0, type: 'info' },
-    { label: 'Reached minimum size', value: 0, type: 'info' },
-    { label: 'Needs review', value: 0, type: 'info' },
-    { label: 'Duplicate names', value: 0, type: 'info' },
-    { label: 'Estimated files', value: names.length, type: 'positive' },
-  ];
+  const { fontFamily, fontWeight } = textSettings;
 
-  const highlightedStats: StatItem[] = [
-    { label: 'Abbreviated names', value: 0, type: 'info' },
-    { label: 'Names at minimum font', value: 0, type: 'info' },
-    { label: 'Names still overflow', value: 0, type: 'info' },
-    { label: 'Names with manual override', value: 0, type: 'info' },
-  ];
+  useEffect(() => {
+    let cancelled = false;
+    void ensureFontReady({ fontFamily, fontWeight }).then(() => {
+      if (!cancelled) setFontVersion((version) => version + 1);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [fontFamily, fontWeight]);
 
-  const outputOptions: OutputOption[] = [
-    { 
-      id: 'png-zip', 
-      label: 'PNG per participant in ZIP',
-      description: 'Original template resolution.'
-    },
-    { 
-      id: 'pdf-zip', 
-      label: 'PDF per participant in ZIP',
-      description: 'One page per file.'
-    },
-    { 
-      id: 'pdf-multi', 
-      label: 'Single multi-page PDF',
-      description: 'One participant per page.'
-    },
-  ];
+  // One fit result per name, shared by the preview, the stats and the export.
+  const fits = useMemo<FitResult[]>(() => {
+    if (!template) return [];
+
+    const measure = createCanvasMeasure(textSettings);
+    const boxWidth = getBoxWidth(textSettings, template.width);
+
+    return names.map((entry) => fitName(entry.name, textSettings, boxWidth, measure));
+    // fontVersion forces a re-measure once the font has loaded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [names, textSettings, template, fontVersion]);
+
+  const summary = useMemo(() => summarizeFits(fits), [fits]);
+  const reviewIndexes = useMemo(
+    () => fits.flatMap((fit, index) => (fit.status === "overflow" ? [index] : [])),
+    [fits],
+  );
+
+  const handleReviewNext = () => {
+    if (reviewIndexes.length === 0) return;
+    const next = reviewIndexes.find((index) => index > currentIndex) ?? reviewIndexes[0];
+    setCurrentIndex(next);
+  };
 
   const handleDownload = async (optionId: string) => {
-    if (!template) {
-      alert("No template loaded");
-      return;
-    }
+    if (!template) return;
 
+    const option = OUTPUT_OPTIONS.find((entry) => entry.id === optionId);
+    setResult(null);
     setIsGenerating(true);
     setProgress({ current: 0, total: names.length });
 
@@ -78,14 +99,19 @@ const PreviewDownload = () => {
         template,
         names,
         textSettings,
-        format: optionId as "png-zip" | "pdf-zip" | "pdf-multi",
-        onProgress: (current, total) => {
-          setProgress({ current, total });
-        },
+        format: optionId as CertificateFormat,
+        onProgress: (current, total) => setProgress({ current, total }),
+      });
+      setResult({
+        tone: "success",
+        message: `Downloaded ${option?.file ?? "your certificates"} (${names.length} ${names.length === 1 ? "certificate" : "certificates"}).`,
       });
     } catch (error) {
       console.error("Failed to generate certificates:", error);
-      alert("Failed to generate certificates. Please try again.");
+      setResult({
+        tone: "error",
+        message: "Could not generate the certificates. Please try again.",
+      });
     } finally {
       setIsGenerating(false);
       setProgress({ current: 0, total: 0 });
@@ -93,36 +119,34 @@ const PreviewDownload = () => {
   };
 
   return (
-    <Container>
-      <ContainerHeader>Preview & Download</ContainerHeader>
-      
-      <div className="flex flex-col gap-4 p-4 sm:p-6 lg:flex-row lg:gap-6">
-        <div className="min-w-0 flex-1 flex flex-col gap-6">
-          <CertificatePreview />
-        </div>
+    <>
+      <div className="grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_380px] lg:grid-rows-[minmax(0,1fr)] lg:gap-5">
+        <CertificatePreview
+          fits={fits}
+          currentIndex={currentIndex}
+          onIndexChange={setCurrentIndex}
+        />
 
-        <div className="flex w-full min-w-0 flex-col gap-6 lg:w-[400px] lg:shrink-0">
-          <ResultInspection 
-            stats={stats}
-            highlightedStats={highlightedStats}
+        <div className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:gap-5 lg:overflow-y-auto">
+          <ResultInspection
+            summary={summary}
+            reviewCount={reviewIndexes.length}
+            onReviewNext={handleReviewNext}
           />
-          <OutputFormat 
-            options={outputOptions}
+          <OutputFormat
+            options={OUTPUT_OPTIONS}
             onDownload={handleDownload}
             isGenerating={isGenerating}
             totalCertificates={names.length}
             progress={progress}
+            result={result}
+            reviewCount={reviewIndexes.length}
           />
         </div>
       </div>
 
-      <div className="flex justify-start border-t border-border px-6 py-4">
-        <Button variant="outline" onClick={() => setStep(2)}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-      </div>
-    </Container>
+      <WizardFooter onBack={() => setStep(2)} backDisabled={isGenerating} />
+    </>
   );
 };
 

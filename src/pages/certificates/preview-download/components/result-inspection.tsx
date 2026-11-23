@@ -1,59 +1,90 @@
-import React from 'react';
+import { ClipboardCheck } from "lucide-react";
 
-interface StatItem {
-  label: string;
-  value: number;
-  type?: 'positive' | 'warning' | 'danger' | 'info';
-}
+import { ContainerSection } from "@/components/Utils";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import type { FitSummary } from "../../utils/fitName";
 
 interface ResultInspectionProps {
-  stats: StatItem[];
-  highlightedStats?: StatItem[];
+  summary: FitSummary;
+  /** Names that do not fit even at the smallest size. */
+  reviewCount: number;
+  onReviewNext: () => void;
 }
 
-const ResultInspection: React.FC<ResultInspectionProps> = ({ 
-  stats, 
-  highlightedStats
-}) => {
-  return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold mb-4">Result inspection</h3>
-      
-      <div className="space-y-1.5 mb-6">
-        {stats.map((stat) => (
-          <div key={stat.label} className="flex items-center justify-between text-sm">
-            <span className="text-gray-700">{stat.label}:</span>
-            <span className={`font-medium ${
-              stat.type === 'positive' ? 'text-green-600' :
-              stat.type === 'warning' ? 'text-yellow-600' :
-              stat.type === 'danger' ? 'text-red-600' :
-              'text-gray-900'
-            }`}>
-              {stat.value}
-            </span>
-          </div>
-        ))}
-      </div>
+type Tone = "neutral" | "warning" | "danger";
 
-      {highlightedStats && highlightedStats.length > 0 && (
-        <div className="space-y-1.5 border-t pt-4 border-gray-200">
-          {highlightedStats.map((stat) => (
-            <div key={stat.label} className="flex items-center justify-between text-sm">
-              <span className="font-semibold text-gray-800">{stat.label}:</span>
-              <span className={`font-bold ${
-                stat.type === 'positive' ? 'text-green-600' :
-                stat.type === 'warning' ? 'text-yellow-600' :
-                stat.type === 'danger' ? 'text-red-600' :
-                'text-gray-900'
-              }`}>
-                {stat.value}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+const toneClass: Record<Tone, string> = {
+  neutral: "text-foreground",
+  warning: "text-semantic-warning",
+  danger: "text-semantic-danger",
 };
+
+const Row = ({
+  label,
+  hint,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  hint?: string;
+  value: number;
+  tone?: Tone;
+}) => (
+  <div className="flex items-baseline justify-between gap-3 py-2 text-sm" title={hint}>
+    <dt className="text-foreground">{label}</dt>
+    <dd
+      className={cn(
+        "shrink-0 font-semibold tabular-nums",
+        // Only highlight a row when it has something to look at.
+        value > 0 ? toneClass[tone] : "text-muted-foreground",
+      )}
+    >
+      {value}
+    </dd>
+  </div>
+);
+
+const ResultInspection = ({ summary, reviewCount, onReviewNext }: ResultInspectionProps) => (
+  <ContainerSection
+    icon={ClipboardCheck}
+    title="Result inspection"
+    description={`${summary.total} ready to export`}
+    compact
+    className="lg:h-auto lg:min-h-[10rem] lg:flex-1"
+    bodyClassName="py-1"
+    actions={
+      reviewCount > 0 ? (
+        <Button variant="outline" size="sm" onClick={onReviewNext}>
+          Review next
+        </Button>
+      ) : undefined
+    }
+  >
+    {/* Rows that need attention come first, so they stay visible when space is tight. */}
+    <dl className="divide-y divide-border">
+      <Row
+        label="Needs review"
+        hint="Does not fit even at the smallest size."
+        value={reviewCount}
+        tone="danger"
+      />
+      <Row
+        label="Using abbreviated name"
+        hint="Shortened because shrinking was not enough."
+        value={summary.abbreviated}
+        tone="warning"
+      />
+      <Row
+        label="Reached minimum size"
+        hint="Fits, but only at the smallest allowed font."
+        value={summary.atMinimum}
+        tone="warning"
+      />
+      <Row label="Using smaller size" value={summary.smaller} />
+      <Row label="Using full name" value={summary.full} />
+    </dl>
+  </ContainerSection>
+);
 
 export default ResultInspection;

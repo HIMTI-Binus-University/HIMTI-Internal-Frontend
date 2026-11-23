@@ -1,94 +1,140 @@
-import React, { useState } from 'react';
+import { useState } from "react";
+import { Download, Loader2 } from "lucide-react";
 
-interface OutputOption {
+import { ContainerSection } from "@/components/Utils";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import InlineNotice from "../../components/InlineNotice";
+
+export interface OutputOption {
   id: string;
   label: string;
+  /** Short name used on the selector. */
+  shortLabel: string;
   description?: string;
 }
 
 interface OutputFormatProps {
   options: OutputOption[];
-  onDownload?: (optionId: string) => void;
-  isGenerating?: boolean;
-  totalCertificates?: number;
-  progress?: { current: number; total: number };
+  onDownload: (optionId: string) => void;
+  isGenerating: boolean;
+  totalCertificates: number;
+  progress: { current: number; total: number };
+  /** Outcome of the last export, shown under the button. */
+  result: { tone: "success" | "error"; message: string } | null;
+  /** Number of names flagged for review, shown as a heads-up before exporting. */
+  reviewCount: number;
 }
 
-const OutputFormat: React.FC<OutputFormatProps> = ({ 
-  options, 
+const OutputFormat = ({
+  options,
   onDownload,
-  isGenerating = false,
-  totalCertificates = 1,
-  progress
-}) => {
-  const [selectedOption, setSelectedOption] = useState<string>(options[0]?.id || 'png-zip');
-
-  const handleGenerate = () => {
-    if (onDownload) {
-      onDownload(selectedOption);
-    }
-  };
+  isGenerating,
+  totalCertificates,
+  progress,
+  result,
+  reviewCount,
+}: OutputFormatProps) => {
+  const [selected, setSelected] = useState(options[0]?.id ?? "png-zip");
+  const selectedOption = options.find((option) => option.id === selected);
+  const percent =
+    progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold mb-4">Output format</h3>
-      
-      <div className="space-y-3 mb-6">
-        {options.map((option) => (
-          <label 
-            key={option.id} 
-            className="flex items-start gap-3 cursor-pointer"
-          >
-            <input
-              type="radio"
-              name="output-format"
-              value={option.id}
-              checked={selectedOption === option.id}
-              onChange={(e) => setSelectedOption(e.target.value)}
-              disabled={isGenerating}
-              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed"
-            />
-            <div className="flex-1">
-              <span className="font-medium text-gray-800 block">{option.label}</span>
-              {option.description && (
-                <span className="text-sm text-gray-500 block mt-0.5">
-                  {option.description}
+    <ContainerSection
+      icon={Download}
+      title="Output format"
+      compact
+      className="lg:h-auto lg:shrink-0"
+      footer={
+        <div className="flex flex-col gap-2.5">
+          {isGenerating && (
+            <div>
+              <div className="mb-1.5 flex justify-between text-sm text-muted-foreground">
+                <span>Generating certificates…</span>
+                <span className="tabular-nums">
+                  {progress.current} / {progress.total}
                 </span>
-              )}
+              </div>
+              <div
+                role="progressbar"
+                aria-label="Generating certificates"
+                aria-valuemin={0}
+                aria-valuemax={progress.total}
+                aria-valuenow={progress.current}
+                className="h-2 w-full overflow-hidden rounded-full bg-muted"
+              >
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-300"
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
             </div>
-          </label>
-        ))}
-      </div>
+          )}
 
-      <div className="bg-gray-50 rounded-lg p-3 mb-6">
-        <p className="text-sm text-gray-600">
-          Final size depends on template dimensions and may be larger than source file.
-        </p>
-      </div>
+          {result && <InlineNotice tone={result.tone}>{result.message}</InlineNotice>}
 
-      {isGenerating && progress && (
-        <div className="mb-4">
-          <div className="flex justify-between text-sm text-gray-600 mb-2">
-            <span>Generating certificates...</span>
-            <span>{progress.current} / {progress.total}</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(progress.current / progress.total) * 100}%` }}
-            />
-          </div>
+          {!isGenerating && !result && reviewCount > 0 && (
+            <p className="text-xs text-semantic-warning">
+              {reviewCount} {reviewCount === 1 ? "name needs" : "names need"} review (smallest size used).
+            </p>
+          )}
+
+          <Button
+            className="w-full"
+            disabled={isGenerating || totalCertificates === 0}
+            onClick={() => onDownload(selected)}
+          >
+            {isGenerating ? (
+              <Loader2 aria-hidden="true" className="animate-spin" />
+            ) : (
+              <Download aria-hidden="true" />
+            )}
+            {isGenerating
+              ? "Generating…"
+              : `Generate ${totalCertificates} certificate${totalCertificates === 1 ? "" : "s"}`}
+          </Button>
         </div>
-      )}
+      }
+    >
+      <fieldset disabled={isGenerating} className="min-w-0">
+        <legend className="sr-only">Output format</legend>
+        <div className="grid grid-cols-3 gap-1 rounded-lg border border-border bg-muted/40 p-1">
+          {options.map((option) => {
+            const isSelected = selected === option.id;
 
-      <button
-        onClick={handleGenerate}
-        disabled={isGenerating}
-        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
-      >
-        {isGenerating ? 'Generating...' : `Generate ${totalCertificates} certificate${totalCertificates > 1 ? 's' : ''}`}
-      </button>
-    </div>
+            return (
+              <label
+                key={option.id}
+                className={cn(
+                  "flex min-h-9 cursor-pointer items-center justify-center rounded-md px-2 text-center text-sm font-medium transition-colors focus-within:ring-2 focus-within:ring-ring",
+                  isSelected
+                    ? "bg-card text-primary shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                  isGenerating && "cursor-not-allowed opacity-60",
+                )}
+              >
+                <input
+                  type="radio"
+                  name="output-format"
+                  value={option.id}
+                  checked={isSelected}
+                  onChange={() => setSelected(option.id)}
+                  className="sr-only"
+                />
+                {option.shortLabel}
+              </label>
+            );
+          })}
+        </div>
+
+        {selectedOption && (
+          <p className="mt-2 text-sm text-muted-foreground" aria-live="polite">
+            {selectedOption.description ?? selectedOption.label}
+          </p>
+        )}
+      </fieldset>
+    </ContainerSection>
   );
 };
 

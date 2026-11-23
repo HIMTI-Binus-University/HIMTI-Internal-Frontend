@@ -1,4 +1,43 @@
+import type { TextSettings } from "./types";
+
 export const MAX_NAMES_PER_BATCH = 400;
+export const MAX_NAME_LENGTH = 150;
+
+export const DEFAULT_TEXT_SETTINGS: TextSettings = {
+  x: 50,
+  y: 50,
+  width: 30,
+  rotation: 0,
+  opacity: 100,
+  fontFamily: "Plus Jakarta Sans",
+  fontSize: 72,
+  minFontSize: 24,
+  fontWeight: "bold",
+  textAlign: "center",
+  color: "#000000",
+  letterSpacing: 0,
+  lineHeight: 1.2,
+  maxLines: 1,
+  uppercase: false,
+  autoFit: true,
+  abbreviate: {
+    firstName: false,
+    middleName: false,
+    lastName: false,
+  },
+  shadow: {
+    enabled: false,
+    color: "#000000",
+    blur: 4,
+    offsetX: 2,
+    offsetY: 2,
+  },
+  stroke: {
+    enabled: false,
+    color: "#ffffff",
+    width: 2,
+  },
+};
 
 export const DEFAULT_FONTS = [
   { label: "Plus Jakarta Sans", value: "Plus Jakarta Sans" },

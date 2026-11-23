@@ -3,20 +3,43 @@ import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import type { CertificateTemplate, NameEntry, TextSettings } from "../types";
+import {
+  createCanvasMeasure,
+  ensureFontReady,
+  fitName,
+  getBoxWidth,
+  type FitResult,
+} from "./fitName";
+
+export type CertificateFormat = "png-zip" | "pdf-zip" | "pdf-multi";
 
 interface GenerateOptions {
   template: CertificateTemplate;
   names: NameEntry[];
   textSettings: TextSettings;
-  format: "png-zip" | "pdf-zip" | "pdf-multi";
+  format: CertificateFormat;
   onProgress?: (current: number, total: number) => void;
 }
 
-const createCertificateCanvas = async (
+const loadImageElement = (url: string) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Failed to load template image"));
+    image.src = url;
+  });
+
+// Let the browser paint progress and handle input between certificates, so
+// large batches do not freeze the tab.
+const yieldToBrowser = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+const createCertificateCanvas = (
   template: CertificateTemplate,
-  name: string,
-  textSettings: TextSettings
-): Promise<Canvas> => {
+  templateImage: HTMLImageElement,
+  fit: FitResult,
+  textSettings: TextSettings,
+): Canvas => {
   const canvasElement = document.createElement("canvas");
   canvasElement.width = template.width;
   canvasElement.height = template.height;
@@ -27,15 +50,8 @@ const createCertificateCanvas = async (
     backgroundColor: "#ffffff",
   });
 
-  const img = await FabricImage.fromURL(template.url, {}, {
-    crossOrigin: "anonymous",
-  });
-
-  if (!img) {
-    throw new Error("Failed to load template image");
-  }
-
-  img.set({
+  // The decoded bitmap is shared, so each certificate only wraps it.
+  const background = new FabricImage(templateImage, {
     left: 0,
     top: 0,
     selectable: false,
@@ -44,25 +60,19 @@ const createCertificateCanvas = async (
     scaleY: 1,
   });
 
-  canvas.add(img);
-  canvas.sendObjectToBack(img);
-
-  let displayName = name;
-  if (textSettings.uppercase) {
-    displayName = displayName.toUpperCase();
-  }
+  canvas.add(background);
+  canvas.sendObjectToBack(background);
 
   const centerX = (textSettings.x / 100) * template.width;
   const centerY = (textSettings.y / 100) * template.height;
-  const textWidth = Math.max(40, (textSettings.width / 100) * template.width);
 
-  const textbox = new Textbox(displayName, {
+  const textbox = new Textbox(fit.text, {
     left: centerX,
     top: centerY,
     originX: "center",
     originY: "center",
-    width: textWidth,
-    fontSize: textSettings.fontSize,
+    width: getBoxWidth(textSettings, template.width),
+    fontSize: fit.fontSize,
     fontFamily: textSettings.fontFamily,
     fontWeight: textSettings.fontWeight,
     fill: textSettings.color,
@@ -112,101 +122,100 @@ const sanitizeFilename = (name: string): string => {
     .substring(0, 100);
 };
 
-export const generatePNGZip = async (options: GenerateOptions): Promise<void> => {
+// Two different names can sanitise to the same file name ("A/B" and "A_B");
+// add a counter so one never overwrites the other inside the ZIP.
+const createUniqueNamer = () => {
+  const used = new Map<string, number>();
+
+  return (base: string, extension: string) => {
+    const count = used.get(base) ?? 0;
+    used.set(base, count + 1);
+    return count === 0 ? `${base}.${extension}` : `${base}_${count + 1}.${extension}`;
+  };
+};
+
+/**
+ * Renders every certificate one at a time. The template image, the font and
+ * the text measurer are prepared once, not per name.
+ */
+const renderAll = async (
+  options: GenerateOptions,
+  handle: (dataURL: string, name: string, index: number) => void | Promise<void>,
+) => {
   const { template, names, textSettings, onProgress } = options;
-  const zip = new JSZip();
+
+  const [templateImage] = await Promise.all([
+    loadImageElement(template.url),
+    ensureFontReady(textSettings),
+  ]);
+
+  const measure = createCanvasMeasure(textSettings);
+  const boxWidth = getBoxWidth(textSettings, template.width);
 
   for (let i = 0; i < names.length; i++) {
     const name = names[i].name;
-    const canvas = await createCertificateCanvas(template, name, textSettings);
-    
-    const dataURL = canvas.toDataURL({
-      format: "png",
-      quality: 1,
-      multiplier: 1,
-    });
+    const fit = fitName(name, textSettings, boxWidth, measure);
+    const canvas = createCertificateCanvas(template, templateImage, fit, textSettings);
 
-    const base64Data = dataURL.split(",")[1];
-    zip.file(`${sanitizeFilename(name)}.png`, base64Data, { base64: true });
+    try {
+      const dataURL = canvas.toDataURL({
+        format: "png",
+        quality: 1,
+        multiplier: 1,
+      });
 
-    canvas.dispose();
-
-    if (onProgress) {
-      onProgress(i + 1, names.length);
+      await handle(dataURL, name, i);
+    } finally {
+      canvas.dispose();
     }
-  }
 
-  const blob = await zip.generateAsync({ type: "blob" });
-  saveAs(blob, "certificates.zip");
+    onProgress?.(i + 1, names.length);
+    await yieldToBrowser();
+  }
 };
 
-export const generatePDFZip = async (options: GenerateOptions): Promise<void> => {
-  const { template, names, textSettings, onProgress } = options;
-  const zip = new JSZip();
-
-  for (let i = 0; i < names.length; i++) {
-    const name = names[i].name;
-    const canvas = await createCertificateCanvas(template, name, textSettings);
-    
-    const dataURL = canvas.toDataURL({
-      format: "png",
-      quality: 1,
-      multiplier: 1,
-    });
-
-    const pdf = new jsPDF({
-      orientation: template.width > template.height ? "landscape" : "portrait",
-      unit: "px",
-      format: [template.width, template.height],
-    });
-
-    pdf.addImage(dataURL, "PNG", 0, 0, template.width, template.height);
-    const pdfBlob = pdf.output("blob");
-
-    zip.file(`${sanitizeFilename(name)}.pdf`, pdfBlob);
-
-    canvas.dispose();
-
-    if (onProgress) {
-      onProgress(i + 1, names.length);
-    }
-  }
-
-  const blob = await zip.generateAsync({ type: "blob" });
-  saveAs(blob, "certificates.zip");
-};
-
-export const generateMultiPagePDF = async (options: GenerateOptions): Promise<void> => {
-  const { template, names, textSettings, onProgress } = options;
-
-  const pdf = new jsPDF({
+const createPdf = (template: CertificateTemplate) =>
+  new jsPDF({
     orientation: template.width > template.height ? "landscape" : "portrait",
     unit: "px",
     format: [template.width, template.height],
   });
 
-  for (let i = 0; i < names.length; i++) {
-    const name = names[i].name;
-    const canvas = await createCertificateCanvas(template, name, textSettings);
-    
-    const dataURL = canvas.toDataURL({
-      format: "png",
-      quality: 1,
-      multiplier: 1,
+export const generatePNGZip = async (options: GenerateOptions): Promise<void> => {
+  const zip = new JSZip();
+  const uniqueName = createUniqueNamer();
+
+  await renderAll(options, (dataURL, name) => {
+    zip.file(uniqueName(sanitizeFilename(name), "png"), dataURL.split(",")[1], {
+      base64: true,
     });
+  });
 
-    if (i > 0) {
-      pdf.addPage();
-    }
+  saveAs(await zip.generateAsync({ type: "blob" }), "certificates.zip");
+};
 
+export const generatePDFZip = async (options: GenerateOptions): Promise<void> => {
+  const { template } = options;
+  const zip = new JSZip();
+  const uniqueName = createUniqueNamer();
+
+  await renderAll(options, (dataURL, name) => {
+    const pdf = createPdf(template);
     pdf.addImage(dataURL, "PNG", 0, 0, template.width, template.height);
+    zip.file(uniqueName(sanitizeFilename(name), "pdf"), pdf.output("blob"));
+  });
 
-    canvas.dispose();
+  saveAs(await zip.generateAsync({ type: "blob" }), "certificates.zip");
+};
 
-    if (onProgress) {
-      onProgress(i + 1, names.length);
-    }
-  }
+export const generateMultiPagePDF = async (options: GenerateOptions): Promise<void> => {
+  const { template } = options;
+  const pdf = createPdf(template);
+
+  await renderAll(options, (dataURL, _name, index) => {
+    if (index > 0) pdf.addPage();
+    pdf.addImage(dataURL, "PNG", 0, 0, template.width, template.height);
+  });
 
   pdf.save("certificates.pdf");
 };

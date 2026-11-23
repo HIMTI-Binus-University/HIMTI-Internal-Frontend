@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { Upload } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { useRef, useState } from "react";
+import { RotateCcw, Type, Upload } from "lucide-react";
+
+import { ContainerSection } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -11,200 +11,153 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ColorPicker } from "@/components/ui/color-picker";
+import { cn } from "@/lib/utils";
 import { useCertificateStore } from "../store";
 import { DEFAULT_FONTS, FONT_WEIGHTS, TEXT_ALIGNMENTS } from "../constants";
-import { loadCustomFont, isFont } from "../utils";
+import { isFont } from "../utils";
+import { listCustomFonts, registerCustomFont } from "../utils/customFonts";
+import ConfirmDialog from "../components/ConfirmDialog";
+import InlineNotice from "../components/InlineNotice";
+import { CheckboxRow, NumberField, SettingsGroup } from "./fields";
+
+const ROTATION_PRESETS = [-45, 0, 45, 90];
 
 const SettingsPanel = () => {
-  const { state, updateTextSettings, resetTextSettings } =
-    useCertificateStore();
+  const { state, updateTextSettings, resetTextSettings } = useCertificateStore();
   const { textSettings } = state;
 
-  const [customFonts, setCustomFonts] = useState<
-    Array<{ label: string; value: string }>
-  >([]);
+  const fontInputRef = useRef<HTMLInputElement>(null);
+  const [customFonts, setCustomFonts] = useState(() =>
+    listCustomFonts().map((font) => font.name),
+  );
+  const [fontStatus, setFontStatus] = useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
 
-  const handleCustomFontUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleCustomFontUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
 
     if (!isFont(file)) {
-      alert("File must be in .ttf or .otf format");
+      setFontStatus({ tone: "error", message: "The font must be a .ttf or .otf file." });
       return;
     }
 
+    const fontName = file.name.replace(/\.(ttf|otf)$/i, "");
+
     try {
-      const fontName = file.name.replace(/\.(ttf|otf)$/i, "");
-      const fontUrl = URL.createObjectURL(file);
-
-      await loadCustomFont(fontName, fontUrl);
-
-      setCustomFonts((prev) => [
-        ...prev,
-        { label: fontName, value: fontName },
-      ]);
+      await registerCustomFont(fontName, file);
+      setCustomFonts(listCustomFonts().map((font) => font.name));
       updateTextSettings({ fontFamily: fontName });
-      alert(`Font "${fontName}" loaded successfully!`);
+      setFontStatus({ tone: "success", message: `Font “${fontName}” loaded.` });
     } catch (error) {
-      alert("Failed to load font. Please try again.");
       console.error(error);
+      setFontStatus({ tone: "error", message: "The font could not be loaded. Try another file." });
     }
   };
 
+  const { shadow, stroke, abbreviate } = textSettings;
+
   return (
-    <div className="flex flex-col gap-4 lg:h-full lg:overflow-auto">
-      {/* Section 1: Posisi & Dimensi */}
-      <Card className="p-4">
-        <h3 className="mb-3 text-sm font-semibold">Position & Dimensions</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label htmlFor="x" className="text-xs">
-              X (%)
-            </Label>
-            <Input
-              id="x"
-              type="number"
-              min={0}
-              max={100}
-              value={textSettings.x}
-              onChange={(e) =>
-                updateTextSettings({ x: Number(e.target.value) })
-              }
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="y" className="text-xs">
-              Y (%)
-            </Label>
-            <Input
-              id="y"
-              type="number"
-              min={0}
-              max={100}
-              value={textSettings.y}
-              onChange={(e) =>
-                updateTextSettings({ y: Number(e.target.value) })
-              }
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="width" className="text-xs">
-              Width (%)
-            </Label>
-            <Input
-              id="width"
-              type="number"
-              min={0}
-              max={100}
-              value={textSettings.width}
-              onChange={(e) =>
-                updateTextSettings({ width: Number(e.target.value) })
-              }
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="height" className="text-xs">
-              Height (%)
-            </Label>
-            <Input
-              id="height"
-              type="number"
-              min={0}
-              max={100}
-              value={textSettings.height}
-              onChange={(e) =>
-                updateTextSettings({ height: Number(e.target.value) })
-              }
-              className="mt-1"
-            />
-          </div>
-        </div>
-        <div className="mt-3 flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 text-xs"
-            onClick={() => updateTextSettings({ x: 50 })}
-          >
-            Center Horizontal
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 text-xs"
-            onClick={() => updateTextSettings({ y: 50 })}
-          >
-            Center Vertical
-          </Button>
-        </div>
-        <div className="mt-3">
-          <Label htmlFor="rotation" className="text-xs">
-            Rotation (°)
-          </Label>
-          <div className="mt-1 flex gap-2">
-            <Input
-              id="rotation"
-              type="number"
-              min={-180}
-              max={180}
-              value={textSettings.rotation}
-              onChange={(e) =>
-                updateTextSettings({ rotation: Number(e.target.value) })
-              }
-              className="flex-1"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs"
-              onClick={() => updateTextSettings({ rotation: 0 })}
-            >
+    <ContainerSection
+      icon={Type}
+      title="Name style"
+      description="Position, font and how long names are handled."
+      actions={
+        <ConfirmDialog
+          trigger={
+            <Button variant="ghost" size="sm">
+              <RotateCcw aria-hidden="true" />
               Reset
             </Button>
+          }
+          title="Reset all name style settings?"
+          description="Position, font, effects and long-name options go back to their defaults."
+          confirmLabel="Reset settings"
+          onConfirm={resetTextSettings}
+        />
+      }
+    >
+      <div className="space-y-5">
+        <SettingsGroup title="Position">
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              label="X"
+              suffix="%"
+              value={textSettings.x}
+              min={0}
+              max={100}
+              onChange={(x) => updateTextSettings({ x })}
+            />
+            <NumberField
+              label="Y"
+              suffix="%"
+              value={textSettings.y}
+              min={0}
+              max={100}
+              onChange={(y) => updateTextSettings({ y })}
+            />
+            <NumberField
+              label="Width"
+              suffix="%"
+              value={textSettings.width}
+              min={1}
+              max={100}
+              onChange={(width) => updateTextSettings({ width })}
+            />
+            <NumberField
+              label="Rotation"
+              suffix="°"
+              value={textSettings.rotation}
+              min={-180}
+              max={180}
+              onChange={(rotation) => updateTextSettings({ rotation })}
+            />
           </div>
-          <div className="mt-2 flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 text-xs"
-              onClick={() => updateTextSettings({ rotation: -45 })}
-            >
-              -45°
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 text-xs"
-              onClick={() => updateTextSettings({ rotation: 45 })}
-            >
-              45°
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 text-xs"
-              onClick={() => updateTextSettings({ rotation: 90 })}
-            >
-              90°
-            </Button>
-          </div>
-        </div>
-      </Card>
 
-      {/* Section 2: Tipografi */}
-      <Card className="p-4">
-        <h3 className="mb-3 text-sm font-semibold">Typography</h3>
-        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => updateTextSettings({ x: 50 })}
+            >
+              Center horizontally
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => updateTextSettings({ y: 50 })}
+            >
+              Center vertically
+            </Button>
+          </div>
+
+          <div
+            role="group"
+            aria-label="Rotation presets"
+            className="grid grid-cols-4 gap-2"
+          >
+            {ROTATION_PRESETS.map((angle) => (
+              <Button
+                key={angle}
+                variant={textSettings.rotation === angle ? "secondary" : "outline"}
+                size="sm"
+                aria-pressed={textSettings.rotation === angle}
+                onClick={() => updateTextSettings({ rotation: angle })}
+              >
+                {angle}°
+              </Button>
+            ))}
+          </div>
+        </SettingsGroup>
+
+        <SettingsGroup title="Typography">
           <div>
             <Label htmlFor="fontFamily" className="text-xs">
-              Font Family
+              Font family
             </Label>
             <Select
               value={textSettings.fontFamily}
@@ -221,9 +174,9 @@ const SettingsPanel = () => {
                     {font.label}
                   </SelectItem>
                 ))}
-                {customFonts.map((font) => (
-                  <SelectItem key={font.value} value={font.value}>
-                    {font.label} (Custom)
+                {customFonts.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {name} (custom)
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -231,67 +184,38 @@ const SettingsPanel = () => {
           </div>
 
           <div>
-            <Label htmlFor="customFont" className="text-xs">
-              Upload Custom Font
-            </Label>
-            <div className="mt-1">
-              <label htmlFor="customFont">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full text-xs"
-                  asChild
-                >
-                  <span>
-                    <Upload className="mr-2 h-3 w-3" />
-                    Upload Font (.ttf/.otf)
-                  </span>
-                </Button>
-              </label>
-              <input
-                id="customFont"
-                type="file"
-                accept=".ttf,.otf"
-                className="hidden"
-                onChange={handleCustomFontUpload}
-              />
-            </div>
+            <input
+              ref={fontInputRef}
+              type="file"
+              accept=".ttf,.otf"
+              className="hidden"
+              aria-label="Custom font file"
+              onChange={handleCustomFontUpload}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => fontInputRef.current?.click()}
+            >
+              <Upload aria-hidden="true" />
+              Upload custom font (.ttf / .otf)
+            </Button>
+            {fontStatus && (
+              <InlineNotice tone={fontStatus.tone} className="mt-2">
+                {fontStatus.message}
+              </InlineNotice>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="fontSize" className="text-xs">
-                Font Size (px)
-              </Label>
-              <Input
-                id="fontSize"
-                type="number"
-                min={8}
-                max={200}
-                value={textSettings.fontSize}
-                onChange={(e) =>
-                  updateTextSettings({ fontSize: Number(e.target.value) })
-                }
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="minFontSize" className="text-xs">
-                Min Size (px)
-              </Label>
-              <Input
-                id="minFontSize"
-                type="number"
-                min={8}
-                max={200}
-                value={textSettings.minFontSize}
-                onChange={(e) =>
-                  updateTextSettings({ minFontSize: Number(e.target.value) })
-                }
-                className="mt-1"
-              />
-            </div>
-          </div>
+          <NumberField
+            label="Font size"
+            suffix="px"
+            value={textSettings.fontSize}
+            min={8}
+            max={500}
+            onChange={(fontSize) => updateTextSettings({ fontSize })}
+          />
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -349,382 +273,185 @@ const SettingsPanel = () => {
               />
             </div>
           </div>
-        </div>
-      </Card>
+        </SettingsGroup>
 
-      {/* Section NEW: Efek Text */}
-      <Card className="p-4">
-        <h3 className="mb-3 text-sm font-semibold">Text Effects</h3>
-        <div className="space-y-3">
-          {/* Text Shadow */}
-          <div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="shadowEnabled"
-                checked={textSettings.shadow.enabled}
-                onCheckedChange={(checked) =>
-                  updateTextSettings({
-                    shadow: { ...textSettings.shadow, enabled: checked as boolean },
-                  })
-                }
-              />
-              <Label
-                htmlFor="shadowEnabled"
-                className="text-xs font-normal leading-none"
-              >
-                Text Shadow
-              </Label>
-            </div>
-
-            {textSettings.shadow.enabled && (
-              <div className="mt-3 space-y-3 border-l-2 border-blue-200 pl-3">
-                <div>
-                  <Label className="text-xs">Shadow Color</Label>
-                  <div className="mt-1">
-                    <ColorPicker
-                      value={textSettings.shadow.color}
-                      onChange={(color) =>
-                        updateTextSettings({
-                          shadow: { ...textSettings.shadow, color },
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label htmlFor="shadowBlur" className="text-xs">
-                      Blur (px)
-                    </Label>
-                    <Input
-                      id="shadowBlur"
-                      type="number"
-                      min={0}
-                      max={20}
-                      value={textSettings.shadow.blur}
-                      onChange={(e) =>
-                        updateTextSettings({
-                          shadow: {
-                            ...textSettings.shadow,
-                            blur: Number(e.target.value),
-                          },
-                        })
-                      }
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="shadowOffsetX" className="text-xs">
-                      Offset X (px)
-                    </Label>
-                    <Input
-                      id="shadowOffsetX"
-                      type="number"
-                      min={-10}
-                      max={10}
-                      value={textSettings.shadow.offsetX}
-                      onChange={(e) =>
-                        updateTextSettings({
-                          shadow: {
-                            ...textSettings.shadow,
-                            offsetX: Number(e.target.value),
-                          },
-                        })
-                      }
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="shadowOffsetY" className="text-xs">
-                    Offset Y (px)
-                  </Label>
-                  <Input
-                    id="shadowOffsetY"
-                    type="number"
-                    min={-10}
-                    max={10}
-                    value={textSettings.shadow.offsetY}
-                    onChange={(e) =>
-                      updateTextSettings({
-                        shadow: {
-                          ...textSettings.shadow,
-                          offsetY: Number(e.target.value),
-                        },
-                      })
-                    }
-                    className="mt-1"
+        <SettingsGroup title="Text effects">
+          <CheckboxRow
+            label="Text shadow"
+            checked={shadow.enabled}
+            onChange={(enabled) => updateTextSettings({ shadow: { ...shadow, enabled } })}
+          />
+          {shadow.enabled && (
+            <div className="space-y-3 border-l-2 border-semantic-info-border pl-3">
+              <div>
+                <Label className="text-xs">Shadow color</Label>
+                <div className="mt-1">
+                  <ColorPicker
+                    value={shadow.color}
+                    onChange={(color) => updateTextSettings({ shadow: { ...shadow, color } })}
                   />
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Text Stroke/Outline */}
-          <div className="pt-3 border-t">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="strokeEnabled"
-                checked={textSettings.stroke.enabled}
-                onCheckedChange={(checked) =>
-                  updateTextSettings({
-                    stroke: { ...textSettings.stroke, enabled: checked as boolean },
-                  })
-                }
-              />
-              <Label
-                htmlFor="strokeEnabled"
-                className="text-xs font-normal leading-none"
-              >
-                Text Outline
-              </Label>
-            </div>
-
-            {textSettings.stroke.enabled && (
-              <div className="mt-3 space-y-3 border-l-2 border-blue-200 pl-3">
-                <div>
-                  <Label className="text-xs">Outline Color</Label>
-                  <div className="mt-1">
-                    <ColorPicker
-                      value={textSettings.stroke.color}
-                      onChange={(color) =>
-                        updateTextSettings({
-                          stroke: { ...textSettings.stroke, color },
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="strokeWidth" className="text-xs">
-                    Width (px)
-                  </Label>
-                  <Input
-                    id="strokeWidth"
-                    type="number"
-                    min={0}
-                    max={10}
-                    value={textSettings.stroke.width}
-                    onChange={(e) =>
-                      updateTextSettings({
-                        stroke: {
-                          ...textSettings.stroke,
-                          width: Number(e.target.value),
-                        },
-                      })
-                    }
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Opacity */}
-          <div className="pt-3 border-t">
-            <Label htmlFor="opacity" className="text-xs">
-              Opacity (%)
-            </Label>
-            <div className="mt-1 flex items-center gap-3">
-              <div className="flex-1">
-                <input
-                  id="opacity"
-                  type="range"
+              <div className="grid grid-cols-3 gap-3">
+                <NumberField
+                  label="Blur"
+                  suffix="px"
+                  value={shadow.blur}
                   min={0}
-                  max={100}
-                  value={textSettings.opacity}
-                  onChange={(e) =>
-                    updateTextSettings({ opacity: Number(e.target.value) })
-                  }
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  max={20}
+                  onChange={(blur) => updateTextSettings({ shadow: { ...shadow, blur } })}
                 />
-              </div>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                value={textSettings.opacity}
-                onChange={(e) =>
-                  updateTextSettings({ opacity: Number(e.target.value) })
-                }
-                className="w-16"
-              />
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Section 3: Pengaturan Lanjutan */}
-      <Card className="p-4">
-        <h3 className="mb-3 text-sm font-semibold">Advanced Settings</h3>
-        <div className="space-y-3">
-          <div>
-            <Label htmlFor="letterSpacing" className="text-xs">
-              Letter Spacing (px)
-            </Label>
-            <Input
-              id="letterSpacing"
-              type="number"
-              value={textSettings.letterSpacing}
-              onChange={(e) =>
-                updateTextSettings({ letterSpacing: Number(e.target.value) })
-              }
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="lineHeight" className="text-xs">
-              Line Height
-            </Label>
-            <Input
-              id="lineHeight"
-              type="number"
-              step={0.1}
-              min={0.5}
-              max={3}
-              value={textSettings.lineHeight}
-              onChange={(e) =>
-                updateTextSettings({ lineHeight: Number(e.target.value) })
-              }
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="maxLines" className="text-xs">
-              Max Lines
-            </Label>
-            <Input
-              id="maxLines"
-              type="number"
-              min={1}
-              max={10}
-              value={textSettings.maxLines}
-              onChange={(e) =>
-                updateTextSettings({ maxLines: Number(e.target.value) })
-              }
-              className="mt-1"
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="uppercase"
-              checked={textSettings.uppercase}
-              onCheckedChange={(checked) =>
-                updateTextSettings({ uppercase: checked as boolean })
-              }
-            />
-            <Label
-              htmlFor="uppercase"
-              className="text-xs font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Display UPPERCASE
-            </Label>
-          </div>
-        </div>
-      </Card>
-
-      {/* Section 4: Nama Panjang */}
-      <Card className="p-4">
-        <h3 className="mb-3 text-sm font-semibold">Long Names</h3>
-        <div className="space-y-3">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="autoFit"
-              checked={textSettings.autoFit}
-              onCheckedChange={(checked) =>
-                updateTextSettings({ autoFit: checked as boolean })
-              }
-            />
-            <Label
-              htmlFor="autoFit"
-              className="text-xs font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Enable Auto Fit
-            </Label>
-          </div>
-
-          {!textSettings.autoFit && (
-            <div className="space-y-2 border-t pt-3">
-              <p className="text-xs text-muted-foreground">
-                Abbreviate long names:
-              </p>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="abbrevFirst"
-                  checked={textSettings.abbreviate.firstName}
-                  onCheckedChange={(checked) =>
-                    updateTextSettings({
-                      abbreviate: {
-                        ...textSettings.abbreviate,
-                        firstName: checked as boolean,
-                      },
-                    })
-                  }
+                <NumberField
+                  label="Offset X"
+                  suffix="px"
+                  value={shadow.offsetX}
+                  min={-10}
+                  max={10}
+                  onChange={(offsetX) => updateTextSettings({ shadow: { ...shadow, offsetX } })}
                 />
-                <Label
-                  htmlFor="abbrevFirst"
-                  className="text-xs font-normal leading-none"
-                >
-                  First name
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="abbrevMiddle"
-                  checked={textSettings.abbreviate.middleName}
-                  onCheckedChange={(checked) =>
-                    updateTextSettings({
-                      abbreviate: {
-                        ...textSettings.abbreviate,
-                        middleName: checked as boolean,
-                      },
-                    })
-                  }
+                <NumberField
+                  label="Offset Y"
+                  suffix="px"
+                  value={shadow.offsetY}
+                  min={-10}
+                  max={10}
+                  onChange={(offsetY) => updateTextSettings({ shadow: { ...shadow, offsetY } })}
                 />
-                <Label
-                  htmlFor="abbrevMiddle"
-                  className="text-xs font-normal leading-none"
-                >
-                  Middle name
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="abbrevLast"
-                  checked={textSettings.abbreviate.lastName}
-                  onCheckedChange={(checked) =>
-                    updateTextSettings({
-                      abbreviate: {
-                        ...textSettings.abbreviate,
-                        lastName: checked as boolean,
-                      },
-                    })
-                  }
-                />
-                <Label
-                  htmlFor="abbrevLast"
-                  className="text-xs font-normal leading-none"
-                >
-                  Last name
-                </Label>
               </div>
             </div>
           )}
-        </div>
-      </Card>
 
-      {/* Reset Button */}
-      <Button
-        variant="destructive"
-        onClick={resetTextSettings}
-        className="mt-2 py-5"
-      >
-        Reset Settings
-      </Button>
-    </div>
+          <CheckboxRow
+            label="Text outline"
+            checked={stroke.enabled}
+            onChange={(enabled) => updateTextSettings({ stroke: { ...stroke, enabled } })}
+          />
+          {stroke.enabled && (
+            <div className="space-y-3 border-l-2 border-semantic-info-border pl-3">
+              <div>
+                <Label className="text-xs">Outline color</Label>
+                <div className="mt-1">
+                  <ColorPicker
+                    value={stroke.color}
+                    onChange={(color) => updateTextSettings({ stroke: { ...stroke, color } })}
+                  />
+                </div>
+              </div>
+              <NumberField
+                label="Width"
+                suffix="px"
+                value={stroke.width}
+                min={0}
+                max={10}
+                onChange={(width) => updateTextSettings({ stroke: { ...stroke, width } })}
+              />
+            </div>
+          )}
+
+          <div>
+            <Label htmlFor="opacity" className="text-xs">
+              Opacity <span className="text-muted-foreground">(%)</span>
+            </Label>
+            <div className="mt-1 flex items-center gap-3">
+              <input
+                id="opacity"
+                type="range"
+                min={0}
+                max={100}
+                value={textSettings.opacity}
+                onChange={(e) => updateTextSettings({ opacity: Number(e.target.value) })}
+                className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-muted accent-primary"
+              />
+              <span className="w-10 text-right text-sm tabular-nums text-foreground">
+                {textSettings.opacity}
+              </span>
+            </div>
+          </div>
+        </SettingsGroup>
+
+        <SettingsGroup title="Spacing">
+          <div className="grid grid-cols-3 gap-3">
+            <NumberField
+              label="Letter spacing"
+              suffix="px"
+              value={textSettings.letterSpacing}
+              min={-20}
+              max={100}
+              onChange={(letterSpacing) => updateTextSettings({ letterSpacing })}
+            />
+            <NumberField
+              label="Line height"
+              value={textSettings.lineHeight}
+              min={0.5}
+              max={3}
+              step={0.1}
+              onChange={(lineHeight) => updateTextSettings({ lineHeight })}
+            />
+            <NumberField
+              label="Max lines"
+              value={textSettings.maxLines}
+              min={1}
+              max={10}
+              onChange={(maxLines) => updateTextSettings({ maxLines: Math.round(maxLines) })}
+            />
+          </div>
+          <CheckboxRow
+            label="Display in UPPERCASE"
+            checked={textSettings.uppercase}
+            onChange={(uppercase) => updateTextSettings({ uppercase })}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup
+          title="Long names"
+          description="When a name does not fit the name box: shrink it first, then shorten it."
+        >
+          <CheckboxRow
+            label="Shrink the font to fit"
+            hint="Reduces the size, never below the minimum."
+            checked={textSettings.autoFit}
+            onChange={(autoFit) => updateTextSettings({ autoFit })}
+          />
+
+          <NumberField
+            label="Minimum font size"
+            suffix="px"
+            value={textSettings.minFontSize}
+            min={8}
+            max={500}
+            onChange={(minFontSize) => updateTextSettings({ minFontSize })}
+            className={cn(!textSettings.autoFit && "opacity-50")}
+          />
+
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Shorten to an initial if shrinking is not enough:
+            </p>
+            <CheckboxRow
+              label="First name"
+              checked={abbreviate.firstName}
+              onChange={(firstName) =>
+                updateTextSettings({ abbreviate: { ...abbreviate, firstName } })
+              }
+            />
+            <CheckboxRow
+              label="Middle names"
+              checked={abbreviate.middleName}
+              onChange={(middleName) =>
+                updateTextSettings({ abbreviate: { ...abbreviate, middleName } })
+              }
+            />
+            <CheckboxRow
+              label="Last name"
+              checked={abbreviate.lastName}
+              onChange={(lastName) =>
+                updateTextSettings({ abbreviate: { ...abbreviate, lastName } })
+              }
+            />
+          </div>
+        </SettingsGroup>
+      </div>
+    </ContainerSection>
   );
 };
 
