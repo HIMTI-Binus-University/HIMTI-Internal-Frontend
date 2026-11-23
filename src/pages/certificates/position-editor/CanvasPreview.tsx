@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Canvas, FabricImage, Line, Rect, Textbox, Text } from "fabric";
+import { Canvas, FabricImage, Line, Rect, Shadow, Textbox, Text } from "fabric";
 import { Minus, Plus, Maximize2, MousePointer2 } from "lucide-react";
 import { ContainerSection } from "@/components/Utils";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,11 @@ const roundPosition = (value: number) => Number(value.toFixed(2));
 
 const MIN_TEXT_WIDTH = 40;
 
-type MarkedFabricObject = { isSnapGuide?: boolean };
+type MarkedFabricObject = {
+  isSnapGuide?: boolean;
+  isGuideline?: boolean;
+  isTemplateBackground?: boolean;
+};
 
 const removeSnapGuides = (canvas: Canvas) => {
   canvas
@@ -208,12 +212,12 @@ const CanvasPreview = () => {
 
     if (settings.shadow.enabled) {
       textbox.set({
-        shadow: {
+        shadow: new Shadow({
           color: settings.shadow.color,
           blur: settings.shadow.blur,
           offsetX: settings.shadow.offsetX,
           offsetY: settings.shadow.offsetY,
-        } as any,
+        }),
       });
     } else {
       textbox.set({ shadow: null });
@@ -244,8 +248,8 @@ const CanvasPreview = () => {
   ) => {
     canvas
       .getObjects()
-      .filter((obj: any) => obj.isGuideline)
-      .forEach((obj: any) => canvas.remove(obj));
+      .filter((obj) => (obj as MarkedFabricObject).isGuideline)
+      .forEach((obj) => canvas.remove(obj));
 
     const margin = GUIDELINE_MARGIN;
 
@@ -262,7 +266,7 @@ const CanvasPreview = () => {
       evented: false,
     });
 
-    (marginRect as any).isGuideline = true;
+    (marginRect as MarkedFabricObject).isGuideline = true;
     canvas.add(marginRect);
     // (z-order is restored after all guidelines are added, see below)
 
@@ -276,7 +280,7 @@ const CanvasPreview = () => {
       }
     );
 
-    (verticalLine as any).isGuideline = true;
+    (verticalLine as MarkedFabricObject).isGuideline = true;
     canvas.add(verticalLine);
 
     const horizontalLine = new Line(
@@ -289,16 +293,18 @@ const CanvasPreview = () => {
       }
     );
 
-    (horizontalLine as any).isGuideline = true;
+    (horizontalLine as MarkedFabricObject).isGuideline = true;
     canvas.add(horizontalLine);
 
     // Guidelines are redrawn on every resize/zoom, which adds them on top of
     // the name box. Send them to the back (above the template image only).
     const objects = canvas.getObjects();
     objects
-      .filter((obj: any) => obj.isGuideline)
+      .filter((obj) => (obj as MarkedFabricObject).isGuideline)
       .forEach((obj) => canvas.sendObjectToBack(obj));
-    const background = objects.find((obj: any) => obj.isTemplateBackground);
+    const background = objects.find(
+      (obj) => (obj as MarkedFabricObject).isTemplateBackground
+    );
     if (background) canvas.sendObjectToBack(background);
   };
 
@@ -355,12 +361,12 @@ const CanvasPreview = () => {
 
     if (settings.shadow.enabled) {
       textbox.set({
-        shadow: {
+        shadow: new Shadow({
           color: settings.shadow.color,
           blur: settings.shadow.blur,
           offsetX: settings.shadow.offsetX,
           offsetY: settings.shadow.offsetY,
-        } as any,
+        }),
       });
     }
 
@@ -420,7 +426,7 @@ const CanvasPreview = () => {
     // ---------------------------------------------
     const scalingStartSize = { width: 0, height: 0, fontSize: 0, centerX: 0, centerY: 0 };
     
-    textbox.on("scaling", (e: any) => {
+    textbox.on("scaling", (e) => {
       isTransformingRef.current = true;
 
       const corner = e.transform?.corner;
@@ -578,7 +584,7 @@ const CanvasPreview = () => {
 
       const background = canvas
         .getObjects()
-        .find((obj: any) => obj.isTemplateBackground);
+        .find((obj) => (obj as MarkedFabricObject).isTemplateBackground);
       if (background) {
         background.set({
           left: 0,
@@ -627,7 +633,7 @@ const CanvasPreview = () => {
         scaleY: actualHeight / template.height,
       });
 
-      (img as any).isTemplateBackground = true;
+      (img as MarkedFabricObject).isTemplateBackground = true;
       canvas.add(img);
       canvas.sendObjectToBack(img);
 
@@ -663,6 +669,10 @@ const CanvasPreview = () => {
       isInitializedRef.current = false;
       isTransformingRef.current = false;
     };
+    // Intentionally keyed on `template` only: the canvas is rebuilt when the
+    // template changes. textSettings are applied by the STORE -> FABRIC effect
+    // below, so re-running this on every setting change would reset the canvas.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template]);
 
   // ------------------------------------------------
@@ -689,6 +699,9 @@ const CanvasPreview = () => {
     );
 
     fabricRef.current.requestRenderAll();
+    // applyTextSettingsToFabric is recreated each render; listing it would make
+    // this effect run on every render instead of only when the inputs change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     textSettings,
     names,

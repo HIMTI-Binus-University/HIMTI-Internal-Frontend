@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Canvas, FabricImage, Textbox } from "fabric";
+import { Canvas, FabricImage, Shadow, Textbox } from "fabric";
 import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
 
 import { ContainerSection } from "@/components/Utils";
@@ -80,12 +80,12 @@ const CertificatePreview = ({ fits, currentIndex, onIndexChange }: CertificatePr
       angle: settings.rotation,
       opacity: settings.opacity / 100,
       shadow: settings.shadow.enabled
-        ? ({
+        ? new Shadow({
             color: settings.shadow.color,
             blur: settings.shadow.blur,
             offsetX: settings.shadow.offsetX,
             offsetY: settings.shadow.offsetY,
-          } as any)
+          })
         : null,
       stroke: settings.stroke.enabled ? settings.stroke.color : undefined,
       strokeWidth: settings.stroke.enabled ? settings.stroke.width : 0,

@@ -162,7 +162,6 @@ export function AppearanceTab() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("%c[HIMTI-KIT:Dashboard] Save Changes triggered with settings:", "font-weight: bold; color: #0284c7;", config);
     try {
       await updateMutation.mutateAsync(config);
       setIsSaved(true);
@@ -173,7 +172,6 @@ export function AppearanceTab() {
   };
 
   const handleReset = async () => {
-    console.log("%c[HIMTI-KIT:Dashboard] Reset to Default triggered", "font-weight: bold; color: #f59e0b;");
     setConfig(DEFAULT_APPEARANCE_CONFIG);
     try {
       await resetMutation.mutateAsync();

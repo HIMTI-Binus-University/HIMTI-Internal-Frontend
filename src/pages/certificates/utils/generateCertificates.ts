@@ -1,4 +1,4 @@
-import { Canvas, FabricImage, Textbox } from "fabric";
+import { Canvas, FabricImage, Shadow, Textbox } from "fabric";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
@@ -89,12 +89,12 @@ const createCertificateCanvas = (
 
   if (textSettings.shadow.enabled) {
     textbox.set({
-      shadow: {
+      shadow: new Shadow({
         color: textSettings.shadow.color,
         blur: textSettings.shadow.blur,
         offsetX: textSettings.shadow.offsetX,
         offsetY: textSettings.shadow.offsetY,
-      } as any,
+      }),
     });
   }
 
