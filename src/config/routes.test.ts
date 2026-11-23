@@ -46,4 +46,18 @@ describe("internal route access helpers", () => {
       "/url-shortener",
     );
   });
+
+  it("exposes HIMTI KIT only with the manage_himti_kit permission", () => {
+    expect(
+      getAccessibleInternalRoutes(["manage_himti_kit"]).map((route) => route.path),
+    ).toEqual(["/himti-kit"]);
+  });
+
+  it("does not let roles bypass manage_himti_kit", () => {
+    for (const role of ["Admin", "General Manager", "Manager"]) {
+      expect(
+        getAccessibleInternalRoutes([], [role]).map((route) => route.path),
+      ).not.toContain("/himti-kit");
+    }
+  });
 });
