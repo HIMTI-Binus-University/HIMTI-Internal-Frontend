@@ -109,8 +109,9 @@ export const publicRoutes: Route[] = [
     path: "/himti-kit",
     isEnabled: true,
     isProtected: true,
+    // Permission only: the backend checks manage_himti_kit alone, so a role
+    // bypass here would show a page whose requests all return 403.
     requiredPermission: "manage_himti_kit",
-    allowedRoles: ["Admin", "General Manager", "Manager"],
     group: "Tools",
   },
   {
