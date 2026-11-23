@@ -16,6 +16,7 @@ interface PageLayoutProps {
   backTo?: string;
   actions?: ReactNode;
   children: ReactNode;
+  fullHeight?: boolean;
 }
 
 const PageLayout = ({
@@ -25,6 +26,7 @@ const PageLayout = ({
   backTo,
   actions,
   children,
+  fullHeight = false,
 }: PageLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
@@ -67,14 +69,22 @@ const PageLayout = ({
   return (
     <div
       ref={layoutRef}
-      className="flex min-h-screen w-full min-w-0 max-w-full overflow-x-clip bg-background lg:pl-[272px]"
+      className={`flex w-full min-w-0 max-w-full overflow-x-clip bg-background lg:pl-[272px] ${
+        fullHeight
+          ? "min-h-screen lg:h-[100dvh] lg:overflow-hidden"
+          : "min-h-screen"
+      }`}
     >
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <main className="w-full min-w-0 max-w-full flex-1 px-4 py-4 font-sans sm:p-6">
+      <main
+        className={`w-full min-w-0 max-w-full flex-1 px-4 py-4 font-sans sm:p-6 ${
+          fullHeight ? "lg:flex lg:min-h-0 lg:flex-col" : ""
+        }`}
+      >
         <header
           ref={headerRef}
-          className="relative mb-6 flex min-h-14 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/70 px-3 py-2 text-card-foreground sm:px-4"
+          className="relative mb-6 flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/70 px-3 py-2 text-card-foreground sm:px-4"
         >
           <div className="flex min-w-0 items-center gap-2">
             <button
@@ -144,7 +154,9 @@ const PageLayout = ({
 
         <div
           ref={contentRef}
-          className="flex min-w-0 max-w-full flex-col gap-6"
+          className={`flex min-w-0 max-w-full flex-col gap-6 ${
+            fullHeight ? "lg:min-h-0 lg:flex-1" : ""
+          }`}
         >
           {children}
         </div>

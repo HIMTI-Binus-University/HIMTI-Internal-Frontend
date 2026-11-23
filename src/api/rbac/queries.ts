@@ -27,15 +27,41 @@ import type {
 
 // ─── Permissions ─────────────────────────────────────────────────────────────
 
+type PermissionListResponse = {
+  msg: string;
+  data: Permission[];
+  meta: {
+    page: number;
+    limit: number;
+    totalRecords: number;
+    totalPages: number;
+  };
+};
+
+export const getAllPermissions = async () => {
+  const firstPage = await apiClient.get<PermissionListResponse>(
+    Api.permissionList,
+    { params: { page: 1, limit: 100, status: "ACTIVE" } },
+  );
+  const { data, meta } = firstPage.data;
+  if (meta.totalPages <= 1) return data;
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: meta.totalPages - 1 }, (_, index) =>
+      apiClient
+        .get<PermissionListResponse>(Api.permissionList, {
+          params: { page: index + 2, limit: 100, status: "ACTIVE" },
+        })
+        .then((response) => response.data.data),
+    ),
+  );
+  return data.concat(...remainingPages);
+};
+
 export const useGetPermissions = () => {
   return useQuery({
     queryKey: ["permissions"],
-    queryFn: () =>
-      apiClient
-        .get<{ msg: string; data: Permission[]; total: number }>(
-          `${Api.permissionList}?status=ACTIVE`,
-        )
-        .then((res) => res.data.data),
+    queryFn: getAllPermissions,
     staleTime: 5 * 60 * 1000,
   });
 };
