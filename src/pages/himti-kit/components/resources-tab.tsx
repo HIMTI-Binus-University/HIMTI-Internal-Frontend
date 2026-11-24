@@ -1,11 +1,13 @@
 import { useState, useMemo } from "react";
-import { BookOpen, ExternalLink, Filter, GraduationCap, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { BookOpen, ExternalLink, FileSpreadsheet, Filter, GraduationCap, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import {
   useCreateHimtiKitResource,
   useDeleteHimtiKitResource,
   useGetHimtiKitResources,
+  useImportHimtiKitResources,
   useUpdateHimtiKitResource,
 } from "@/api/himti-kit/queries";
+import { useNotification } from "@/components/notification";
 import { Container, EmptyState, SearchField } from "@/components/Utils";
 import {
   AlertDialog,
@@ -27,11 +29,16 @@ import {
   type HimtiKitResource,
 } from "@/types/himti-kit";
 import { ResourceFormDialog } from "./resource-form-dialog";
+import { ResourceImportDialog } from "./resource-import-dialog";
+
+const ALL_MAJOR_COUNT = BINUS_IT_MAJORS.length - 1;
 
 export function ResourcesTab() {
   const [search, setSearch] = useState("");
   const [selectedMajor, setSelectedMajor] = useState<string>("ALL");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const notify = useNotification();
   const [editingResource, setEditingResource] = useState<HimtiKitResource | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<HimtiKitResource | null>(null);
 
@@ -39,6 +46,8 @@ export function ResourcesTab() {
   const createMutation = useCreateHimtiKitResource();
   const updateMutation = useUpdateHimtiKitResource();
   const deleteMutation = useDeleteHimtiKitResource();
+  const importMutation = useImportHimtiKitResources();
+  const existingTitles = useMemo(() => resources.map((r) => r.title), [resources]);
 
   const filterOptions = ["ALL", ...BINUS_IT_MAJORS.filter((m) => m !== "All Majors")];
 
@@ -46,7 +55,9 @@ export function ResourcesTab() {
   const majorCounts = useMemo(() => {
     const counts: Record<string, number> = { ALL: resources.length };
     for (const r of resources) {
-      counts[r.major] = (counts[r.major] || 0) + 1;
+      for (const major of r.majors) {
+        counts[major] = (counts[major] || 0) + 1;
+      }
     }
     return counts;
   }, [resources]);
@@ -56,10 +67,7 @@ export function ResourcesTab() {
       const matchSearch =
         item.title.toLowerCase().includes(search.toLowerCase()) ||
         (item.description && item.description.toLowerCase().includes(search.toLowerCase()));
-      const matchMajor =
-        selectedMajor === "ALL" ||
-        item.major === selectedMajor ||
-        item.major === "All Majors";
+      const matchMajor = selectedMajor === "ALL" || item.majors.includes(selectedMajor);
       return matchSearch && matchMajor;
     });
   }, [resources, search, selectedMajor]);
@@ -80,6 +88,12 @@ export function ResourcesTab() {
     } else {
       await createMutation.mutateAsync(payload);
     }
+  };
+
+  const handleImportSubmit = async (payload: CreateHimtiKitResourceInput[]) => {
+    const result = await importMutation.mutateAsync(payload);
+    const skipped = result?.totalSkipped ? `, ${result.totalSkipped} skipped (already exist)` : "";
+    notify(`Imported ${result?.totalCreated ?? payload.length} learning materials${skipped}.`, "success");
   };
 
   const handleDeleteConfirm = async () => {
@@ -111,6 +125,11 @@ export function ResourcesTab() {
               <BookOpen className="h-3.5 w-3.5 text-primary" />
               <span>{resources.length} Materials</span>
             </Badge>
+
+            <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5 shrink-0">
+              <FileSpreadsheet className="h-4 w-4" />
+              <span>Import CSV</span>
+            </Button>
 
             {/* Add Material Button */}
             <Button size="sm" onClick={handleOpenCreate} className="gap-1.5 shrink-0">
@@ -266,12 +285,27 @@ export function ResourcesTab() {
                         <BookOpen className="h-10 w-10" />
                       </div>
                     )}
-                    <Badge
-                      className="absolute right-3 top-3 max-w-[200px] truncate border border-border/80 bg-background/90 text-xs font-semibold text-foreground backdrop-blur"
-                      title={resource.major}
+                    <div
+                      className="absolute right-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap justify-end gap-1"
+                      title={resource.majors.join(", ")}
                     >
-                      {MAJOR_SHORT_LABELS[resource.major] || resource.major || "General IT"}
-                    </Badge>
+                      {resource.majors.length >= ALL_MAJOR_COUNT ? (
+                        <Badge className="border border-border/80 bg-background/90 text-xs font-semibold text-foreground backdrop-blur">All Majors</Badge>
+                      ) : resource.majors.length === 0 ? (
+                        <Badge className="border border-border/80 bg-background/90 text-xs font-semibold text-foreground backdrop-blur">General IT</Badge>
+                      ) : (
+                        <>
+                          {resource.majors.slice(0, 3).map((major) => (
+                            <Badge key={major} className="max-w-[160px] truncate border border-border/80 bg-background/90 text-xs font-semibold text-foreground backdrop-blur">
+                              {MAJOR_SHORT_LABELS[major] || major}
+                            </Badge>
+                          ))}
+                          {resource.majors.length > 3 && (
+                            <Badge className="border border-border/80 bg-background/90 text-xs font-semibold text-foreground backdrop-blur">+{resource.majors.length - 3}</Badge>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   {/* Body Content */}
@@ -334,6 +368,14 @@ export function ResourcesTab() {
         initialData={editingResource}
         defaultMajor={selectedMajor}
         isLoading={createMutation.isPending || updateMutation.isPending}
+      />
+
+      <ResourceImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onSubmit={handleImportSubmit}
+        existingTitles={existingTitles}
+        isLoading={importMutation.isPending}
       />
 
       {/* Delete Confirmation Alert */}

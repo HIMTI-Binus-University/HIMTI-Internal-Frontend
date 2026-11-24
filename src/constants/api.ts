@@ -102,8 +102,10 @@ export const Api = {
   // HIMTI KIT administration endpoints
   himtiKitResources: "/api/himti-kit/resources",
   himtiKitResource: "/api/himti-kit/resources/:id",
+  himtiKitResourceBulk: "/api/himti-kit/resources/bulk-import",
   himtiKitSoftwares: "/api/himti-kit/software",
   himtiKitSoftware: "/api/himti-kit/software/:id",
+  himtiKitSoftwareBulk: "/api/himti-kit/software/bulk-import",
   himtiKitAttendees: "/api/himti-kit/attendees",
   himtiKitAttendeeBulk: "/api/himti-kit/attendees/bulk-import",
   himtiKitAttendee: "/api/himti-kit/attendees/:id",

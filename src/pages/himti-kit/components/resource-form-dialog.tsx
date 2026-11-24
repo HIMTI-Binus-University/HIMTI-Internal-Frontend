@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,8 @@ interface ResourceFormDialogProps {
   isLoading?: boolean;
 }
 
+const MAJOR_OPTIONS = BINUS_IT_MAJORS.filter((m) => m !== "All Majors") as string[];
+
 export function ResourceFormDialog({
   open,
   onOpenChange,
@@ -35,7 +38,7 @@ export function ResourceFormDialog({
   isLoading,
 }: ResourceFormDialogProps) {
   const [title, setTitle] = useState("");
-  const [major, setMajor] = useState<string>("Computer Science");
+  const [majors, setMajors] = useState<string[]>([]);
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const [resourceUrl, setResourceUrl] = useState("");
   const [description, setDescription] = useState("");
@@ -65,16 +68,14 @@ export function ResourceFormDialog({
   useEffect(() => {
     if (initialData) {
       setTitle(initialData.title);
-      setMajor(initialData.major || "Computer Science");
+      setMajors(initialData.majors);
       setCoverImageUrl(initialData.coverImageUrl ?? "");
       setResourceUrl(initialData.resourceUrl);
       setDescription(initialData.description ?? "");
     } else {
       setTitle("");
-      setMajor(
-        defaultMajor && defaultMajor !== "ALL" && defaultMajor !== "All Majors"
-          ? defaultMajor
-          : "Computer Science"
+      setMajors(
+        defaultMajor && MAJOR_OPTIONS.includes(defaultMajor) ? [defaultMajor] : []
       );
       setCoverImageUrl("");
       setResourceUrl("");
@@ -84,6 +85,16 @@ export function ResourceFormDialog({
     setUrlError(null);
     setIsUrlTouched(false);
   }, [initialData, open, defaultMajor]);
+
+  const allSelected = majors.length === MAJOR_OPTIONS.length;
+
+  const toggleMajor = (value: string, checked: boolean) => {
+    setMajors((prev) =>
+      checked
+        ? MAJOR_OPTIONS.filter((m) => m === value || prev.includes(m))
+        : prev.filter((m) => m !== value)
+    );
+  };
 
   const handleResourceUrlChange = (value: string) => {
     setResourceUrl(value);
@@ -103,15 +114,13 @@ export function ResourceFormDialog({
       setError("Title is required.");
       return;
     }
-    if (!major.trim()) {
-      setError("Jurusan is required.");
-      return;
-    }
-
     const urlValidation = validateDownloadUrl(resourceUrl);
     if (urlValidation) {
       setIsUrlTouched(true);
       setUrlError(urlValidation);
+    }
+    setError(majors.length === 0 ? "Select at least one jurusan." : null);
+    if (urlValidation || majors.length === 0) {
       return;
     }
 
@@ -120,7 +129,7 @@ export function ResourceFormDialog({
       setUrlError(null);
       await onSubmit({
         title: title.trim(),
-        major: major.trim(),
+        majors,
         coverImageUrl: coverImageUrl.trim() || null,
         resourceUrl: resourceUrl.trim(),
         description: description.trim() || null,
@@ -139,8 +148,8 @@ export function ResourceFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px]">
-        <form noValidate onSubmit={handleSubmit}>
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-[560px]">
+        <form noValidate onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <DialogHeader>
             <DialogTitle>
               {initialData ? "Edit Learning Material" : "Add Learning Material"}
@@ -150,7 +159,7 @@ export function ResourceFormDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="-mx-1 min-h-0 flex-1 space-y-4 overflow-y-auto px-1 py-4">
             {error && (
               <div className="rounded-lg border border-semantic-danger-border bg-semantic-danger-background p-3 text-xs text-semantic-danger">
                 {error}
@@ -170,35 +179,49 @@ export function ResourceFormDialog({
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="resource-major">
+            <fieldset className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <legend className="text-sm font-medium leading-none">
                   Jurusan IT <span className="text-destructive">*</span>
-                </Label>
-                <select
-                  id="resource-major"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={major}
-                  onChange={(e) => setMajor(e.target.value)}
-                  required
-                >
-                  {BINUS_IT_MAJORS.filter((m) => m !== "All Majors").map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
+                </legend>
+                <span className="text-[11px] text-muted-foreground">
+                  {majors.length} of {MAJOR_OPTIONS.length} selected
+                </span>
+              </div>
+              <div className="rounded-lg border border-border p-1">
+                <label className="flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted">
+                  <Checkbox
+                    checked={allSelected ? true : majors.length > 0 ? "indeterminate" : false}
+                    onCheckedChange={() => setMajors(allSelected ? [] : MAJOR_OPTIONS)}
+                    aria-label="Select all jurusan"
+                  />
+                  <span className="text-sm font-medium text-foreground">Select all</span>
+                </label>
+                <div className="grid grid-cols-1 border-t border-border pt-1 sm:grid-cols-2">
+                  {MAJOR_OPTIONS.map((m) => (
+                    <label
+                      key={m}
+                      className="flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted"
+                    >
+                      <Checkbox
+                        checked={majors.includes(m)}
+                        onCheckedChange={(checked) => toggleMajor(m, checked === true)}
+                      />
+                      <span className="text-sm text-foreground">{m}</span>
+                    </label>
                   ))}
-                </select>
+                </div>
               </div>
+            </fieldset>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="resource-cover">Cover Image URL</Label>
-                <Input
-                  id="resource-cover"
-                  placeholder="https://..."
-                  value={coverImageUrl}
-                  onChange={(e) => setCoverImageUrl(e.target.value)}
-                />
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="resource-cover">Cover Image URL</Label>
+              <Input
+                id="resource-cover"
+                placeholder="https://..."
+                value={coverImageUrl}
+                onChange={(e) => setCoverImageUrl(e.target.value)}
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -249,7 +272,7 @@ export function ResourceFormDialog({
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0 border-t border-border pt-4">
             <Button
               type="button"
               variant="outline"

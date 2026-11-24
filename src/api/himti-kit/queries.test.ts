@@ -71,7 +71,7 @@ describe("HIMTI-KIT Data Transformers", () => {
         id: "res-101",
         title: "Algorithms Guide",
         description: "Study material",
-        major: "Computer Science",
+        majors: ["Computer Science"],
         downloadUrl: "https://drive.google.com/test",
         resourceUrl: "https://drive.google.com/test",
         coverImageUrl: "https://images.com/cover.jpg",
@@ -84,7 +84,7 @@ describe("HIMTI-KIT Data Transformers", () => {
       const input = {
         title: "Data Science 101",
         description: "Intro notes",
-        major: "Data Science",
+        majors: ["Data Science", "Computer Science & Statistics"],
         resourceUrl: "https://drive.google.com/ds101",
         coverImageUrl: "https://images.com/cover.jpg",
       };
@@ -93,8 +93,7 @@ describe("HIMTI-KIT Data Transformers", () => {
       expect(payload).toEqual({
         title: "Data Science 101",
         description: "Intro notes",
-        major: "DATA_SCIENCE",
-        majors: ["DATA_SCIENCE"],
+        majors: ["DATA_SCIENCE", "COMPUTER_SCIENCE_AND_STATISTIC"],
         downloadUrl: "https://drive.google.com/ds101",
         coverImageUrl: "https://images.com/cover.jpg",
       });
@@ -102,13 +101,12 @@ describe("HIMTI-KIT Data Transformers", () => {
 
     it("transforms frontend update payload to backend schema", () => {
       const update = {
-        major: "Cyber Security",
+        majors: ["Cyber Security"],
         resourceUrl: "https://drive.google.com/updated",
       };
 
       const payload = transformResourceUpdatePayload(update);
       expect(payload).toEqual({
-        major: "CYBER_SECURITY",
         majors: ["CYBER_SECURITY"],
         downloadUrl: "https://drive.google.com/updated",
       });
@@ -119,7 +117,8 @@ describe("HIMTI-KIT Data Transformers", () => {
         id: "res-102",
         title: "Calculus",
         description: "Math notes",
-        majors: ["COMPUTER_SCIENCE"],
+        majors: ["COMPUTER_SCIENCE", "DATA_SCIENCE", "DIGITAL_PSYCHOLOGY"],
+        major: "COMPUTER_SCIENCE",
         downloadUrl: "https://drive.google.com/calc",
         coverImageUrl: null,
         createdAt: "2026-03-01T00:00:00Z",
@@ -127,7 +126,7 @@ describe("HIMTI-KIT Data Transformers", () => {
       };
 
       const transformed = transformBackendResource(backendRow);
-      expect(transformed.major).toBe("Computer Science");
+      expect(transformed.majors).toEqual(["Computer Science", "Data Science", "Digital Psychology"]);
     });
   });
 

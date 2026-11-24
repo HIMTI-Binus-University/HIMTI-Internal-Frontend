@@ -10,6 +10,7 @@ import {
   setStoredResources,
   setStoredSoftwares,
 } from "@/data/himti-kit";
+import type { components } from "@/generated/openapi";
 import type { ApiDataResponse } from "@/types/batches";
 import {
   BACKEND_ENUM_TO_MAJOR,
@@ -72,19 +73,28 @@ interface BackendBulkImportResult {
   totalDuplicatesInPayload: number;
 }
 
+export type HimtiKitBulkImportResult = components["schemas"]["HimtiKitBulkImportResult"];
+
 type BackendAppearance = Partial<HimtiKitAppearanceConfig>;
 
 // ==========================================
 // Transformers & Payload Mappers
 // ==========================================
 
+export const toMajorLabels = (raw: string[]): string[] =>
+  Array.from(new Set(raw.map((m) => BACKEND_ENUM_TO_MAJOR[m] || m)));
+
+export const toBackendMajors = (labels: string[]): string[] =>
+  Array.from(new Set(labels.map((m) => MAJOR_TO_BACKEND_ENUM[m] || m)));
+
 export const transformBackendResource = (raw: BackendResource): HimtiKitResource => {
-  const rawMajor = (Array.isArray(raw.majors) && raw.majors[0]) || raw.major;
+  const rawMajors =
+    Array.isArray(raw.majors) && raw.majors.length > 0 ? raw.majors : raw.major ? [raw.major] : [];
   return {
     id: String(raw.id),
     title: raw.title,
     description: raw.description ?? null,
-    major: (rawMajor && BACKEND_ENUM_TO_MAJOR[rawMajor]) || rawMajor || "Computer Science",
+    majors: toMajorLabels(rawMajors),
     downloadUrl: raw.downloadUrl || raw.resourceUrl || "",
     resourceUrl: raw.downloadUrl || raw.resourceUrl || "",
     coverImageUrl: raw.coverImageUrl ?? null,
@@ -94,12 +104,10 @@ export const transformBackendResource = (raw: BackendResource): HimtiKitResource
 };
 
 export const transformResourceCreatePayload = (payload: CreateHimtiKitResourceInput) => {
-  const backendMajor = MAJOR_TO_BACKEND_ENUM[payload.major] || payload.major;
   return {
     title: payload.title.trim(),
     description: payload.description?.trim() || undefined,
-    major: backendMajor,
-    majors: [backendMajor],
+    majors: toBackendMajors(payload.majors),
     downloadUrl: payload.resourceUrl || payload.downloadUrl || "",
     coverImageUrl: payload.coverImageUrl?.trim() || null,
   };
@@ -111,10 +119,8 @@ export const transformResourceUpdatePayload = (payload: UpdateHimtiKitResourceIn
   if (payload.description !== undefined) {
     result.description = payload.description?.trim() || undefined;
   }
-  if (payload.major !== undefined) {
-    const backendMajor = MAJOR_TO_BACKEND_ENUM[payload.major] || payload.major;
-    result.major = backendMajor;
-    result.majors = [backendMajor];
+  if (payload.majors !== undefined) {
+    result.majors = toBackendMajors(payload.majors);
   }
   if (payload.resourceUrl !== undefined || payload.downloadUrl !== undefined) {
     result.downloadUrl = payload.resourceUrl || payload.downloadUrl;
@@ -317,6 +323,37 @@ export const useDeleteHimtiKitResource = () => {
   });
 };
 
+// Mock-mode bulk import: skips keys that already exist, mirroring the backend.
+const appendNew = <T>(current: T[], rows: T[], key: (row: T) => string) => {
+  const existing = new Set(current.map((row) => key(row).trim().toLowerCase()));
+  const fresh = rows.filter((row) => !existing.has(key(row).trim().toLowerCase()));
+  return { next: [...fresh, ...current], created: fresh.length };
+};
+
+export const useImportHimtiKitResources = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: CreateHimtiKitResourceInput[]): Promise<HimtiKitBulkImportResult> => {
+      if (FORCE_MOCK_HIMTI_KIT) {
+        const now = new Date().toISOString();
+        const rows = payload.map((p, i) => ({ id: `res-${Date.now()}-${i}`, ...p, createdAt: now }));
+        const { next, created } = appendNew(getStoredResources(), rows, (r) => r.title);
+        setStoredResources(next);
+        return { totalSubmitted: payload.length, totalCreated: created, totalSkipped: payload.length - created, skipped: [] };
+      }
+
+      const response = await apiClient.post<ApiDataResponse<HimtiKitBulkImportResult>>(
+        Api.himtiKitResourceBulk,
+        { resources: payload.map(transformResourceCreatePayload) }
+      );
+      return response.data?.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["himti-kit-resources"] });
+    },
+  });
+};
+
 // ==========================================
 // HIMTI KIT Softwares (Software Directory)
 // ==========================================
@@ -457,6 +494,30 @@ export const useDeleteHimtiKitSoftware = () => {
         const current = getStoredSoftwares();
         setStoredSoftwares(current.filter((item) => item.id !== id));
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["himti-kit-softwares"] });
+    },
+  });
+};
+
+export const useImportHimtiKitSoftwares = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: CreateHimtiKitSoftwareInput[]): Promise<HimtiKitBulkImportResult> => {
+      if (FORCE_MOCK_HIMTI_KIT) {
+        const now = new Date().toISOString();
+        const rows = payload.map((p, i) => ({ id: `soft-${Date.now()}-${i}`, ...p, createdAt: now }));
+        const { next, created } = appendNew(getStoredSoftwares(), rows, (r) => r.name);
+        setStoredSoftwares(next);
+        return { totalSubmitted: payload.length, totalCreated: created, totalSkipped: payload.length - created, skipped: [] };
+      }
+
+      const response = await apiClient.post<ApiDataResponse<HimtiKitBulkImportResult>>(
+        Api.himtiKitSoftwareBulk,
+        { software: payload.map(transformSoftwareCreatePayload) }
+      );
+      return response.data?.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["himti-kit-softwares"] });

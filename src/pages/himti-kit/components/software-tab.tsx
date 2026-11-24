@@ -1,11 +1,13 @@
 import { useState, useMemo } from "react";
-import { AppWindow, ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
+import { AppWindow, ExternalLink, FileSpreadsheet, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   useCreateHimtiKitSoftware,
   useDeleteHimtiKitSoftware,
   useGetHimtiKitSoftwares,
+  useImportHimtiKitSoftwares,
   useUpdateHimtiKitSoftware,
 } from "@/api/himti-kit/queries";
+import { useNotification } from "@/components/notification";
 import { Container, EmptyState, SearchField } from "@/components/Utils";
 import {
   AlertDialog,
@@ -21,10 +23,13 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { CreateHimtiKitSoftwareInput, HimtiKitSoftware } from "@/types/himti-kit";
 import { SoftwareFormDialog } from "./software-form-dialog";
+import { SoftwareImportDialog } from "./software-import-dialog";
 
 export function SoftwareTab() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const notify = useNotification();
   const [editingSoftware, setEditingSoftware] = useState<HimtiKitSoftware | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<HimtiKitSoftware | null>(null);
 
@@ -32,6 +37,8 @@ export function SoftwareTab() {
   const createMutation = useCreateHimtiKitSoftware();
   const updateMutation = useUpdateHimtiKitSoftware();
   const deleteMutation = useDeleteHimtiKitSoftware();
+  const importMutation = useImportHimtiKitSoftwares();
+  const existingNames = useMemo(() => softwares.map((s) => s.name), [softwares]);
 
   const filteredSoftwares = useMemo(() => {
     return softwares.filter((item) => {
@@ -60,6 +67,12 @@ export function SoftwareTab() {
     }
   };
 
+  const handleImportSubmit = async (payload: CreateHimtiKitSoftwareInput[]) => {
+    const result = await importMutation.mutateAsync(payload);
+    const skipped = result?.totalSkipped ? `, ${result.totalSkipped} skipped (already exist)` : "";
+    notify(`Imported ${result?.totalCreated ?? payload.length} software entries${skipped}.`, "success");
+  };
+
   const handleDeleteConfirm = async () => {
     if (deleteTarget) {
       await deleteMutation.mutateAsync(deleteTarget.id);
@@ -82,10 +95,16 @@ export function SoftwareTab() {
           />
         </div>
 
-        <Button size="sm" onClick={handleOpenCreate} className="gap-1.5 self-start sm:self-auto">
-          <Plus className="h-4 w-4" />
-          <span>Add Software</span>
-        </Button>
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5">
+            <FileSpreadsheet className="h-4 w-4" />
+            <span>Import CSV</span>
+          </Button>
+          <Button size="sm" onClick={handleOpenCreate} className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            <span>Add Software</span>
+          </Button>
+        </div>
       </div>
 
       {/* Main List Content */}
@@ -217,6 +236,14 @@ export function SoftwareTab() {
         onSubmit={handleSubmit}
         initialData={editingSoftware}
         isLoading={createMutation.isPending || updateMutation.isPending}
+      />
+
+      <SoftwareImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onSubmit={handleImportSubmit}
+        existingNames={existingNames}
+        isLoading={importMutation.isPending}
       />
 
       {/* Delete Confirmation Alert */}
