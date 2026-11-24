@@ -115,12 +115,15 @@ describe("VideosTab", () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
 
-  it("explains when session integration is unavailable", () => {
-    mocks.sessions.mockReturnValue({ data: [], isLoading: false, isError: false, isUnavailable: true, refetch: mocks.refetch });
+  it("offers Study Club and Responsi sessions in the editor", () => {
+    mocks.sessions.mockReturnValue({
+      data: [session, { ...session, id: "session-2", title: "Limits practice", type: "STUDY_CLUB" }],
+      isLoading: false, isError: false, refetch: mocks.refetch,
+    });
     render(<VideosTab />);
     fireEvent.click(screen.getByRole("button", { name: "Add video" }));
-    expect(screen.getByText(/Session integration is not available yet/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add draft" })).toBeDisabled();
+    expect(screen.getByRole("option", { name: /Limits review.*Responsi/ })).toHaveValue("session-1");
+    expect(screen.getByRole("option", { name: /Limits practice.*Study Club/ })).toHaveValue("session-2");
   });
 
   it("offers a retry and prevents saving when sessions cannot be loaded", () => {
