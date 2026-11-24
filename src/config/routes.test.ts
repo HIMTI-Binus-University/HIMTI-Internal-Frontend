@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   getAccessibleInternalRoutes,
   getFirstAccessibleInternalRoute,
+  publicRoutes,
 } from "./routes";
 
 describe("internal route access helpers", () => {
@@ -36,6 +37,16 @@ describe("internal route access helpers", () => {
     expect(
       getAccessibleInternalRoutes([], ["Admin"]).map((route) => route.path),
     ).toContain("/education");
+  });
+
+  it("protects the summary editor with the same access as Education", () => {
+    const education = publicRoutes.find((route) => route.path === "/education");
+    expect(publicRoutes.find((route) => route.path === "/education/summaries/:id"))
+      .toMatchObject({
+        isProtected: true,
+        requiredPermission: education?.requiredPermission,
+        allowedRoles: education?.allowedRoles,
+      });
   });
 
   it("allows Admin users to access URL management without manage_urls", () => {

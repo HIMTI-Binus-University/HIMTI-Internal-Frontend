@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import {
   ArrowLeft,
   Clock3,
@@ -12,14 +12,11 @@ import {
 
 import {
   useCreateResponsi,
-  useGetResponsi,
   useGetResponsiVersions,
   useUpdateResponsi,
 } from "@/api/education/queries";
 import { ResponsiStatusBadge } from "@/components/education/ResponsiStatusBadge";
-import { MarkdownTextarea } from "@/components/markdown-textarea";
 import { backendMessage, useNotification } from "@/components/notification";
-import { ResourceMarkdown } from "@/components/resource-markdown";
 import { Container } from "@/components/Utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,8 +43,12 @@ import type {
   SummaryType,
 } from "@/types/education";
 
+const ResponsiEditor = lazy(() => import("./responsi-editor"));
+
 type ResponsiWorkspaceProps = {
   summary: ResponsiSummary;
+  initialContent?: string;
+  initialPreview?: boolean;
   courseOptions: string[];
   periodOptions: string[];
   onClose: () => void;
@@ -75,13 +76,15 @@ Gunakan editor ini untuk menyusun materi bersama PIC dan kontributor.`;
 
 const ResponsiWorkspace = ({
   summary,
+  initialContent,
+  initialPreview = false,
   courseOptions,
   periodOptions,
   onClose,
   onSaved,
 }: ResponsiWorkspaceProps) => {
   const notify = useNotification();
-  const [activeId, setActiveId] = useState(summary.id);
+  const activeId = summary.id;
   const [title, setTitle] = useState(summary.title);
   const [summaryType, setSummaryType] = useState<SummaryType>(
     summary.summaryType ?? "Responsi",
@@ -90,14 +93,13 @@ const ResponsiWorkspace = ({
   const [academicPeriod, setAcademicPeriod] = useState(summary.academicPeriod);
   const [examType, setExamType] = useState(summary.examType);
   const [pic, setPic] = useState(summary.pic);
-  const [content, setContent] = useState(() => buildEditorContent(summary));
+  const [content, setContent] = useState(() => initialContent ?? buildEditorContent(summary));
   const [status, setStatus] = useState<ResponsiStatus>(summary.status);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(initialPreview);
 
   const isDraftId = activeId.startsWith("draft-");
 
-  const { data: detailData } = useGetResponsi(isDraftId ? undefined : activeId);
   const { data: versions = [], isLoading: isLoadingVersions } =
     useGetResponsiVersions(isDraftId ? undefined : activeId);
 
@@ -105,16 +107,6 @@ const ResponsiWorkspace = ({
   const updateResponsiMutation = useUpdateResponsi();
   const isPending =
     createResponsiMutation.isPending || updateResponsiMutation.isPending;
-
-  useEffect(() => {
-    if (detailData?.content !== undefined) {
-      setContent(detailData.content);
-    }
-    if (detailData?.status) {
-      setStatus(detailData.status);
-    }
-    if (detailData?.summaryType) setSummaryType(detailData.summaryType);
-  }, [detailData]);
 
   const reviewAction =
     status === "DRAFT"
@@ -136,7 +128,6 @@ const ResponsiWorkspace = ({
           content,
           status: "DRAFT",
         });
-        setActiveId(created.id);
         setStatus(created.status);
         notify("Summary draft saved successfully.", "success");
         onSaved?.(created);
@@ -176,7 +167,6 @@ const ResponsiWorkspace = ({
           content,
           status: nextStatus,
         });
-        setActiveId(created.id);
         setStatus(created.status);
         notify(`${reviewAction.label} completed.`, "success");
         onSaved?.(created);
@@ -245,14 +235,14 @@ const ResponsiWorkspace = ({
             <Button
               size="sm"
               variant="secondary"
-              disabled={isPending}
+              disabled={isPending || !course}
               onClick={saveDraft}
             >
               <Save />
               {isPending ? "Saving..." : "Save draft"}
             </Button>
             {reviewAction && (
-              <Button size="sm" disabled={isPending} onClick={moveStatus}>
+              <Button size="sm" disabled={isPending || !course} onClick={moveStatus}>
                 <Send />
                 {reviewAction.label}
               </Button>
@@ -284,16 +274,9 @@ const ResponsiWorkspace = ({
                 {pic || "PIC"} is editing
               </span>
             </div>
-            <label className="sr-only" htmlFor="responsi-content">
-              Summary content
-            </label>
-            <MarkdownTextarea
-              id="responsi-content"
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-              spellCheck
-              className="min-h-0 flex-1 resize-none rounded-none border-0 bg-transparent px-4 py-3 text-sm leading-6 focus-visible:ring-0"
-            />
+            <Suspense fallback={<p role="status" className="p-4">Loading editor...</p>}>
+              <ResponsiEditor value={content} onChange={setContent} />
+            </Suspense>
           </section>
 
           <aside className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto">
@@ -570,9 +553,9 @@ const ResponsiWorkspace = ({
               </div>
             </dl>
 
-            <ResourceMarkdown className="mt-5 text-sm leading-6 text-foreground">
-              {content}
-            </ResourceMarkdown>
+            <Suspense fallback={<p role="status" className="p-4">Loading preview...</p>}>
+              <ResponsiEditor value={content} readOnly />
+            </Suspense>
           </article>
         </SheetContent>
       </Sheet>

@@ -1,6 +1,13 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render as renderView, screen, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import VideosTab from "./videos-tab";
+
+const render = (view: ReactElement, url = "/education?tab=videos") =>
+  renderView(view, {
+    wrapper: ({ children }) => <MemoryRouter initialEntries={[url]}>{children}</MemoryRouter>,
+  });
 
 const mocks = vi.hoisted(() => ({
   create: vi.fn(),
@@ -50,6 +57,15 @@ beforeEach(() => {
 });
 
 describe("VideosTab", () => {
+  it("uses the course from a deep link and lets the user clear it", () => {
+    render(<VideosTab />, "/education?tab=videos&courseId=course-1");
+    const filter = screen.getByLabelText("Filter videos by course");
+    expect(filter).toHaveValue("course-1");
+    expect(mocks.videos).toHaveBeenLastCalledWith(expect.objectContaining({ courseId: "course-1", page: 1 }));
+    fireEvent.change(filter, { target: { value: "" } });
+    expect(mocks.videos).toHaveBeenLastCalledWith(expect.objectContaining({ courseId: undefined, page: 1 }));
+  });
+
   it("returns keyboard focus to the editor button after closing", async () => {
     render(<VideosTab />);
     const add = screen.getByRole("button", { name: "Add video" });

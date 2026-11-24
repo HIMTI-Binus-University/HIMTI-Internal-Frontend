@@ -20,6 +20,7 @@ import ElectionsPage from "@/pages/elections";
 import ElectionEditorPage from "@/pages/elections/editor";
 import ElectionWorkspacePage from "@/pages/elections/workspace";
 import EducationPage from "@/pages/education";
+import SummaryEditorPage from "@/pages/education/summary-editor-page";
 import HimtiKitDashboardPage from "@/pages/himti-kit";
 
 export const publicRoutes: Route[] = [
@@ -229,6 +230,17 @@ export const publicRoutes: Route[] = [
     requiredPermission: "manage_education",
     allowedRoles: ["Admin"],
     group: "Tools",
+  },
+  {
+    key: "router-education-summary-editor",
+    title: "Summary editor",
+    description: "Create or edit an Education summary",
+    component: SummaryEditorPage,
+    path: "/education/summaries/:id",
+    isEnabled: true,
+    isProtected: true,
+    requiredPermission: "manage_education",
+    allowedRoles: ["Admin"],
   },
   {
     key: "router-rbac-permissions",
