@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { backendMessage } from "@/components/notification";
 import type { CreateHimtiKitAttendeeInput, HimtiKitAttendee } from "@/types/himti-kit";
+import { isValidNim } from "../csv-import";
 
 interface AttendeeImportDialogProps {
   open: boolean;
@@ -190,7 +191,7 @@ export function AttendeeImportDialog({
   }, [parsedRows]);
 
   const validRowsCount = useMemo(() => {
-    return parsedRows.filter((r) => r.name.trim().length > 0 && r.nim.trim().length > 0).length;
+    return parsedRows.filter((r) => r.name.trim().length > 0 && isValidNim(r.nim)).length;
   }, [parsedRows]);
 
   const normalizedManualNim = nim.trim().replace(/\s+/g, "");
@@ -218,7 +219,7 @@ export function AttendeeImportDialog({
     for (const r of parsedRows) {
       const trimmedNim = r.nim.trim().replace(/\s+/g, "");
       const trimmedName = r.name.trim();
-      if (!trimmedNim || !trimmedName) continue;
+      if (!trimmedName || !isValidNim(trimmedNim)) continue;
       if (existingNimMap.has(trimmedNim)) {
         u++;
       } else {
@@ -234,7 +235,10 @@ export function AttendeeImportDialog({
 
     try {
       if (mode === "manual") {
-        if (!name.trim() || !nim.trim()) return;
+        if (!name.trim() || !isValidNim(nim)) {
+          setSubmitError("NIM must contain digits only.");
+          return;
+        }
         const single = [{ name: name.trim(), nim: nim.trim().replace(/\s+/g, "") }];
         await onSubmit(single);
         resetState();
@@ -245,7 +249,7 @@ export function AttendeeImportDialog({
             name: r.name.trim(),
             nim: r.nim.trim().replace(/\s+/g, ""),
           }))
-          .filter((r) => r.name.length > 0 && r.nim.length > 0);
+          .filter((r) => r.name.length > 0 && isValidNim(r.nim));
 
         if (cleaned.length === 0) {
           setParseError("No valid rows to import. Please make sure at least one row has Name and NIM.");
@@ -273,11 +277,11 @@ export function AttendeeImportDialog({
       }}
     >
       <DialogContent
-        className={`transition-all duration-200 ${
+        className={`flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden transition-all duration-200 ${
           mode === "csv" && parsedRows.length > 0 ? "sm:max-w-[680px]" : "sm:max-w-[560px]"
         }`}
       >
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <DialogHeader>
             <DialogTitle>Add Eligible TECHNO Attendees</DialogTitle>
             <DialogDescription>
@@ -285,8 +289,9 @@ export function AttendeeImportDialog({
             </DialogDescription>
           </DialogHeader>
 
+          <div className="-mx-1 mt-4 min-h-0 flex-1 overflow-y-auto px-1">
           {/* Revamped Mode Selector - Interactive Cards */}
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {/* Manual Entry Option */}
             <button
               type="button"
@@ -532,7 +537,7 @@ export function AttendeeImportDialog({
                     </p>
 
                     {/* Editable Table */}
-                    <div className="max-h-72 overflow-y-auto rounded-lg border border-border bg-card p-1.5 text-xs">
+                    <div className="rounded-lg border border-border bg-card p-1.5 text-xs">
                       <table className="w-full text-left">
                         <thead>
                           <tr className="border-b border-border text-[11px] text-muted-foreground">
@@ -547,7 +552,7 @@ export function AttendeeImportDialog({
                           {parsedRows.map((row, idx) => {
                             const trimmedNim = row.nim.trim().replace(/\s+/g, "");
                             const isDuplicate = duplicateNims.has(row.nim.trim());
-                            const isNimEmpty = !row.nim.trim();
+                            const isNimInvalid = !isValidNim(row.nim);
                             const isNameEmpty = !row.name.trim();
                             const existingForThisRow = trimmedNim ? existingNimMap.get(trimmedNim) : null;
                             const isUpdate = Boolean(existingForThisRow);
@@ -580,10 +585,11 @@ export function AttendeeImportDialog({
                                     value={row.nim}
                                     onChange={(e) => handleRowChange(idx, "nim", e.target.value)}
                                     placeholder="NIM"
+                                    title={isNimInvalid ? "NIM must contain digits only" : undefined}
                                     className={`h-7 text-xs font-mono font-medium ${
                                       isDuplicate
                                         ? "border-destructive/60 bg-destructive/5 text-destructive focus-visible:ring-destructive"
-                                        : isNimEmpty
+                                        : isNimInvalid
                                         ? "border-destructive bg-destructive/5 text-destructive"
                                         : ""
                                     }`}
@@ -663,7 +669,9 @@ export function AttendeeImportDialog({
             </div>
           )}
 
-          <DialogFooter className="mt-6">
+          </div>
+
+          <DialogFooter className="mt-4 shrink-0 border-t border-border pt-4">
             <Button
               type="button"
               variant="outline"

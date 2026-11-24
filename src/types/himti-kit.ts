@@ -69,7 +69,7 @@ export const MAJOR_SHORT_LABELS: Record<string, string> = {
 export interface HimtiKitResource {
   id: string;
   title: string;
-  major: string; // Jurusan (e.g. Computer Science, Cyber Security, Data Science, etc.)
+  majors: string[]; // Jurusan display names (e.g. Computer Science, Data Science)
   coverImageUrl?: string | null;
   resourceUrl: string;
   downloadUrl?: string; // Backend field alias
