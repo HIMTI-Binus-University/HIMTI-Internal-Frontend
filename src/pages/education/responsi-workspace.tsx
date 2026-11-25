@@ -7,7 +7,6 @@ import {
   History,
   Save,
   Send,
-  Users,
 } from "lucide-react";
 
 import {
@@ -279,10 +278,6 @@ const ResponsiWorkspace = ({
                 </h3>
                 <Badge variant="neutral">Markdown</Badge>
               </div>
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Users aria-hidden="true" className="size-3.5" />
-                {pic || "PIC"} is editing
-              </span>
             </div>
             <label className="sr-only" htmlFor="responsi-content">
               Summary content
