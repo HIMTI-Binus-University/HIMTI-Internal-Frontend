@@ -90,7 +90,7 @@ const selectOption = async (label: string, option: string) => {
     expect(trigger).toHaveAttribute("aria-expanded", "false"),
   );
 };
-const fillForm = async () => {
+const fillForm = async (venue = "Alam Sutera") => {
   fireEvent.change(screen.getByLabelText("Session title"), {
     target: { value: "Calculus review" },
   });
@@ -107,9 +107,11 @@ const fillForm = async () => {
   fireEvent.change(screen.getByLabelText("End time"), {
     target: { value: "12:00" },
   });
-  fireEvent.change(screen.getByLabelText("Location"), {
-    target: { value: "Room 302" },
-  });
+  await selectOption("Campus or online", venue);
+  if (venue !== "Online")
+    fireEvent.change(screen.getByLabelText("Room"), {
+      target: { value: "A1305" },
+    });
 };
 
 beforeEach(() => {
@@ -122,6 +124,15 @@ beforeEach(() => {
 });
 
 describe("Schedules API integration", () => {
+  it("shows all dates for the course linked from Course Groups", () => {
+    renderTab("/education?tab=schedules&course=Calculus&schedule=all");
+    expect(mocks.list).toHaveBeenLastCalledWith(
+      expect.objectContaining({ course: "Calculus", schedule: "all" }),
+    );
+    expect(screen.getByRole("combobox", { name: "Filter by schedule" }))
+      .toHaveTextContent("All Sessions");
+  });
+
   it("creates through the API with WIB converted to UTC and server-controlled fields omitted", async () => {
     renderTab();
     expect(
@@ -143,13 +154,30 @@ describe("Schedules API integration", () => {
       description: "",
       startsAt: "2099-11-04T03:00:00.000Z",
       endsAt: "2099-11-04T05:00:00.000Z",
-      location: "Room 302",
+      location: "Alam Sutera · A1305",
       meetingUrl: "",
       registrationUrl: "",
       capacity: null,
     });
     expect(screen.getByRole("status")).toHaveTextContent(
       "Session saved successfully",
+    );
+  });
+
+  it("creates an online session without a room and keeps the meeting link", async () => {
+    renderTab();
+    fireEvent.click(screen.getByRole("button", { name: "Create session" }));
+    await fillForm("Online");
+    expect(screen.queryByLabelText("Room")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Meeting URL (optional)"), {
+      target: { value: "https://example.com/meeting" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save session" }));
+    await waitFor(() =>
+      expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({
+        location: "Online",
+        meetingUrl: "https://example.com/meeting",
+      })),
     );
   });
 
@@ -190,7 +218,8 @@ describe("Schedules API integration", () => {
       id: "session-1",
       payload: expect.objectContaining({
         title: "Updated session",
-        courseId: "algorithms",
+         courseId: "algorithms",
+         location: "Room 301",
         type: "Responsi",
       }),
     });

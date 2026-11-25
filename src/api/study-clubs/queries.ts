@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/config/api-client";
 import { Api } from "@/constants/api";
 import type { operations } from "@/generated/openapi";
+import { educationKeys } from "@/api/education/queries";
 type StudyClubPayload =
   operations["createStudyClub"]["requestBody"]["content"]["application/json"];
 
@@ -31,7 +32,10 @@ export const useCreateStudyClub = () => {
       apiClient
         .post<SessionResponse>(Api.studyClubs, payload)
         .then((response) => response.data.data),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys }),
+    onSuccess: () => Promise.all([
+      client.invalidateQueries({ queryKey: keys }),
+      client.invalidateQueries({ queryKey: educationKeys.courseGroups }),
+    ]),
   });
 };
 
@@ -45,6 +49,10 @@ export const useUpdateStudyClub = () => {
           payload,
         )
         .then((response) => response.data.data),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys }),
+    onSuccess: () => Promise.all([
+      client.invalidateQueries({ queryKey: keys }),
+      client.invalidateQueries({ queryKey: educationKeys.courseGroups }),
+      client.invalidateQueries({ queryKey: educationKeys.videos }),
+    ]),
   });
 };

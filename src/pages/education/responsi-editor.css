@@ -1,0 +1,72 @@
+.responsi-document {
+  overflow-wrap: anywhere;
+}
+
+.responsi-document > * + * {
+  margin-top: 0.85rem;
+}
+.responsi-document h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.responsi-document h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.responsi-document h3,
+.responsi-document h4,
+.responsi-document h5,
+.responsi-document h6 {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.responsi-document ul {
+  list-style: disc;
+  padding-inline-start: 1.5rem;
+}
+.responsi-document ol {
+  list-style: decimal;
+  padding-inline-start: 1.5rem;
+}
+.responsi-document blockquote {
+  border-inline-start: 2px solid currentColor;
+  padding-inline-start: 1rem;
+}
+.responsi-document a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.responsi-document pre {
+  overflow: auto;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+.responsi-document code,
+.responsi-document pre {
+  @apply bg-muted font-mono;
+}
+.responsi-document pre code {
+  overflow-wrap: normal;
+}
+.responsi-document td,
+.responsi-document th {
+  @apply border border-border px-2 py-1;
+}
+.responsi-document th {
+  @apply bg-muted text-left;
+}
+.responsi-document .hljs-keyword,
+.responsi-document .hljs-built_in {
+  @apply font-bold text-primary;
+}
+.responsi-document .hljs-string,
+.responsi-document .hljs-number {
+  @apply text-semantic-success;
+}
+.responsi-document img {
+  max-width: 100%;
+  height: auto;
+}
+.responsi-document [data-type="block-math"] {
+  overflow-x: auto;
+}

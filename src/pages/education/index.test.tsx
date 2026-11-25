@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 import EducationPage from ".";
+import SummaryEditorPage from "./summary-editor-page";
 const mockResponsiQueries = vi.hoisted(() => vi.fn());
 const mockResponsiVersions = vi.hoisted(() => vi.fn().mockReturnValue([]));
 const mockRestoreResponsi = vi.hoisted(() => vi.fn());
@@ -21,9 +22,8 @@ vi.mock("@/api/study-clubs/queries", () => ({
   useUpdateStudyClub: () => ({ mutateAsync: vi.fn() }),
 }));
 
-vi.mock("@/components/Utils", async (original) => ({
-  ...(await original<object>()),
-  PageLayout: ({ children }: { children: React.ReactNode }) => (
+vi.mock("@/components/Utils/PageLayout", () => ({
+  default: ({ children }: { children: React.ReactNode }) => (
     <main>{children}</main>
   ),
 }));
@@ -99,8 +99,13 @@ vi.mock("@/api/education/queries", () => ({
       refetch: vi.fn(),
     };
   },
-  useGetResponsi: () => ({
-    data: undefined,
+  useGetResponsi: (id?: string) => ({
+    data: id === "dynamic-programming"
+      ? { ...mockUpdateResponsiSnapshot, content: "## Dynamic Programming\n\nStored Markdown" }
+      : id === "created-responsi"
+        ? { ...mockCreatedResponsiSnapshot, content: "## Draft" }
+        : undefined,
+    error: id === "missing" ? { isAxiosError: true, response: { status: 404 } } : null,
     isLoading: false,
     isError: false,
   }),
@@ -127,10 +132,39 @@ vi.mock("@/api/education/queries", () => ({
   }),
 }));
 
-const renderPage = () =>
+const mockUpdateResponsiSnapshot = {
+  id: "dynamic-programming",
+  title: "Dynamic Programming",
+  course: "Algorithm & Programming",
+  academicPeriod: "2026/2027",
+  examType: "Mid Exam",
+  pic: "Joshua",
+  status: "DRAFT",
+};
+const mockCreatedResponsiSnapshot = {
+  ...mockUpdateResponsiSnapshot,
+  id: "created-responsi",
+  title: "New Responsi",
+  summaryType: "Study Club",
+};
+
+const TestRoutes = () => {
+  const location = useLocation();
+  return (
+    <>
+      <output aria-label="Current URL">{location.pathname}{location.search}</output>
+      <Routes>
+        <Route path="/education" element={<EducationPage />} />
+        <Route path="/education/summaries/:id" element={<SummaryEditorPage />} />
+      </Routes>
+    </>
+  );
+};
+
+const renderPage = (url = "/education") =>
   render(
-    <MemoryRouter initialEntries={["/education"]}>
-      <EducationPage />
+    <MemoryRouter initialEntries={[url]}>
+      <TestRoutes />
     </MemoryRouter>,
   );
 
@@ -147,11 +181,13 @@ const selectEducationOption = async (label: string, option: string) => {
 
 describe("EducationPage", () => {
   it("restores a published version after confirmation", async () => {
-    mockResponsiVersions.mockReturnValue([{
-      id: "snapshot-1",
-      version: "v1",
-      createdAt: "2026-11-24T00:00:00Z",
-    }]);
+    mockResponsiVersions.mockReturnValue([
+      {
+        id: "snapshot-1",
+        version: "v1",
+        createdAt: "2026-11-24T00:00:00Z",
+      },
+    ]);
     mockRestoreResponsi.mockResolvedValue({
       id: "dynamic-programming",
       content: "# Restored",
@@ -159,18 +195,24 @@ describe("EducationPage", () => {
     });
     try {
       renderPage();
-      fireEvent.click(screen.getByText("Dynamic Programming"));
-      fireEvent.click(screen.getByRole("button", { name: "History" }));
+      fireEvent.click(
+        screen.getByRole("link", { name: "Dynamic Programming" }),
+      );
+      const editor = await screen.findByRole("textbox", { name: "Summary content" });
+      fireEvent.click(await screen.findByRole("button", { name: "History" }));
       fireEvent.click(screen.getByRole("button", { name: "Restore v1" }));
       expect(mockRestoreResponsi).not.toHaveBeenCalled();
       fireEvent.click(screen.getByRole("button", { name: "Restore v1" }));
-      await waitFor(() => {
-        expect(mockRestoreResponsi).toHaveBeenCalledWith({
-          id: "dynamic-programming",
-          versionId: "snapshot-1",
-        });
-        expect(screen.getByLabelText("Summary content")).toHaveValue("# Restored");
+      await waitFor(() =>
+        expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
+      );
+      expect(mockRestoreResponsi).toHaveBeenCalledWith({
+        id: "dynamic-programming",
+        versionId: "snapshot-1",
       });
+      const history = await screen.findByRole("dialog", { name: "Version history" });
+      fireEvent.click(within(history).getByRole("button", { name: "Close" }));
+      await waitFor(() => expect(editor).toHaveTextContent("Restored"));
     } finally {
       mockResponsiVersions.mockReturnValue([]);
     }
@@ -229,7 +271,7 @@ describe("EducationPage", () => {
   it("preselects the filtered type for new summaries and sends type on create and edit", async () => {
     renderPage();
     await selectEducationOption("Filter by summary type", "Study Club");
-    fireEvent.click(screen.getByRole("button", { name: "Create summary" }));
+    fireEvent.click(screen.getByRole("link", { name: "Create summary" }));
     expect(
       screen.getByRole("combobox", { name: "Summary type" }),
     ).toHaveTextContent("Study Club");
@@ -239,6 +281,7 @@ describe("EducationPage", () => {
         expect.objectContaining({ summaryType: "Study Club" }),
       ),
     );
+    expect(screen.getByLabelText("Current URL")).toHaveTextContent("/education/summaries/created-responsi");
     await selectEducationOption("Summary type", "Responsi");
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() =>
@@ -251,19 +294,19 @@ describe("EducationPage", () => {
     );
   });
 
-  it("opens the Responsi workspace from a row and returns to the table", () => {
+  it("opens the Responsi workspace from a row and returns to the table", async () => {
     renderPage();
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Dynamic Programming" }),
+      screen.getByRole("link", { name: "Dynamic Programming" }),
     );
 
     expect(
       screen.getByRole("heading", { name: "Document" }),
     ).toBeInTheDocument();
-    expect(
-      (screen.getByLabelText("Summary content") as HTMLTextAreaElement).value,
-    ).toContain("Dynamic Programming");
+    expect(await screen.findByRole("textbox", { name: "Summary content" }))
+      .toHaveTextContent("Dynamic Programming");
+    expect(screen.getByLabelText("Current URL")).toHaveTextContent("/education/summaries/dynamic-programming");
 
     fireEvent.click(
       screen.getByRole("button", { name: "Back to summaries list" }),
@@ -283,7 +326,7 @@ describe("EducationPage", () => {
     fireEvent.change(screen.getByLabelText("Search courses"), {
       target: { value: "Calculus" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Calculus/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Calculus" }));
 
     expect(
       screen.getByRole("heading", { name: "Calculus" }),
@@ -340,23 +383,27 @@ describe("EducationPage", () => {
     expect(screen.queryByText("Dynamic Programming")).not.toBeInTheDocument();
   });
 
-  it("opens a new draft with preselected course on create action", () => {
-    render(
-      <MemoryRouter
-        initialEntries={[
-          "/education?tab=responsi&course=Calculus&action=create",
-        ]}
-      >
-        <EducationPage />
-      </MemoryRouter>,
-    );
+  it("opens a new draft with preselected course on create action", async () => {
+    renderPage("/education?tab=responsi&course=Calculus&action=create");
 
     expect(
       screen.getByRole("heading", { name: "Document" }),
     ).toBeInTheDocument();
-    expect(
-      (screen.getByLabelText("Summary content") as HTMLTextAreaElement).value,
-    ).toContain("Calculus");
+    expect(await screen.findByRole("textbox", { name: "Summary content" }))
+      .toHaveTextContent("Calculus");
+  });
+
+  it("loads stored Markdown and metadata directly from the summary URL", async () => {
+    renderPage("/education/summaries/dynamic-programming");
+    expect(await screen.findByRole("textbox", { name: "Summary content" })).toHaveTextContent("Stored Markdown");
+    expect(screen.getByLabelText("Title")).toHaveValue("Dynamic Programming");
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+  });
+
+  it("does not open an editable fallback for a missing summary", () => {
+    renderPage("/education/summaries/missing");
+    expect(screen.getByRole("alert")).toHaveTextContent("Summary not found.");
+    expect(screen.queryByRole("button", { name: "Save draft" })).not.toBeInTheDocument();
   });
 
   it("calls create course mutation when submitting add course form", async () => {
@@ -386,7 +433,9 @@ describe("EducationPage", () => {
     renderPage();
 
     fireEvent.click(screen.getByRole("tab", { name: "Course Groups" }));
-    fireEvent.click(screen.getByRole("button", { name: "Edit course" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Edit Algorithm & Programming" }),
+    );
 
     fireEvent.change(screen.getByLabelText("Course name"), {
       target: { value: "Algorithm & Programming Advanced" },
@@ -406,14 +455,19 @@ describe("EducationPage", () => {
     renderPage();
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Dynamic Programming" }),
+      screen.getByRole("link", { name: "Dynamic Programming" }),
     );
+    const editor = await screen.findByRole("textbox", { name: "Summary content" });
+    fireEvent.paste(editor, { clipboardData: {
+      getData: (type: string) => type === "text/html" ? "<p><strong>Verified Markdown</strong></p>" : "",
+    } });
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
 
     expect(mockUpdateResponsi).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "dynamic-programming",
         title: "Dynamic Programming",
+        content: expect.stringContaining("**Verified Markdown**"),
       }),
     );
   });

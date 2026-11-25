@@ -2,7 +2,6 @@ import { useMemo, useState, type FormEvent } from "react";
 import {
   BookOpen,
   CalendarDays,
-  ChevronRight,
   CirclePlay,
   FileText,
   Pencil,
@@ -14,7 +13,6 @@ import { Link } from "react-router-dom";
 import {
   useCreateCourseGroup,
   useGetCourseGroups,
-  useGetResponsies,
   useUpdateCourseGroup,
 } from "@/api/education/queries";
 import { backendMessage, useNotification } from "@/components/notification";
@@ -29,8 +27,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
 import type { CourseGroup } from "@/types/education";
+import { EducationTable, EducationTableAction } from "./education-table";
 
 const DEFAULT_SYLLABUS_SUMMARIES: Record<string, string> = {
   "Algorithm & Programming":
@@ -75,25 +73,6 @@ const CourseGroupsTab = () => {
     isError,
     refetch,
   } = useGetCourseGroups();
-  const { data: responsiData } = useGetResponsies({ limit: 100 });
-  const responsiesList = responsiData?.data;
-
-  const responsiCountByCourse = useMemo(() => {
-    const map: Record<string, number> = {
-      "Algorithm & Programming": 2,
-      Calculus: 1,
-      "Database Systems": 1,
-      "Computer Architecture": 1,
-      "Operating Systems": 1,
-      "Computer Networks": 1,
-    };
-    if (responsiesList && responsiesList.length > 0) {
-      for (const r of responsiesList) {
-        map[r.course] = (map[r.course] || 0) + 1;
-      }
-    }
-    return map;
-  }, [responsiesList]);
 
   const createMutation = useCreateCourseGroup();
   const updateMutation = useUpdateCourseGroup();
@@ -109,9 +88,6 @@ const CourseGroupsTab = () => {
 
   const selectedCourse =
     courses.find((course) => course.id === selectedId) ?? courses[0];
-  const selectedResponsiCount = selectedCourse
-    ? (responsiCountByCourse[selectedCourse.name] ?? 0)
-    : 0;
   const courseSummary = selectedCourse
     ? selectedCourse.description ||
       DEFAULT_SYLLABUS_SUMMARIES[selectedCourse.name] ||
@@ -137,12 +113,11 @@ const CourseGroupsTab = () => {
     setSheetOpen(true);
   };
 
-  const openEditCourse = () => {
-    if (!selectedCourse) return;
-    setEditingCourse(selectedCourse);
-    setName(selectedCourse.name);
-    setCode(selectedCourse.code ?? "");
-    setDescription(selectedCourse.description ?? "");
+  const openEditCourse = (course: CourseGroup) => {
+    setEditingCourse(course);
+    setName(course.name);
+    setCode(course.code ?? "");
+    setDescription(course.description ?? "");
     setSheetOpen(true);
   };
 
@@ -192,13 +167,13 @@ const CourseGroupsTab = () => {
         </p>
       </div>
 
-      <div className="mt-4 grid min-h-0 flex-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="flex min-h-0 flex-col rounded-xl border border-border">
-          <div className="border-b border-border p-3">
+      <div className="mt-4 grid min-h-0 min-w-0 flex-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <div className="flex min-h-0 min-w-0 flex-col gap-4">
+          <div className="flex flex-wrap gap-2">
             <label className="sr-only" htmlFor="course-group-search">
               Search courses
             </label>
-            <div className="relative">
+            <div className="relative min-w-40 flex-1">
               <Search
                 aria-hidden="true"
                 className="absolute left-3 top-1/2 size-4 -translate-y-1/2 stroke-[1.75] text-muted-foreground"
@@ -213,7 +188,6 @@ const CourseGroupsTab = () => {
             </div>
             <Button
               variant="outline"
-              className="mt-2 w-full justify-start"
               onClick={openAddCourse}
             >
               <Plus />
@@ -221,80 +195,46 @@ const CourseGroupsTab = () => {
             </Button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
-            {isLoading ? (
-              <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                Loading courses...
-              </p>
-            ) : isError ? (
-              <div className="px-3 py-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Could not load courses.
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => refetch()}
-                >
-                  Retry
-                </Button>
-              </div>
-            ) : filteredCourses.length ? (
-              <ul className="space-y-0.5">
-                {filteredCourses.map((course) => {
-                  const isSelected = course.id === selectedCourse?.id;
-                  const count = responsiCountByCourse[course.name] ?? 0;
-
-                  return (
-                    <li key={course.id}>
-                      <button
-                        type="button"
-                        aria-current={isSelected ? "true" : undefined}
-                        onClick={() => setSelectedId(course.id)}
-                        className={cn(
-                          "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-                          isSelected
-                            ? "bg-semantic-info-background text-primary"
-                            : "hover:bg-muted/60",
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "flex size-8 shrink-0 items-center justify-center rounded-lg",
-                            isSelected
-                              ? "bg-card text-primary"
-                              : "bg-muted text-muted-foreground",
-                          )}
-                        >
-                          <BookOpen aria-hidden="true" className="size-4" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold">
-                            {course.name}
-                          </span>
-                          <span className="block truncate text-xs text-muted-foreground">
-                            {course.code || "No code"} · {count} summaries
-                          </span>
-                        </span>
-                        <ChevronRight
-                          aria-hidden="true"
-                          className="size-4 shrink-0 text-muted-foreground"
-                        />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                {courses.length
-                  ? "No courses match this search."
-                  : "No courses yet."}
-              </p>
-            )}
-          </div>
-        </aside>
+          <EducationTable
+            caption="Course groups"
+            columns={["Course", "Code", "Actions"]}
+            state={
+              isLoading ? (
+                <p role="status">Loading courses...</p>
+              ) : isError ? (
+                <>
+                  <p role="alert">Could not load courses.</p>
+                  <EducationTableAction onClick={() => void refetch()}>
+                    Retry
+                  </EducationTableAction>
+                </>
+              ) : !filteredCourses.length ? (
+                <p>{courses.length ? "No courses match this search." : "No courses yet. Add a course to get started."}</p>
+              ) : null
+            }
+          >
+            {!isError && filteredCourses.map((course) => (
+              <tr key={course.id} className={course.id === selectedCourse?.id ? "bg-muted/40" : undefined}>
+                <td className="min-w-36">
+                  <button
+                    type="button"
+                    className="min-h-11 break-words text-left font-semibold underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-ring"
+                    aria-current={course.id === selectedCourse?.id ? "true" : undefined}
+                    onClick={() => setSelectedId(course.id)}
+                  >
+                    {course.name}
+                  </button>
+                </td>
+                <td className="text-muted-foreground">{course.code || "No code"}</td>
+                <td>
+                  <EducationTableAction onClick={() => openEditCourse(course)} aria-label={`Edit ${course.name}`}>
+                    <Pencil aria-hidden="true" />
+                  </EducationTableAction>
+                </td>
+              </tr>
+            ))}
+          </EducationTable>
+        </div>
 
         <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border">
           {isLoading ? (
@@ -323,10 +263,6 @@ const CourseGroupsTab = () => {
                     Academic Year 2026/2027 · Binus Computer Science Syllabus
                   </p>
                 </div>
-                <Button variant="outline" size="sm" onClick={openEditCourse}>
-                  <Pencil />
-                  Edit course
-                </Button>
               </div>
 
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
@@ -388,7 +324,7 @@ const CourseGroupsTab = () => {
                           />
                         </div>
                         <p className="mt-3 text-2xl font-bold tracking-tight text-foreground">
-                          {selectedResponsiCount}
+                          {selectedCourse.counts?.summaries ?? "Unavailable"}
                         </p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                           Summaries available
@@ -423,7 +359,7 @@ const CourseGroupsTab = () => {
                           />
                         </div>
                         <p className="mt-3 text-2xl font-bold tracking-tight text-foreground">
-                          --
+                          {selectedCourse.counts?.schedules ?? "Unavailable"}
                         </p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                           Study Club and Responsi sessions
@@ -437,7 +373,7 @@ const CourseGroupsTab = () => {
                           asChild
                         >
                           <Link
-                            to={`/education?tab=schedules&course=${encodeURIComponent(selectedCourse.name)}`}
+                            to={`/education?tab=schedules&schedule=all&course=${encodeURIComponent(selectedCourse.name)}`}
                           >
                             View Schedules &rarr;
                           </Link>
@@ -458,7 +394,7 @@ const CourseGroupsTab = () => {
                           />
                         </div>
                         <p className="mt-3 text-2xl font-bold tracking-tight text-foreground">
-                          --
+                          {selectedCourse.counts?.videos ?? "Unavailable"}
                         </p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                           Recorded tutorials
@@ -471,7 +407,7 @@ const CourseGroupsTab = () => {
                           className="w-full justify-center text-xs font-semibold"
                           asChild
                         >
-                          <Link to="/education?tab=videos">
+                          <Link to={`/education?tab=videos&courseId=${encodeURIComponent(selectedCourse.id)}`}>
                             View Videos &rarr;
                           </Link>
                         </Button>

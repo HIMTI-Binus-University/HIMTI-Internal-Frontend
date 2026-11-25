@@ -29,6 +29,20 @@ import {
   type StudyClubPayload,
 } from "./study-clubs";
 
+const CAMPUSES = [
+  "Alam Sutera",
+  "Anggrek",
+  "Syahdan",
+  "Kijang",
+  "Bekasi",
+  "JWC",
+  "fX Sudirman",
+  "Bandung",
+  "Malang",
+  "Semarang",
+];
+const ROOM_SEPARATOR = " · ";
+
 interface Props {
   session: StudyClubSession | null;
   preview: boolean;
@@ -71,6 +85,26 @@ export default function StudyClubPanel({
       : courses;
   const startWib = session ? toWibInput(session.startsAt) : "";
   const endWib = session ? toWibInput(session.endsAt) : "";
+  const previousLocation = session?.location ?? "";
+  const previousCampus = CAMPUSES.find((campus) =>
+    previousLocation.startsWith(`${campus}${ROOM_SEPARATOR}`),
+  );
+  const previousRoom = previousCampus
+    ? previousLocation.slice(previousCampus.length + ROOM_SEPARATOR.length)
+    : "";
+  const hasLegacyLocation =
+    Boolean(previousLocation) && previousLocation !== "Online" && !previousCampus;
+  const [venue, setVenue] = useState<string | null>(
+    previousCampus ??
+      (hasLegacyLocation ? "legacy" : session ? "Online" : null),
+  );
+  const venueOptions = [
+    ...[...CAMPUSES, "Online"].map((label) => ({ value: label, label })),
+    ...(hasLegacyLocation
+      ? [{ value: "legacy", label: "Keep existing location" }]
+      : []),
+  ];
+  const onCampus = venue !== null && CAMPUSES.includes(venue);
 
   const validateLink = (input: HTMLInputElement) => {
     const message = studyClubLinkError(input.value);
@@ -122,8 +156,12 @@ export default function StudyClubPanel({
       return setError(
         "Capacity must be a positive whole number up to 2,147,483,647.",
       );
-    if (!text("location") && !text("meetingUrl"))
-      return setError("Add a location or an online meeting link.");
+    if (!venue) return setError("Select a campus or Online.");
+    const room = text("room");
+    if (onCampus && !room) return setError("Enter a room for the selected campus.");
+    const location = onCampus
+      ? `${venue}${ROOM_SEPARATOR}${room}`
+      : venue === "legacy" ? previousLocation : "Online";
     try {
       setSaving(true);
       await onSave({
@@ -133,7 +171,7 @@ export default function StudyClubPanel({
         description: text("description"),
         startsAt: startsAt.toISOString(),
         endsAt: endsAt.toISOString(),
-        location: text("location"),
+        location,
         meetingUrl: text("meetingUrl"),
         registrationUrl: text("registrationUrl"),
         capacity,
@@ -380,19 +418,45 @@ export default function StudyClubPanel({
                 </legend>
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="session-location">Location</Label>
-                    <Input
-                      id="session-location"
-                      name="location"
-                      defaultValue={session?.location}
-                      maxLength={255}
-                      className="h-11"
-                      placeholder="Room, campus, or venue"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Add a location or a meeting link for online sessions.
-                    </p>
+                    <Label htmlFor="session-location">Campus or online</Label>
+                    <Select
+                      value={venue}
+                      onValueChange={setVenue}
+                      name="venue"
+                      items={venueOptions}
+                      required
+                    >
+                      <SelectTrigger id="session-location" className="h-11">
+                        <SelectValue placeholder="Select a campus or Online" />
+                      </SelectTrigger>
+                      <SelectContent portalContainer={panelContainer}>
+                        {venueOptions.map(({ value, label }) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+                  {onCampus && (
+                    <div className="space-y-2">
+                      <Label htmlFor="session-room">Room</Label>
+                      <Input
+                        id="session-room"
+                        name="room"
+                        defaultValue={previousRoom}
+                        maxLength={255 - (venue?.length ?? 0) - ROOM_SEPARATOR.length}
+                        className="h-11"
+                        placeholder="e.g. A1305"
+                        required
+                      />
+                    </div>
+                  )}
+                  {venue === "legacy" && (
+                    <p className="break-words text-sm text-muted-foreground">
+                      Current location: {previousLocation}
+                    </p>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="session-meeting">
                       Meeting URL (optional)

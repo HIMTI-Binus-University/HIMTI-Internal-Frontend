@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
-  EllipsisVertical,
   Eye,
   FileText,
   Pencil,
@@ -10,7 +9,7 @@ import {
   RotateCcw,
   Search,
 } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
 import { useGetCourseGroups, useGetResponsies } from "@/api/education/queries";
 import { RESPONSI_STATUS_META } from "@/components/education/responsi-status";
@@ -31,7 +30,7 @@ import type {
   ResponsiSummary,
   SummaryType,
 } from "@/types/education";
-import ResponsiWorkspace from "./responsi-workspace";
+import { EducationTable, EducationTableAction } from "./education-table";
 
 const ALL = "all";
 const PAGE_SIZE = 6;
@@ -227,6 +226,7 @@ const Pagination = ({
 
 const ResponsiTab = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { data: dbCourses = [] } = useGetCourseGroups();
 
   const urlCourse = searchParams.get("course");
@@ -279,36 +279,6 @@ const ResponsiTab = () => {
   }, [dbCourses]);
 
   const periodOptions = DEFAULT_PERIODS;
-
-  const [selectedRow, setSelectedRow] = useState<ResponsiSummary | null>(() => {
-    if (urlId) {
-      const match = FALLBACK_RESPONSI_ROWS.find((row) => row.id === urlId);
-      if (match) return match;
-      return {
-        id: urlId,
-        title: "Untitled summary",
-        course: urlCourse || DEFAULT_COURSES[0],
-        academicPeriod: periodOptions[0],
-        examType: "Mid Exam",
-        pic: "Unassigned",
-        status: "DRAFT",
-        lastUpdated: new Date().toISOString(),
-      };
-    }
-    if (urlAction === "create") {
-      return {
-        id: `draft-${Date.now()}`,
-        title: "Untitled summary",
-        course: urlCourse || DEFAULT_COURSES[0],
-        academicPeriod: periodOptions[0],
-        examType: "Mid Exam",
-        pic: "Unassigned",
-        status: "DRAFT",
-        lastUpdated: new Date().toISOString(),
-      };
-    }
-    return null;
-  });
 
   const courseItems = toSelectItems(courseOptions, "All Courses");
   const summaryTypeItems = toSelectItems(
@@ -387,46 +357,19 @@ const ResponsiTab = () => {
     }
   };
 
-  const closeWorkspace = () => {
-    setSelectedRow(null);
-    if (searchParams.has("id") || searchParams.has("action")) {
-      const next = new URLSearchParams(searchParams);
-      next.delete("id");
-      next.delete("action");
-      setSearchParams(next, { replace: true });
-    }
+  const editorUrl = (id: string, preview = false) => {
+    const params = new URLSearchParams();
+    if (courseFilter !== ALL) params.set("course", courseFilter);
+    if (id === "new" && summaryTypeFilter !== ALL) params.set("type", summaryTypeFilter);
+    if (preview) params.set("preview", "1");
+    return `/education/summaries/${encodeURIComponent(id)}${params.size ? `?${params}` : ""}`;
   };
 
-  const createDraft = () => {
-    setSelectedRow({
-      id: `draft-${Date.now()}`,
-      title: "Untitled summary",
-      summaryType: summaryTypeFilter === ALL ? "Responsi" : summaryTypeFilter,
-      course: courseFilter !== ALL ? courseFilter : (courseOptions[0] ?? ""),
-      academicPeriod: periodOptions[0] ?? "2026/2027",
-      examType: "Mid Exam",
-      pic: "Unassigned",
-      status: "DRAFT",
-      lastUpdated: new Date().toISOString(),
-    });
-  };
-
-  if (selectedRow) {
-    return (
-      <ResponsiWorkspace
-        summary={selectedRow}
-        courseOptions={courseOptions}
-        periodOptions={periodOptions}
-        onClose={closeWorkspace}
-        onSaved={(updated) => {
-          setSelectedRow(updated);
-        }}
-      />
-    );
-  }
+  if (urlId || urlAction === "create")
+    return <Navigate to={editorUrl(urlId || "new")} replace />;
 
   return (
-    <Container className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+    <Container className="flex min-h-0 min-w-0 flex-1 flex-col gap-y-4 p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-ds-h4 font-semibold tracking-tight text-foreground">
@@ -436,13 +379,12 @@ const ResponsiTab = () => {
             Create, edit, and manage Responsi and Study Club summaries.
           </p>
         </div>
-        <Button size="sm" className="sm:shrink-0" onClick={createDraft}>
-          <Plus />
-          Create summary
+        <Button size="sm" className="sm:shrink-0" asChild>
+          <Link to={editorUrl("new")}><Plus /> Create summary</Link>
         </Button>
       </div>
 
-      <div className="mt-4 flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
+      <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
         <div className="relative min-w-[220px] flex-1">
           <label className="sr-only" htmlFor="responsi-search">
             Search summaries
@@ -585,165 +527,92 @@ const ResponsiTab = () => {
         </IconButton>
       </div>
 
-      <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border">
-        <div className="min-h-0 flex-1 overflow-auto">
-          <table className="w-full min-w-[980px] text-left">
-            <caption className="sr-only">
-              Responsi and Study Club summaries with course, academic period,
-              exam type, PIC, status, last updated, and actions
-            </caption>
-            <thead className="sticky top-0 z-10 bg-muted/50">
-              <tr className="text-xs text-muted-foreground">
-                <th scope="col" className="px-4 py-2.5 font-semibold">
-                  Title
-                </th>
-                <th scope="col" className="px-4 py-2.5 font-semibold">
-                  Course
-                </th>
-                <th scope="col" className="px-4 py-2.5 font-semibold">
-                  Academic Period
-                </th>
-                <th scope="col" className="px-4 py-2.5 font-semibold">
-                  Exam Type
-                </th>
-                <th scope="col" className="px-4 py-2.5 font-semibold">
-                  PIC
-                </th>
-                <th scope="col" className="px-4 py-2.5 font-semibold">
-                  Status
-                </th>
-                <th scope="col" className="px-4 py-2.5 font-semibold">
-                  Last Updated
-                </th>
-                <th scope="col" className="px-4 py-2.5 font-semibold">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {isLoading ? (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-8 text-center text-sm text-muted-foreground"
-                  >
-                    Loading summaries...
-                  </td>
-                </tr>
-              ) : isError ? (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-8 text-center text-sm text-muted-foreground"
-                  >
-                    Could not load summaries.{" "}
-                    <button
-                      type="button"
-                      className="underline"
-                      onClick={() => refetch()}
-                    >
-                      Retry
-                    </button>
-                  </td>
-                </tr>
-              ) : visibleRows.length ? (
-                visibleRows.map((row) => {
+      <EducationTable
+        caption="Responsi and Study Club summaries"
+        columns={["Title", "Course", "Academic Period", "Exam Type", "PIC", "Status", "Last Updated", "Actions"]}
+        state={
+          isLoading ? (
+            <p role="status">Loading summaries...</p>
+          ) : isError ? (
+            <>
+              <p role="alert">Could not load summaries.</p>
+              <EducationTableAction onClick={() => void refetch()}>Retry</EducationTableAction>
+            </>
+          ) : !visibleRows.length ? (
+            <p>No summaries match these filters.</p>
+          ) : null
+        }
+      >
+              {!isLoading && !isError && visibleRows.map((row) => {
                   const updatedAt = formatLastUpdated(row.lastUpdated);
 
                   return (
                     <tr
                       key={row.id}
-                      className="cursor-pointer transition-colors hover:bg-muted/30"
-                      onClick={() => setSelectedRow(row)}
+                       className="cursor-pointer"
+                       onClick={() => navigate(editorUrl(row.id))}
                     >
-                      <td className="px-4 py-3">
+                       <td className="min-w-48">
                         <div className="flex items-center gap-3">
                           <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-semantic-info-background text-primary">
                             <FileText aria-hidden="true" className="size-4" />
                           </span>
-                          <button
-                            type="button"
-                            className="text-left text-sm font-semibold text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setSelectedRow(row);
-                            }}
+                           <Link
+                             to={editorUrl(row.id)}
+                             className="min-h-11 break-words text-left text-sm font-semibold text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                             onClick={(event) => event.stopPropagation()}
                           >
                             {row.title}
-                          </button>
+                           </Link>
                         </div>
                       </td>
-                      <td className="max-w-[170px] px-4 py-3 text-sm text-muted-foreground">
+                       <td className="min-w-32 text-muted-foreground">
                         {row.course}
                       </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                       <td className="text-muted-foreground">
                         {row.academicPeriod}
                       </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                       <td className="text-muted-foreground">
                         {row.examType}
                       </td>
-                      <td className="max-w-[170px] px-4 py-3 text-sm leading-5 text-muted-foreground">
+                       <td className="min-w-32 leading-5 text-muted-foreground">
                         {row.pic}
                       </td>
-                      <td className="px-4 py-3">
+                       <td>
                         <ResponsiStatusBadge status={row.status} />
                       </td>
-                      <td className="px-4 py-3 text-xs leading-5 text-muted-foreground">
+                       <td className="whitespace-nowrap text-xs leading-5 text-muted-foreground">
                         <span className="block">{updatedAt.date}</span>
                         <span className="block">{updatedAt.time}</span>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <IconButton
-                            label={`Preview ${row.title}`}
-                            tone="primary"
-                            size="sm"
+                       <td>
+                         <div className="flex items-center gap-2">
+                           <EducationTableAction
+                             aria-label={`Preview ${row.title}`}
                             onClick={(event) => {
                               event.stopPropagation();
-                              setSelectedRow(row);
+                               navigate(editorUrl(row.id, true));
                             }}
                           >
-                            <Eye />
-                          </IconButton>
-                          <IconButton
-                            label={`Edit ${row.title}`}
-                            tone="primary"
-                            size="sm"
+                             <Eye aria-hidden="true" />
+                           </EducationTableAction>
+                           <EducationTableAction
+                             aria-label={`Edit ${row.title}`}
                             onClick={(event) => {
                               event.stopPropagation();
-                              setSelectedRow(row);
+                               navigate(editorUrl(row.id));
                             }}
                           >
-                            <Pencil />
-                          </IconButton>
-                          <IconButton
-                            label={`More actions for ${row.title}`}
-                            size="sm"
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            <EllipsisVertical />
-                          </IconButton>
+                             <Pencil aria-hidden="true" />
+                           </EducationTableAction>
                         </div>
                       </td>
                     </tr>
                   );
-                })
-              ) : (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-8 text-center text-sm text-muted-foreground"
-                  >
-                    No summaries match these filters.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                })}
+      </EducationTable>
 
-      <div className="mt-4 flex flex-none flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-none flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           Showing {firstRow}-{lastRow} of {totalResults} results
         </p>

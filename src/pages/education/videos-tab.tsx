@@ -1,5 +1,6 @@
-import { CirclePlay, Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { ChevronDown, CirclePlay, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState, type ComponentPropsWithoutRef, type FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import {
   useCreateEducationVideo,
@@ -24,10 +25,23 @@ import {
 } from "@/components/ui/sheet";
 import type { EducationVideo, EducationVideoStatus } from "@/types/education";
 import { getYouTubeVideoId } from "./youtube";
+import { EducationTable, EducationTableAction } from "./education-table";
 
 const PAGE_SIZE = 10;
-const selectClass =
-  "h-10 w-full rounded-lg border border-input bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
+function VideoSelect(props: ComponentPropsWithoutRef<"select">) {
+  return (
+    <div className="relative">
+      <select
+        {...props}
+        className="peer h-10 w-full appearance-none rounded-lg border border-input bg-card pl-3 pr-10 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 forced-colors:appearance-auto"
+      />
+      <ChevronDown
+        aria-hidden="true"
+        className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-foreground peer-disabled:opacity-50 forced-colors:hidden"
+      />
+    </div>
+  );
+}
 
 const sessionDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -50,7 +64,8 @@ const VideosTab = () => {
   const editorTrigger = useRef<HTMLElement | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [courseId, setCourseId] = useState("");
+  const [params, setParams] = useSearchParams();
+  const courseId = params.get("courseId") ?? "";
   const [status, setStatus] = useState<"" | EducationVideoStatus>("");
   const [page, setPage] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -133,7 +148,7 @@ const VideosTab = () => {
   };
 
   return (
-    <Container className="flex min-h-0 flex-1 flex-col">
+    <Container className="flex min-h-0 min-w-0 flex-1 flex-col gap-y-4 p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Videos</h2>
@@ -144,7 +159,7 @@ const VideosTab = () => {
         <Button type="button" onClick={(event) => openEditor(null, event.currentTarget)}><Plus aria-hidden="true" /> Add video</Button>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(10rem,14rem)_minmax(9rem,12rem)]">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(10rem,14rem)_minmax(9rem,12rem)]">
         <div className="relative">
           <Label htmlFor="video-search" className="sr-only">Search videos</Label>
           <Search aria-hidden="true" className="absolute left-3 top-3 size-4 text-muted-foreground" />
@@ -153,60 +168,66 @@ const VideosTab = () => {
         </div>
         <div>
           <Label htmlFor="video-course-filter" className="sr-only">Filter videos by course</Label>
-          <select id="video-course-filter" className={selectClass} value={courseId}
-            onChange={(event) => { setCourseId(event.target.value); setPage(1); }}>
+          <VideoSelect id="video-course-filter" value={courseId}
+            onChange={(event) => {
+              const next = new URLSearchParams(params);
+              if (event.target.value) next.set("courseId", event.target.value);
+              else next.delete("courseId");
+              setParams(next, { replace: true });
+              setPage(1);
+            }}>
             <option value="">All courses</option>
+            {courseId && !courses.data?.some((course) => course.id === courseId) && (
+              <option value={courseId}>{courses.isLoading ? "Loading selected course..." : "Selected course unavailable"}</option>
+            )}
             {(courses.data ?? []).map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}
-          </select>
+          </VideoSelect>
           {courses.isError && <p className="mt-1 text-xs text-destructive">Courses unavailable. <button type="button" className="underline" onClick={() => void courses.refetch()}>Retry</button></p>}
         </div>
         <div>
           <Label htmlFor="video-status-filter" className="sr-only">Filter videos by status</Label>
-          <select id="video-status-filter" className={selectClass} value={status}
+          <VideoSelect id="video-status-filter" value={status}
             onChange={(event) => { setStatus(event.target.value as "" | EducationVideoStatus); setPage(1); }}>
             <option value="">All statuses</option><option value="DRAFT">Draft</option><option value="PUBLISHED">Published</option>
-          </select>
+          </VideoSelect>
         </div>
       </div>
 
-      {!!videos.data?.data.length && <p className="mt-4 text-xs text-muted-foreground sm:hidden">Swipe the table sideways to see all actions.</p>}
-      <div className="mt-5 min-h-0 overflow-auto rounded-xl border border-border">
-        <table className="w-full min-w-[760px] text-left text-sm">
-          <caption className="sr-only">Education video recordings</caption>
-          <thead className="bg-muted/50 text-xs text-muted-foreground"><tr>
-            <th scope="col" className="px-4 py-3 font-medium">Video</th>
-            <th scope="col" className="px-4 py-3 font-medium">Session</th>
-            <th scope="col" className="px-4 py-3 font-medium">Course</th>
-            <th scope="col" className="px-4 py-3 font-medium">Status</th>
-            <th scope="col" className="px-4 py-3 font-medium">Actions</th>
-          </tr></thead>
-          <tbody className="divide-y divide-border">
-            {videos.isLoading && <tr><td colSpan={5} className="py-10 text-muted-foreground" role="status"><div className="sticky left-0 w-[calc(100vw-5rem)] max-w-full px-4 text-center">Loading videos...</div></td></tr>}
-            {videos.isError && <tr><td colSpan={5} className="py-10 text-destructive" role="alert"><div className="sticky left-0 w-[calc(100vw-5rem)] max-w-full px-4 text-center">Could not load videos. <button type="button" className="underline" onClick={() => void videos.refetch()}>Retry</button></div></td></tr>}
-            {!videos.isLoading && !videos.isError && videos.data?.data.length === 0 && <tr><td colSpan={5} className="py-10 text-muted-foreground"><div className="sticky left-0 w-[calc(100vw-5rem)] max-w-full px-4 text-center">No videos found. Add a video or adjust the filters.</div></td></tr>}
+      <EducationTable
+        caption="Education video recordings"
+        columns={["Video", "Session", "Course", "Status", "Actions"]}
+        state={videos.isLoading ? (
+          <p role="status">Loading videos...</p>
+        ) : videos.isError ? (
+          <>
+            <p role="alert">Could not load videos.</p>
+            <EducationTableAction onClick={() => void videos.refetch()}>Retry</EducationTableAction>
+          </>
+        ) : !videos.data?.data.length ? (
+          <p>No videos found. Add a video or adjust the filters.</p>
+        ) : null}
+      >
             {!videos.isError && videos.data?.data.map((video) => {
               const safeId = /^[A-Za-z0-9_-]{11}$/.test(video.youtubeVideoId) ? video.youtubeVideoId : null;
               return <tr key={video.id}>
-                <td className="px-4 py-3"><div className="flex items-center gap-3">
+                <td className="min-w-56"><div className="flex items-center gap-3">
                   {safeId ? <img src={`https://i.ytimg.com/vi/${safeId}/default.jpg`} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-12 w-20 shrink-0 rounded-md bg-muted object-cover" /> : <span className="flex h-12 w-20 shrink-0 items-center justify-center rounded-md bg-muted"><CirclePlay aria-hidden="true" className="size-5" /></span>}
                   <span className="font-semibold text-foreground">{video.title}</span>
                 </div></td>
-                <td className="px-4 py-3"><span className="block">{video.session.title}</span><span className="block text-xs text-muted-foreground">{video.session.type === "STUDY_CLUB" ? "Study Club" : "Responsi"}</span><span className="block text-xs text-muted-foreground">{formatSessionDate(video.session.startsAt)}</span></td>
-                <td className="px-4 py-3 text-muted-foreground">{video.session.course.name}</td>
-                <td className="px-4 py-3"><span className={video.status === "PUBLISHED" ? "rounded-md bg-semantic-success-background px-2 py-1 text-xs font-medium text-semantic-success" : "rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"}>{video.status === "PUBLISHED" ? "Published" : "Draft"}</span></td>
-                <td className="px-4 py-3"><div className="flex flex-wrap gap-2">
-                  <Button type="button" size="sm" variant="outline" onClick={(event) => openEditor(video, event.currentTarget)} aria-label={`Edit ${video.title}`}><Pencil aria-hidden="true" /> Edit</Button>
-                  <Button type="button" size="sm" variant="outline" disabled={updateVideo.isPending} onClick={() => void changeStatus(video)} aria-label={`${video.status === "DRAFT" ? "Publish" : "Unpublish"} ${video.title}`}>{video.status === "DRAFT" ? "Publish" : "Unpublish"}</Button>
+                <td className="min-w-40"><span className="block">{video.session.title}</span><span className="block text-xs text-muted-foreground">{video.session.type === "STUDY_CLUB" ? "Study Club" : "Responsi"}</span><span className="block text-xs text-muted-foreground">{formatSessionDate(video.session.startsAt)}</span></td>
+                <td className="min-w-32 text-muted-foreground">{video.session.course.name}</td>
+                <td><span className={video.status === "PUBLISHED" ? "rounded-md bg-semantic-success-background px-2 py-1 text-xs font-medium text-semantic-success" : "rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"}>{video.status === "PUBLISHED" ? "Published" : "Draft"}</span></td>
+                <td><div className="flex gap-2">
+                  <EducationTableAction onClick={(event) => openEditor(video, event.currentTarget)} aria-label={`Edit ${video.title}`}><Pencil aria-hidden="true" /></EducationTableAction>
+                  <EducationTableAction disabled={updateVideo.isPending} onClick={() => void changeStatus(video)} aria-label={`${video.status === "DRAFT" ? "Publish" : "Unpublish"} ${video.title}`}>{video.status === "DRAFT" ? "Publish" : "Unpublish"}</EducationTableAction>
                   <ConfirmAction label="Delete video" description={`Delete “${video.title}”? This removes the video record, not the YouTube upload.`} onConfirm={() => deleteVideo.mutateAsync(video.id)} successMessage="Video deleted.">
-                    <Button type="button" size="icon" variant="ghost" aria-label={`Delete ${video.title}`}><Trash2 aria-hidden="true" /></Button>
+                    <EducationTableAction aria-label={`Delete ${video.title}`}><Trash2 aria-hidden="true" /></EducationTableAction>
                   </ConfirmAction>
                 </div></td>
               </tr>;
             })}
-          </tbody>
-        </table>
-      </div>
-      {!videos.isLoading && !videos.isError && total > 0 && <nav aria-label="Video pagination" className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+      </EducationTable>
+      {!videos.isLoading && !videos.isError && total > 0 && <nav aria-label="Video pagination" className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
         <span>{total} {total === 1 ? "video" : "videos"} · Page {page} of {totalPages}</span>
         <div className="flex gap-2"><Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>Previous</Button><Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((value) => value + 1)}>Next</Button></div>
       </nav>}
@@ -222,10 +243,10 @@ const VideosTab = () => {
           <form onSubmit={(event) => void save(event)} className="mt-6 space-y-5">
             <div className="space-y-2"><Label htmlFor="video-title">Title</Label><Input id="video-title" value={title} maxLength={255} onChange={(event) => setTitle(event.target.value)} required /></div>
             <div className="space-y-2"><Label htmlFor="video-session">Session</Label>
-              <select id="video-session" className={selectClass} value={sessionId} onChange={(event) => setSessionId(event.target.value)} required disabled={sessions.isLoading || sessions.isError}>
+              <VideoSelect id="video-session" value={sessionId} onChange={(event) => setSessionId(event.target.value)} required disabled={sessions.isLoading || sessions.isError}>
                 <option value="">Select a session</option>
                 {(sessions.data ?? []).map((session) => <option key={session.id} value={session.id}>{session.title} — {session.type === "STUDY_CLUB" ? "Study Club" : "Responsi"} — {session.course.name} — {formatSessionDate(session.startsAt)}</option>)}
-              </select>
+              </VideoSelect>
               {sessions.isLoading && <p role="status" className="text-sm text-muted-foreground">Loading sessions...</p>}
               {sessions.isError && <p role="alert" className="text-sm text-destructive">Could not load sessions. <button type="button" className="underline" onClick={() => void sessions.refetch()}>Retry</button></p>}
               {!sessions.isLoading && !sessions.isError && sessions.data?.length === 0 && <p className="text-sm text-muted-foreground">No Education sessions are available. Create a session first, then add its recording.</p>}
