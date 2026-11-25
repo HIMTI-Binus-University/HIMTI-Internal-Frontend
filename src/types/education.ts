@@ -73,7 +73,9 @@ export interface UpdateCourseGroupPayload {
 }
 
 export interface CourseGroupListResponse {
-  data: CourseGroup[];
+  data: (CourseGroup & {
+    counts: { summaries: number; schedules: number; videos: number };
+  })[];
 }
 
 export interface ResponsiSummary {

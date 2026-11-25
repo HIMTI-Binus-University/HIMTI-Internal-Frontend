@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import StudyClubPanel from "./study-club-panel";
+import { EducationTable, EducationTableAction } from "./education-table";
 import {
   formatSessionDate,
   formatSessionTime,
@@ -51,7 +52,9 @@ export default function StudyClubsTab() {
   } = useGetCourseGroups();
   const [search, setSearch] = useState("");
   const courseFilter = params.get("course") ?? "all";
-  const [period, setPeriod] = useState<"upcoming" | "past" | "all">("upcoming");
+  const [period, setPeriod] = useState<"upcoming" | "past" | "all">(
+    params.get("schedule") === "all" ? "all" : "upcoming",
+  );
   const [type, setType] = useState<"all" | StudyClubSession["type"]>("all");
   const [page, setPage] = useState(1);
   const [now, setNow] = useState(Date.now);
@@ -123,6 +126,7 @@ export default function StudyClubsTab() {
     setPage(1);
     const next = new URLSearchParams(params);
     next.delete("course");
+    next.delete("schedule");
     setParams(next, { replace: true });
   };
   const closePanel = () => {
@@ -143,7 +147,7 @@ export default function StudyClubsTab() {
   const isError = coursesError || sessionsError;
 
   return (
-    <Container className="flex min-h-0 min-w-0 flex-1 flex-col p-4 sm:p-5">
+    <Container className="flex min-h-0 min-w-0 flex-1 flex-col gap-y-4 p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-ds-h4 font-semibold tracking-tight text-foreground">
@@ -177,7 +181,7 @@ export default function StudyClubsTab() {
       >
         {feedback}
       </p>
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(180px,1fr)_minmax(180px,252px)_176px_200px_40px]">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(180px,1fr)_minmax(180px,252px)_176px_200px_40px]">
         <div className="relative sm:col-span-2 xl:col-span-1">
           <label className="sr-only" htmlFor="session-search">
             Search sessions
@@ -274,16 +278,13 @@ export default function StudyClubsTab() {
           <RotateCcw aria-hidden="true" />
         </IconButton>
       </div>
-      <div className="mt-4 min-h-[300px] flex-1 overflow-y-auto rounded-xl border border-border">
-        {loading ? (
-          <p
-            role="status"
-            className="p-10 text-center text-sm text-muted-foreground"
-          >
-            Loading courses and sessions...
-          </p>
+      <EducationTable
+        caption="Study Club and Responsi sessions. All schedule times are in WIB."
+        columns={["Session", "Course", "Schedule (WIB)", "Location", "Status", "Actions"]}
+        state={loading ? (
+          <p role="status">Loading courses and sessions...</p>
         ) : isError ? (
-          <div role="alert" className="mx-auto max-w-lg p-8 text-center">
+          <div role="alert" className="mx-auto max-w-lg">
             <p className="text-sm text-destructive">
               Could not load courses or sessions. Check the connection and try
               again.
@@ -300,7 +301,7 @@ export default function StudyClubsTab() {
             </Button>
           </div>
         ) : !visible.length ? (
-          <div className="flex min-h-[300px] flex-col items-center justify-center px-5 py-10 text-center">
+          <div className="flex flex-col items-center">
             <CalendarDays
               aria-hidden="true"
               className="mb-4 size-9 text-primary"
@@ -327,40 +328,13 @@ export default function StudyClubsTab() {
               </Button>
             )}
           </div>
-        ) : (
-          <table className="block w-full text-left lg:table">
-            <caption className="sr-only">
-              Study Club and Responsi sessions. All schedule times are in WIB.
-            </caption>
-            <thead className="hidden bg-muted/50 lg:table-header-group">
-              <tr className="text-xs text-muted-foreground">
-                {[
-                  "Session",
-                  "Course",
-                  "Schedule (WIB)",
-                  "Location",
-                  "Status",
-                  "Actions",
-                ].map((heading) => (
-                  <th
-                    key={heading}
-                    scope="col"
-                    className="px-4 py-3 font-semibold last:w-32"
-                  >
-                    {heading}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="block divide-y divide-border lg:table-row-group">
-              {visible.map((session) => {
+        ) : null}
+      >
+              {!loading && !isError && visible.map((session) => {
                 const status = sessionStatus(session, now);
                 return (
-                  <tr
-                    key={session.id}
-                    className="grid grid-cols-2 gap-x-4 gap-y-5 p-5 transition-colors hover:bg-muted/30 lg:table-row lg:p-0"
-                  >
-                    <td className="col-span-2 min-w-0 sm:col-span-1 lg:max-w-[260px] lg:px-4 lg:py-3">
+                  <tr key={session.id}>
+                    <td className="min-w-48">
                       <div className="flex items-center gap-3">
                         <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-semantic-info-background text-primary">
                           <CalendarDays aria-hidden="true" className="size-4" />
@@ -379,13 +353,10 @@ export default function StudyClubsTab() {
                         </div>
                       </div>
                     </td>
-                    <td className="col-span-2 min-w-0 text-sm text-muted-foreground sm:col-span-1 lg:max-w-[180px] lg:px-4 lg:py-3">
-                      <span className="mb-1 block text-xs font-semibold lg:hidden">
-                        Course
-                      </span>
+                    <td className="min-w-32 text-muted-foreground">
                       <span className="break-words">{session.course}</span>
                     </td>
-                    <td className="text-sm tabular-nums lg:px-4 lg:py-3">
+                    <td className="whitespace-nowrap tabular-nums">
                       <span className="block">
                         {formatSessionDate(session.startsAt)}
                       </span>
@@ -400,7 +371,7 @@ export default function StudyClubsTab() {
                         </span>
                       )}
                     </td>
-                    <td className="min-w-0 text-sm text-muted-foreground lg:max-w-[180px] lg:px-4 lg:py-3">
+                    <td className="min-w-32 text-muted-foreground">
                       <span className="flex items-start gap-1.5">
                         <MapPin
                           aria-hidden="true"
@@ -416,43 +387,34 @@ export default function StudyClubsTab() {
                         </span>
                       )}
                     </td>
-                    <td className="self-center lg:px-4 lg:py-3">
+                    <td>
                       <span
                         className={`inline-flex rounded-md px-2 py-1 text-xs font-medium ${status === "Past" ? "bg-muted text-muted-foreground" : "bg-semantic-info-background text-primary"}`}
                       >
                         {status}
                       </span>
                     </td>
-                    <td className="lg:px-4 lg:py-3">
+                    <td>
                       <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-11 text-primary"
+                        <EducationTableAction
                           aria-label={`Preview ${session.title}`}
                           onClick={() => setPanel({ session, preview: true })}
                         >
                           <Eye aria-hidden="true" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-11 text-primary"
+                        </EducationTableAction>
+                        <EducationTableAction
                           aria-label={`Edit ${session.title}`}
                           onClick={() => setPanel({ session, preview: false })}
                         >
                           <Pencil aria-hidden="true" />
-                        </Button>
+                        </EducationTableAction>
                       </div>
                     </td>
                   </tr>
                 );
               })}
-            </tbody>
-          </table>
-        )}
-      </div>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+      </EducationTable>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
             Showing {total ? (currentPage - 1) * PAGE_SIZE + 1 : 0}-

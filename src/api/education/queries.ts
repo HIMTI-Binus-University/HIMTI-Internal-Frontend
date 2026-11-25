@@ -33,6 +33,12 @@ export const educationKeys = {
     ["education", "responsies", id, "versions"] as const,
 };
 
+const invalidateVideoCounts = (client: ReturnType<typeof useQueryClient>) =>
+  Promise.all([
+    client.invalidateQueries({ queryKey: educationKeys.videos }),
+    client.invalidateQueries({ queryKey: educationKeys.courseGroups }),
+  ]);
+
 export const useGetEducationSessions = (enabled = true) =>
   useQuery({
     queryKey: educationKeys.sessions,
@@ -84,7 +90,7 @@ export const useCreateEducationVideo = () => {
       apiClient
         .post<{ data: EducationVideo }>(Api.educationVideos, payload)
         .then((response) => response.data.data),
-    onSuccess: () => client.invalidateQueries({ queryKey: educationKeys.videos }),
+    onSuccess: () => invalidateVideoCounts(client),
   });
 };
 
@@ -98,7 +104,7 @@ export const useUpdateEducationVideo = () => {
       apiClient
         .patch<{ data: EducationVideo }>(`${Api.educationVideos}/${encodeURIComponent(id)}`, payload)
         .then((response) => response.data.data),
-    onSuccess: () => client.invalidateQueries({ queryKey: educationKeys.videos }),
+    onSuccess: () => invalidateVideoCounts(client),
   });
 };
 
@@ -107,7 +113,7 @@ export const useDeleteEducationVideo = () => {
   return useMutation({
     mutationFn: (id: string) =>
       apiClient.delete(`${Api.educationVideos}/${encodeURIComponent(id)}`),
-    onSuccess: () => client.invalidateQueries({ queryKey: educationKeys.videos }),
+    onSuccess: () => invalidateVideoCounts(client),
   });
 };
 
@@ -194,6 +200,7 @@ export const useCreateResponsi = () => {
         .then((response) => response.data.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: educationKeys.responsies });
+      queryClient.invalidateQueries({ queryKey: educationKeys.courseGroups });
     },
   });
 };
@@ -211,6 +218,7 @@ export const useUpdateResponsi = () => {
         .then((response) => response.data.data),
     onSuccess: (data: ResponsiDetail) => {
       queryClient.invalidateQueries({ queryKey: educationKeys.responsies });
+      queryClient.invalidateQueries({ queryKey: educationKeys.courseGroups });
       if (data?.id) {
         queryClient.invalidateQueries({
           queryKey: educationKeys.responsi(data.id),
@@ -233,6 +241,7 @@ export const useDeleteResponsi = () => {
         .then((response) => response.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: educationKeys.responsies });
+      queryClient.invalidateQueries({ queryKey: educationKeys.courseGroups });
     },
   });
 };
