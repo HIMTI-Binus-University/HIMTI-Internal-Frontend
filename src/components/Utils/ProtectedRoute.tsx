@@ -9,6 +9,7 @@ import { AppLoading } from "@/components/app-motion";
 interface ProtectedRouteProps {
   children: ReactNode;
   requiredPermission?: HimtiPermission;
+  alternatePermissions?: readonly HimtiPermission[];
   allowedRoles?: string[];
 }
 
@@ -17,12 +18,19 @@ const noAllowedRoles: string[] = [];
 export const ProtectedRoute = ({
   children,
   requiredPermission,
+  alternatePermissions,
   allowedRoles = noAllowedRoles,
 }: ProtectedRouteProps) => {
   const { data: session, isPending: isSessionPending } =
     authClient.useSession();
   const navigate = useNavigate();
   const { data: meData, isLoading: isMeLoading } = useGetMe(!!session);
+
+  const canAccess =
+    !requiredPermission ||
+    meData?.permissions.includes(requiredPermission) ||
+    alternatePermissions?.some((permission) => meData?.permissions.includes(permission)) ||
+    allowedRoles.some((role) => meData?.roles.includes(role));
 
   const isPending = isSessionPending || (!!session && isMeLoading);
 
@@ -33,15 +41,12 @@ export const ProtectedRoute = ({
       } else if (meData && needsRegistrationCompletion(meData)) {
         navigate("/complete-registration", { replace: true });
       } else if (
-        requiredPermission &&
-        meData &&
-        !meData.permissions.includes(requiredPermission) &&
-        !allowedRoles.some((role) => meData.roles.includes(role))
+        meData && !canAccess
       ) {
         navigate("/?warning=no-permissions", { replace: true });
       }
     }
-  }, [session, isPending, navigate, requiredPermission, allowedRoles, meData]);
+  }, [session, isPending, navigate, canAccess, meData]);
 
   if (isPending) return <AppLoading label="Loading HIMTI Internal Tools" />;
 
@@ -50,9 +55,7 @@ export const ProtectedRoute = ({
     session &&
     meData &&
     !needsRegistrationCompletion(meData) &&
-    (!requiredPermission ||
-      meData.permissions.includes(requiredPermission) ||
-      allowedRoles.some((role) => meData.roles.includes(role)));
+    canAccess;
 
   return isAuthorized ? <>{children}</> : null;
 };

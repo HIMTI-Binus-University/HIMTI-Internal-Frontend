@@ -18,6 +18,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
 import type { CourseGroup } from "@/types/education";
 import { backendMessage } from "@/components/notification";
 import {
@@ -164,6 +165,7 @@ export default function StudyClubPanel({
       : venue === "legacy" ? previousLocation : "Online";
     try {
       setSaving(true);
+      const isPublic = data.has("isPublic");
       await onSave({
         title: text("title"),
         type: text("type") === "Responsi" ? "Responsi" : "Study Club",
@@ -175,6 +177,7 @@ export default function StudyClubPanel({
         meetingUrl: text("meetingUrl"),
         registrationUrl: text("registrationUrl"),
         capacity,
+        ...((isPublic || session?.isPublic) && { isPublic }),
       });
     } catch (cause) {
       setError(
@@ -529,6 +532,19 @@ export default function StudyClubPanel({
                     >
                       {linkErrors.registrationUrl}
                     </p>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <Label htmlFor="session-public">Show on public schedule</Label>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Students can see this session on the Education site.
+                      </p>
+                    </div>
+                    <Switch
+                      id="session-public"
+                      name="isPublic"
+                      defaultChecked={session?.isPublic}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="session-capacity">

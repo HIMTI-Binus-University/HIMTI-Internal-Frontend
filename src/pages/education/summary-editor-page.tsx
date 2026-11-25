@@ -57,6 +57,10 @@ export default function SummaryEditorPage() {
           key={summary.id}
           summary={summary}
           initialContent={detail.data?.content}
+          initialApproval={detail.data?.approvedById}
+          initialCollaborationRevision={detail.data?.collaborationRevision}
+          editorIds={detail.data?.editorIds}
+          editors={detail.data?.editors}
           initialPreview={!isNew && params.get("preview") === "1"}
           courseOptions={courseOptions}
           periodOptions={periodOptions}

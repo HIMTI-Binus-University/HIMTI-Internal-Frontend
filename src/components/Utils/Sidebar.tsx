@@ -126,6 +126,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       (route) =>
         !route.requiredPermission ||
         meData?.permissions.includes(route.requiredPermission) ||
+        route.alternatePermissions?.some((permission) => meData?.permissions.includes(permission)) ||
         route.allowedRoles?.some((role) => meData?.roles.includes(role)),
     );
 

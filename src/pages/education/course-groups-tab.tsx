@@ -84,6 +84,7 @@ const CourseGroupsTab = () => {
   const [editingCourse, setEditingCourse] = useState<CourseGroup | null>(null);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+  const [semester, setSemester] = useState("");
   const [description, setDescription] = useState("");
 
   const selectedCourse =
@@ -109,6 +110,7 @@ const CourseGroupsTab = () => {
     setEditingCourse(null);
     setName("");
     setCode("");
+    setSemester("");
     setDescription("");
     setSheetOpen(true);
   };
@@ -117,6 +119,7 @@ const CourseGroupsTab = () => {
     setEditingCourse(course);
     setName(course.name);
     setCode(course.code ?? "");
+    setSemester(course.semester?.toString() ?? "");
     setDescription(course.description ?? "");
     setSheetOpen(true);
   };
@@ -126,6 +129,13 @@ const CourseGroupsTab = () => {
     const trimmedName = name.trim();
     if (!trimmedName || isSaving) return;
 
+    const courseSemester = semester ? Number(semester) : null;
+    if (courseSemester !== null &&
+        (!Number.isInteger(courseSemester) || courseSemester < 1 || courseSemester > 2147483647)) {
+      notify("Enter a positive whole number for the semester.", "error");
+      return;
+    }
+
     try {
       if (editingCourse) {
         await updateMutation.mutateAsync({
@@ -133,6 +143,7 @@ const CourseGroupsTab = () => {
           name: trimmedName,
           code: code.trim() || null,
           description: description.trim() || null,
+          ...((semester || editingCourse.semester != null) && { semester: courseSemester }),
         });
         notify("Course updated successfully.", "success");
       } else {
@@ -140,6 +151,7 @@ const CourseGroupsTab = () => {
           name: trimmedName,
           code: code.trim() || null,
           description: description.trim() || null,
+          ...(semester && { semester: courseSemester }),
         });
         setSelectedId(created.id);
         notify("Course added successfully.", "success");
@@ -464,6 +476,24 @@ const CourseGroupsTab = () => {
                 onChange={(event) => setCode(event.target.value)}
                 placeholder="e.g. COMP6047001"
               />
+            </div>
+
+            <div>
+              <Label htmlFor="course-semester" className="mb-1.5">
+                Curriculum semester
+              </Label>
+              <Input
+                id="course-semester"
+                type="number"
+                min={1}
+                max={2147483647}
+                step={1}
+                value={semester}
+                onChange={(event) => setSemester(event.target.value)}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                A course code and semester are required for the public site.
+              </p>
             </div>
 
             <div>

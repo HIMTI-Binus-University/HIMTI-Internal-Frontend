@@ -1,4 +1,5 @@
-import { lazy, Suspense, useState } from "react";
+import { HocuspocusProvider } from "@hocuspocus/provider";
+import { lazy, Suspense, useEffect, useState } from "react";
 import {
   ArrowLeft,
   Clock3,
@@ -10,11 +11,13 @@ import {
 } from "lucide-react";
 
 import {
+  useApproveResponsi,
   useCreateResponsi,
   useGetResponsiVersions,
   useRestoreResponsiVersion,
   useUpdateResponsi,
 } from "@/api/education/queries";
+import { useGetMe } from "@/api/auth/queries";
 import { ResponsiStatusBadge } from "@/components/education/ResponsiStatusBadge";
 import { ConfirmAction } from "@/components/events/ConfirmAction";
 import { backendMessage, useNotification } from "@/components/notification";
@@ -39,16 +42,23 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import type {
+  ResponsiEditorCandidate,
   ResponsiStatus,
   ResponsiSummary,
   SummaryType,
 } from "@/types/education";
+
+import ResponsiEditors from "./responsi-editors";
 
 const ResponsiEditor = lazy(() => import("./responsi-editor"));
 
 type ResponsiWorkspaceProps = {
   summary: ResponsiSummary;
   initialContent?: string;
+  initialApproval?: string | null;
+  initialCollaborationRevision?: number;
+  editorIds?: string[];
+  editors?: ResponsiEditorCandidate[];
   initialPreview?: boolean;
   courseOptions: string[];
   periodOptions: string[];
@@ -78,6 +88,10 @@ Gunakan editor ini untuk menyusun materi bersama PIC dan kontributor.`;
 const ResponsiWorkspace = ({
   summary,
   initialContent,
+  initialApproval,
+  initialCollaborationRevision,
+  editorIds,
+  editors,
   initialPreview = false,
   courseOptions,
   periodOptions,
@@ -85,6 +99,15 @@ const ResponsiWorkspace = ({
   onSaved,
 }: ResponsiWorkspaceProps) => {
   const notify = useNotification();
+  const { data: me } = useGetMe();
+  const hasPermission = (permission: string) =>
+    me?.permissions.includes("manage_education") ||
+    Boolean(me?.permissions.includes(permission));
+  const canEdit = me?.permissions.includes("manage_education") ||
+    Boolean(me && hasPermission("edit_education_summary") && editorIds?.includes(me.id));
+  const canSave = summary.id.startsWith("draft-")
+    ? hasPermission("create_education_summary")
+    : canEdit;
   const activeId = summary.id;
   const [title, setTitle] = useState(summary.title);
   const [summaryType, setSummaryType] = useState<SummaryType>(
@@ -95,27 +118,79 @@ const ResponsiWorkspace = ({
   const [examType, setExamType] = useState(summary.examType);
   const [pic, setPic] = useState(summary.pic);
   const [content, setContent] = useState(() => initialContent ?? buildEditorContent(summary));
+  const [approval, setApproval] = useState(initialApproval);
+  const [revision, setRevision] = useState(initialCollaborationRevision);
   const [status, setStatus] = useState<ResponsiStatus>(summary.status);
+  const [editorsOpen, setEditorsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(initialPreview);
 
   const isDraftId = activeId.startsWith("draft-");
 
+  const collaborationUrl = import.meta.env.VITE_EDUCATION_COLLABORATION_URL;
+  const shouldCollaborate = Boolean(
+    collaborationUrl && canEdit && revision !== undefined &&
+    (status === "DRAFT" || status === "UNDER_REVIEW") && !isDraftId,
+  );
+  const room = shouldCollaborate ? `${activeId}:${revision}` : null;
+  const [liveRoom, setLiveRoom] = useState<{ name: string; provider: HocuspocusProvider }>();
+  const [liveStatus, setLiveStatus] = useState("Connecting to live editing?");
+  const [liveReady, setLiveReady] = useState(false);
+
+  useEffect(() => {
+    if (!room || !collaborationUrl) return;
+    setLiveRoom(undefined);
+    setLiveReady(false);
+    setLiveStatus("Connecting to live editing?");
+    const provider = new HocuspocusProvider({
+      url: collaborationUrl,
+      name: room,
+      token: "session",
+      onSynced: ({ state }) => {
+        if (state) {
+          setLiveRoom({ name: room, provider });
+          setLiveReady(true);
+          setLiveStatus("Live editing connected");
+        }
+      },
+      onUnsyncedChanges: ({ number }) => setLiveReady(provider.synced && number === 0),
+      onDisconnect: () => {
+        setLiveReady(false);
+        setLiveStatus("Connection lost. Reconnecting?");
+      },
+      onAuthenticationFailed: () => {
+        setLiveReady(false);
+        setLiveStatus("Live editing access changed. Reload to reconnect.");
+      },
+    });
+    return () => {
+      provider.destroy();
+      provider.document.destroy();
+    };
+  }, [room, collaborationUrl]);
+
+  const liveProvider = liveRoom?.name === room ? liveRoom?.provider : undefined;
+
+  useEffect(() => setApproval(initialApproval), [initialApproval]);
+
   const { data: versions = [], isLoading: isLoadingVersions } =
     useGetResponsiVersions(isDraftId ? undefined : activeId);
 
   const createResponsiMutation = useCreateResponsi();
+  const approveResponsiMutation = useApproveResponsi();
   const updateResponsiMutation = useUpdateResponsi();
   const restoreVersionMutation = useRestoreResponsiVersion();
   const isPending =
     createResponsiMutation.isPending ||
+    approveResponsiMutation.isPending ||
     updateResponsiMutation.isPending ||
-    restoreVersionMutation.isPending;
+    restoreVersionMutation.isPending ||
+    (shouldCollaborate && !liveReady);
 
   const reviewAction =
-    status === "DRAFT"
+    status === "DRAFT" && canSave
       ? { label: "Submit for review", next: "UNDER_REVIEW" as const }
-      : status === "UNDER_REVIEW"
+      : status === "UNDER_REVIEW" && approval && hasPermission("publish_education_summary")
         ? { label: "Publish summary", next: "PUBLISHED" as const }
         : null;
 
@@ -144,10 +219,12 @@ const ResponsiWorkspace = ({
           academicPeriod,
           examType: (examType as "Mid Exam" | "Final Exam") || "Mid Exam",
           pic: pic.trim() || "Unassigned",
-          content,
+          ...(!shouldCollaborate && { content }),
           status,
         });
         setStatus(updated.status);
+        setApproval(updated.approvedById);
+        setRevision(updated.collaborationRevision);
         notify("Draft saved successfully.", "success");
         onSaved?.(updated);
       }
@@ -183,10 +260,12 @@ const ResponsiWorkspace = ({
           academicPeriod,
           examType: (examType as "Mid Exam" | "Final Exam") || "Mid Exam",
           pic: pic.trim() || "Unassigned",
-          content,
+          ...((!shouldCollaborate || nextStatus === "PUBLISHED") && { content }),
           status: nextStatus,
         });
         setStatus(updated.status);
+        setApproval(updated.approvedById);
+        setRevision(updated.collaborationRevision);
         notify(`${reviewAction.label} completed.`);
         onSaved?.(updated);
       }
@@ -239,7 +318,7 @@ const ResponsiWorkspace = ({
             <Button
               size="sm"
               variant="secondary"
-              disabled={isPending || !course}
+              disabled={isPending || !course || !canSave}
               onClick={saveDraft}
             >
               <Save />
@@ -274,9 +353,23 @@ const ResponsiWorkspace = ({
                 <Badge variant="neutral">Markdown</Badge>
               </div>
             </div>
-            <Suspense fallback={<p role="status" className="p-4">Loading editor...</p>}>
-              <ResponsiEditor value={content} onChange={setContent} />
-            </Suspense>
+            {shouldCollaborate && (
+              <p role="status" className="border-b border-border px-4 py-2 text-xs text-muted-foreground">
+                {liveStatus}
+              </p>
+            )}
+            {(!shouldCollaborate || liveProvider) && (
+              <Suspense fallback={<p role="status" className="p-4">Loading editor...</p>}>
+                <ResponsiEditor
+                  key={room ?? "local"}
+                  value={content}
+                  onChange={setContent}
+                  readOnly={!canSave}
+                  provider={liveProvider}
+                  collaboratorName={me?.name}
+                />
+              </Suspense>
+            )}
           </section>
 
           <aside className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto">
@@ -438,7 +531,22 @@ const ResponsiWorkspace = ({
                 Review is required before the first publish. Only users with
                 publish permission can make it public.
               </p>
-              {reviewAction ? (
+              {status === "UNDER_REVIEW" && !approval &&
+              hasPermission("review_education_summary") ? (
+                <ConfirmAction
+                  label="Approve summary"
+                  description="Approve the saved version for publication. Save any changes before approving."
+                  onConfirm={async () => {
+                    const updated = await approveResponsiMutation.mutateAsync(activeId);
+                    setApproval(updated.approvedById);
+                  }}
+                  successMessage="Summary approved."
+                >
+                  <Button className="mt-3 w-full" size="sm" disabled={isPending}>
+                    Approve summary
+                  </Button>
+                </ConfirmAction>
+              ) : reviewAction ? (
                 <Button
                   className="mt-3 w-full"
                   size="sm"
@@ -454,10 +562,49 @@ const ResponsiWorkspace = ({
                   No review action for this status.
                 </p>
               )}
+              {!isDraftId && me?.permissions.includes("manage_education") && (
+                <Button
+                  className="mt-2 w-full"
+                  variant="outline"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => setEditorsOpen(true)}
+                >
+                  Assign editors
+                </Button>
+              )}
+              {!isDraftId && status !== "ARCHIVED" &&
+              hasPermission("archive_education_summary") && (
+                <ConfirmAction
+                  label="Archive summary"
+                  description="This removes the summary from the published list."
+                  onConfirm={async () => {
+                    const updated = await updateResponsiMutation.mutateAsync({
+                      id: activeId,
+                      status: "ARCHIVED",
+                    });
+                    setStatus(updated.status);
+                    setApproval(updated.approvedById);
+                    onSaved?.(updated);
+                  }}
+                >
+                  <Button className="mt-2 w-full" variant="outline" size="sm" disabled={isPending}>
+                    Archive summary
+                  </Button>
+                </ConfirmAction>
+              )}
             </section>
           </aside>
         </div>
       </Container>
+
+      {editorsOpen && (
+        <ResponsiEditors
+          id={activeId}
+          editors={editors ?? []}
+          onClose={() => setEditorsOpen(false)}
+        />
+      )}
 
       <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
@@ -495,13 +642,23 @@ const ResponsiWorkspace = ({
                         ? `Published by ${item.author}`
                         : "Snapshot created on publish"}
                     </p>
+                    {item.reviewerName && (
+                      <p className="mt-1 break-words text-xs text-muted-foreground">
+                        Reviewed by {item.reviewerName}
+                      </p>
+                    )}
+                    {Boolean(item.editorNames?.length) && (
+                      <p className="mt-1 break-words text-xs text-muted-foreground">
+                        Editors {item.editorNames?.join(", ")}
+                      </p>
+                    )}
                     <p className="mt-1 text-xs text-muted-foreground">
                       {new Date(item.createdAt).toLocaleString("en-GB", {
                         timeZone: "Asia/Jakarta",
                       })}{" "}
                       WIB
                     </p>
-                    <ConfirmAction
+                    {canEdit && <ConfirmAction
                       label={`Restore ${item.version}`}
                       description="This replaces the current document content, including unsaved edits, and sends the summary back to review."
                       successMessage="Version restored and sent to review."
@@ -512,6 +669,8 @@ const ResponsiWorkspace = ({
                         });
                         setContent(restored.content);
                         setStatus(restored.status);
+                        setApproval(restored.approvedById);
+                        setRevision(restored.collaborationRevision);
                         onSaved?.(restored);
                       }}
                     >
@@ -525,7 +684,7 @@ const ResponsiWorkspace = ({
                       >
                         Restore
                       </Button>
-                    </ConfirmAction>
+                    </ConfirmAction>}
                   </li>
                 ))}
               </ol>

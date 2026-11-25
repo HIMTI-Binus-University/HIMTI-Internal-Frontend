@@ -15,6 +15,7 @@ const router = createBrowserRouter(
     const element = route.isProtected ? (
       <ProtectedRoute
         requiredPermission={route.requiredPermission}
+        alternatePermissions={route.alternatePermissions}
         allowedRoles={route.allowedRoles}
       >
         <Component />

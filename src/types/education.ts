@@ -56,6 +56,7 @@ export interface CourseGroup {
   name: string;
   code: string | null;
   description?: string | null;
+  semester?: number | null;
   status: CourseGroupStatus;
 }
 
@@ -63,12 +64,14 @@ export interface CreateCourseGroupPayload {
   name: string;
   code?: string | null;
   description?: string | null;
+  semester?: number | null;
 }
 
 export interface UpdateCourseGroupPayload {
   name?: string;
   code?: string | null;
   description?: string | null;
+  semester?: number | null;
   status?: CourseGroupStatus;
 }
 
@@ -92,7 +95,13 @@ export interface ResponsiSummary {
   createdAt?: string;
 }
 
+export type ResponsiEditorCandidate = { id: string; name: string };
+
 export interface ResponsiDetail extends ResponsiSummary {
+  approvedById?: string | null;
+  collaborationRevision?: number;
+  editorIds?: string[];
+  editors?: ResponsiEditorCandidate[];
   content: string;
   semester?: number | null;
 }
@@ -104,6 +113,11 @@ export interface ResponsiVersion {
   content: string;
   summary: string | null;
   author: string | null;
+  createdBy?: string | null;
+  reviewerId?: string | null;
+  editorIds?: string[];
+  reviewerName?: string | null;
+  editorNames?: string[];
   createdAt: string;
 }
 

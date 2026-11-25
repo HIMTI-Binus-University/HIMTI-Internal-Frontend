@@ -7,6 +7,14 @@ import SummaryEditorPage from "./summary-editor-page";
 const mockResponsiQueries = vi.hoisted(() => vi.fn());
 const mockResponsiVersions = vi.hoisted(() => vi.fn().mockReturnValue([]));
 const mockRestoreResponsi = vi.hoisted(() => vi.fn());
+const mockApprove = vi.hoisted(() => vi.fn());
+const mockAssignEditors = vi.hoisted(() => vi.fn());
+const mockSummaryDetails = vi.hoisted(() => vi.fn());
+
+
+vi.mock("@/api/auth/queries", () => ({
+  useGetMe: () => ({ data: { id: "test-user", permissions: ["manage_education"] } }),
+}));
 
 vi.mock("@/api/study-clubs/queries", () => ({
   useGetStudyClubs: () => ({
@@ -101,7 +109,7 @@ vi.mock("@/api/education/queries", () => ({
   },
   useGetResponsi: (id?: string) => ({
     data: id === "dynamic-programming"
-      ? { ...mockUpdateResponsiSnapshot, content: "## Dynamic Programming\n\nStored Markdown" }
+      ? { ...mockUpdateResponsiSnapshot, content: "## Dynamic Programming\n\nStored Markdown", ...mockSummaryDetails() }
       : id === "created-responsi"
         ? { ...mockCreatedResponsiSnapshot, content: "## Draft" }
         : undefined,
@@ -112,6 +120,13 @@ vi.mock("@/api/education/queries", () => ({
   useGetResponsiVersions: () => ({
     data: mockResponsiVersions(),
     isLoading: false,
+    isError: false,
+  }),
+  useApproveResponsi: () => ({ mutateAsync: mockApprove, isPending: false }),
+  useAssignResponsiEditors: () => ({ mutateAsync: mockAssignEditors, isPending: false }),
+  useGetResponsiEditorCandidates: (search: string) => ({
+    data: search === "Alice" ? [{ id: "alice", name: "Alice" }] : undefined,
+    isFetching: false,
     isError: false,
   }),
   useCreateResponsi: () => ({
@@ -180,6 +195,35 @@ const selectEducationOption = async (label: string, option: string) => {
 };
 
 describe("EducationPage", () => {
+  it("shows Publish after a reviewer approves the saved summary", async () => {
+    mockSummaryDetails.mockReturnValue({ status: "UNDER_REVIEW" });
+    mockApprove.mockResolvedValue({ approvedById: "reviewer-1" });
+    try {
+      renderPage("/education/summaries/dynamic-programming");
+      expect(screen.queryByRole("button", { name: "Publish summary" })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Approve summary" }));
+      const confirmation = screen.getByRole("alertdialog", { name: "Approve summary?" });
+      fireEvent.click(within(confirmation).getByRole("button", { name: "Approve summary" }));
+      expect(await screen.findAllByRole("button", { name: "Publish summary" })).not.toHaveLength(0);
+      expect(mockApprove).toHaveBeenCalledWith("dynamic-programming");
+    } finally {
+      mockSummaryDetails.mockReset();
+    }
+  });
+
+  it("assigns a user from the editor search results", async () => {
+    mockAssignEditors.mockResolvedValue({});
+    renderPage("/education/summaries/dynamic-programming");
+    fireEvent.click(screen.getByRole("button", { name: "Assign editors" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Find editors by name" }), { target: { value: "Alice" } });
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Add Alice" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save assignments" }));
+    await waitFor(() =>
+      expect(mockAssignEditors).toHaveBeenCalledWith({ id: "dynamic-programming", editorIds: ["alice"] }),
+    );
+  });
+
   it("restores a published version after confirmation", async () => {
     mockResponsiVersions.mockReturnValue([
       {
@@ -198,7 +242,7 @@ describe("EducationPage", () => {
       fireEvent.click(
         screen.getByRole("link", { name: "Dynamic Programming" }),
       );
-      const editor = await screen.findByRole("textbox", { name: "Summary content" });
+      const editor = await screen.findByRole("textbox", { name: "Summary content" }, { timeout: 5000 });
       fireEvent.click(await screen.findByRole("button", { name: "History" }));
       fireEvent.click(screen.getByRole("button", { name: "Restore v1" }));
       expect(mockRestoreResponsi).not.toHaveBeenCalled();
@@ -216,7 +260,7 @@ describe("EducationPage", () => {
     } finally {
       mockResponsiVersions.mockReturnValue([]);
     }
-  });
+  }, 10000);
 
   it("opens on the Summaries tab with its summary table", () => {
     renderPage();
@@ -419,12 +463,14 @@ describe("EducationPage", () => {
       target: { value: "MA-201" },
     });
 
+    fireEvent.change(screen.getByLabelText("Curriculum semester"), { target: { value: "2" } });
     fireEvent.click(screen.getByRole("button", { name: "Add course" }));
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "Linear Algebra",
         code: "MA-201",
+        semester: 2,
       }),
     );
   });

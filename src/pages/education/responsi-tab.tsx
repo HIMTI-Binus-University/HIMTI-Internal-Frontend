@@ -1,3 +1,4 @@
+import { useGetMe } from "@/api/auth/queries";
 import { useMemo, useState } from "react";
 import {
   ChevronLeft,
@@ -225,6 +226,10 @@ const Pagination = ({
 );
 
 const ResponsiTab = () => {
+  const { data: me } = useGetMe();
+  const canCreate = me?.permissions.some(
+    (permission) => permission === "manage_education" || permission === "create_education_summary",
+  );
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { data: dbCourses = [] } = useGetCourseGroups();
@@ -379,9 +384,11 @@ const ResponsiTab = () => {
             Create, edit, and manage Responsi and Study Club summaries.
           </p>
         </div>
-        <Button size="sm" className="sm:shrink-0" asChild>
-          <Link to={editorUrl("new")}><Plus /> Create summary</Link>
-        </Button>
+        {canCreate && (
+          <Button size="sm" className="sm:shrink-0" asChild>
+            <Link to={editorUrl("new")}><Plus /> Create summary</Link>
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">

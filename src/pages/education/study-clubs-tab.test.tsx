@@ -143,6 +143,7 @@ describe("Schedules API integration", () => {
       screen.getByRole("combobox", { name: "Session type" }),
     ).toHaveTextContent("Study Club");
     await fillForm();
+    fireEvent.click(screen.getByRole("switch", { name: "Show on public schedule" }));
     fireEvent.click(screen.getByRole("button", { name: "Save session" }));
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
@@ -158,6 +159,7 @@ describe("Schedules API integration", () => {
       meetingUrl: "",
       registrationUrl: "",
       capacity: null,
+      isPublic: true,
     });
     expect(screen.getByRole("status")).toHaveTextContent(
       "Session saved successfully",

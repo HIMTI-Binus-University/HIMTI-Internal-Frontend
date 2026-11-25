@@ -1,6 +1,15 @@
 import { ComponentType } from "react";
 
+export const educationSummaryPermissions = [
+  "create_education_summary",
+  "edit_education_summary",
+  "review_education_summary",
+  "publish_education_summary",
+  "archive_education_summary",
+] as const;
+
 export type HimtiPermission =
+  | (typeof educationSummaryPermissions)[number]
   | "manage_urls"
   | "manage_users"
   | "manage_roles"
@@ -28,6 +37,7 @@ export interface Route {
   isEnabled: boolean;
   isProtected: boolean;
   requiredPermission?: HimtiPermission;
+  alternatePermissions?: readonly HimtiPermission[];
   allowedRoles?: string[];
   group?: string;
   children?: Route[];

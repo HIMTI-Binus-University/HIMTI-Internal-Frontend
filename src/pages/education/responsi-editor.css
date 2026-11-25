@@ -70,3 +70,22 @@
 .responsi-document [data-type="block-math"] {
   overflow-x: auto;
 }
+
+.collaboration-carets__caret {
+  position: relative;
+  margin-inline: -1px;
+  border-left: 2px solid currentColor;
+  pointer-events: none;
+}
+.collaboration-carets__label {
+  position: absolute;
+  bottom: 100%;
+  left: -2px;
+  padding: 0 4px;
+  border-radius: 3px 3px 3px 0;
+  color: white;
+  font-size: 11px;
+  line-height: 1.25rem;
+  white-space: nowrap;
+  user-select: none;
+}

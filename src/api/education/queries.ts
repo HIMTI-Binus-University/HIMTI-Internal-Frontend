@@ -10,6 +10,7 @@ import type {
   CreateResponsiPayload,
   ResponsiDetail,
   ResponsiDetailResponse,
+  ResponsiEditorCandidate,
   ResponsiListResponse,
   ResponsiQueryParams,
   ResponsiVersionsResponse,
@@ -227,6 +228,46 @@ export const useUpdateResponsi = () => {
           queryKey: educationKeys.responsiVersions(data.id),
         });
       }
+    },
+  });
+};
+
+export const useGetResponsiEditorCandidates = (search: string) =>
+  useQuery({
+    queryKey: [...educationKeys.responsies, "editor-candidates", search],
+    queryFn: () =>
+      apiClient
+        .get<{ data: ResponsiEditorCandidate[] }>(`${Api.responsi}/editor-candidates`, {
+          params: { search },
+        })
+        .then(({ data }) => data.data),
+    enabled: search.length >= 2,
+  });
+
+export const useAssignResponsiEditors = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, editorIds }: { id: string; editorIds: string[] }) =>
+      apiClient
+        .put<ResponsiDetailResponse>(`${Api.responsi}/${id}/editors`, { editorIds })
+        .then(({ data }) => data.data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(educationKeys.responsi(data.id), data);
+    },
+  });
+};
+
+export const useApproveResponsi = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient
+        .post<ResponsiDetailResponse>(`${Api.responsi}/${id}/approve`)
+        .then(({ data }) => data.data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(educationKeys.responsi(data.id), data);
     },
   });
 };

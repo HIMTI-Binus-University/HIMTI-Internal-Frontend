@@ -1,3 +1,6 @@
+import type { HocuspocusProvider } from "@hocuspocus/provider";
+import Collaboration from "@tiptap/extension-collaboration";
+import CollaborationCaret from "@tiptap/extension-collaboration-caret";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import Image from "@tiptap/extension-image";
@@ -58,16 +61,7 @@ function publicHttpsUrl(value: string) {
   }
 }
 
-const extensions = [
-  StarterKit.configure({
-    codeBlock: false,
-    trailingNode: false,
-    link: {
-      openOnClick: false,
-      isAllowedUri: (url) => Boolean(publicHttpsUrl(url)),
-    },
-  }),
-  Markdown,
+const editorExtensions = [
   CodeBlockLowlight.configure({
     lowlight: createLowlight({ cpp, javascript, python, sql }),
   }),
@@ -88,7 +82,18 @@ const extensions = [
       ];
     },
   }),
+  Markdown,
 ];
+
+const starterKit = (collaborative: boolean) => StarterKit.configure({
+    codeBlock: false,
+    ...(collaborative ? { undoRedo: false as const } : {}),
+    trailingNode: false,
+    link: {
+      openOnClick: false,
+      isAllowedUri: (url) => Boolean(publicHttpsUrl(url)),
+    },
+  });
 
 type InsertKind = "Link" | "Image" | "Inline math" | "Block math";
 const insertIcons = {
@@ -102,10 +107,14 @@ export default function ResponsiEditor({
   value,
   onChange,
   readOnly = false,
+  provider,
+  collaboratorName,
 }: {
   value: string;
   onChange?: (markdown: string) => void;
   readOnly?: boolean;
+  provider?: HocuspocusProvider;
+  collaboratorName?: string;
 }) {
   const lastMarkdown = useRef(value);
   const insertInput = useRef<HTMLInputElement>(null);
@@ -114,8 +123,18 @@ export default function ResponsiEditor({
   const [field, setField] = useState("");
   const [error, setError] = useState("");
   const editor = useEditor({
-    extensions,
-    content: value,
+    extensions: [
+      starterKit(Boolean(provider)),
+      ...editorExtensions,
+      ...(provider ? [
+        Collaboration.configure({ document: provider.document }),
+        CollaborationCaret.configure({
+          provider,
+          user: { name: collaboratorName, color: "#2563eb" },
+        }),
+      ] : []),
+    ],
+    content: provider ? undefined : value,
     contentType: "markdown",
     immediatelyRender: false,
     editable: !readOnly,
@@ -128,20 +147,23 @@ export default function ResponsiEditor({
           "responsi-document min-h-64 p-4 text-sm leading-7 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6",
       },
     },
+    onCreate: ({ editor }) => {
+      if (provider) onChange?.(editor.getMarkdown());
+    },
     onUpdate: ({ editor }) => {
       lastMarkdown.current = editor.getMarkdown();
       onChange?.(lastMarkdown.current);
     },
-  });
+  }, [provider]);
 
   useEffect(() => {
-    if (!editor || value === lastMarkdown.current) return;
+    if (provider || !editor || value === lastMarkdown.current) return;
     editor.commands.setContent(value, {
       contentType: "markdown",
       emitUpdate: false,
     });
     lastMarkdown.current = value;
-  }, [editor, value]);
+  }, [editor, provider, value]);
 
   useEffect(() => {
     if (insert) insertInput.current?.focus();

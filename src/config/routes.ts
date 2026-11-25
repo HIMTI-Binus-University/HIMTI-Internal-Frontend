@@ -1,3 +1,4 @@
+import { educationSummaryPermissions } from "@/types/route";
 import { Route } from "@/types/route";
 import HomePage from "@/pages/home";
 import LoginPage from "@/pages/login";
@@ -228,6 +229,7 @@ export const publicRoutes: Route[] = [
     isEnabled: true,
     isProtected: true,
     requiredPermission: "manage_education",
+    alternatePermissions: educationSummaryPermissions,
     allowedRoles: ["Admin"],
     group: "Tools",
   },
@@ -240,6 +242,7 @@ export const publicRoutes: Route[] = [
     isEnabled: true,
     isProtected: true,
     requiredPermission: "manage_education",
+    alternatePermissions: educationSummaryPermissions,
     allowedRoles: ["Admin"],
   },
   {
@@ -339,6 +342,7 @@ export const getAccessibleInternalRoutes = (
       route.group &&
       route.requiredPermission &&
       (permissions.includes(route.requiredPermission) ||
+        route.alternatePermissions?.some((permission) => permissions.includes(permission)) ||
         route.allowedRoles?.some((role) => roles.includes(role))),
   );
 
