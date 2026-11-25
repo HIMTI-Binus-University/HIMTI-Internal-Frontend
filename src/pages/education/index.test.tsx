@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import EducationPage from ".";
 const mockResponsiQueries = vi.hoisted(() => vi.fn());
+const mockResponsiVersions = vi.hoisted(() => vi.fn().mockReturnValue([]));
+const mockRestoreResponsi = vi.hoisted(() => vi.fn());
 
 vi.mock("@/api/study-clubs/queries", () => ({
   useGetStudyClubs: () => ({
@@ -103,7 +105,7 @@ vi.mock("@/api/education/queries", () => ({
     isError: false,
   }),
   useGetResponsiVersions: () => ({
-    data: [],
+    data: mockResponsiVersions(),
     isLoading: false,
     isError: false,
   }),
@@ -113,6 +115,10 @@ vi.mock("@/api/education/queries", () => ({
   }),
   useUpdateResponsi: () => ({
     mutateAsync: mockUpdateResponsi,
+    isPending: false,
+  }),
+  useRestoreResponsiVersion: () => ({
+    mutateAsync: mockRestoreResponsi,
     isPending: false,
   }),
   useDeleteResponsi: () => ({
@@ -140,6 +146,36 @@ const selectEducationOption = async (label: string, option: string) => {
 };
 
 describe("EducationPage", () => {
+  it("restores a published version after confirmation", async () => {
+    mockResponsiVersions.mockReturnValue([{
+      id: "snapshot-1",
+      version: "v1",
+      createdAt: "2026-11-24T00:00:00Z",
+    }]);
+    mockRestoreResponsi.mockResolvedValue({
+      id: "dynamic-programming",
+      content: "# Restored",
+      status: "UNDER_REVIEW",
+    });
+    try {
+      renderPage();
+      fireEvent.click(screen.getByText("Dynamic Programming"));
+      fireEvent.click(screen.getByRole("button", { name: "History" }));
+      fireEvent.click(screen.getByRole("button", { name: "Restore v1" }));
+      expect(mockRestoreResponsi).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "Restore v1" }));
+      await waitFor(() => {
+        expect(mockRestoreResponsi).toHaveBeenCalledWith({
+          id: "dynamic-programming",
+          versionId: "snapshot-1",
+        });
+        expect(screen.getByLabelText("Summary content")).toHaveValue("# Restored");
+      });
+    } finally {
+      mockResponsiVersions.mockReturnValue([]);
+    }
+  });
+
   it("opens on the Summaries tab with its summary table", () => {
     renderPage();
 

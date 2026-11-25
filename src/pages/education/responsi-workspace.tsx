@@ -13,9 +13,11 @@ import {
   useCreateResponsi,
   useGetResponsi,
   useGetResponsiVersions,
+  useRestoreResponsiVersion,
   useUpdateResponsi,
 } from "@/api/education/queries";
 import { ResponsiStatusBadge } from "@/components/education/ResponsiStatusBadge";
+import { ConfirmAction } from "@/components/events/ConfirmAction";
 import { MarkdownTextarea } from "@/components/markdown-textarea";
 import { backendMessage, useNotification } from "@/components/notification";
 import { ResourceMarkdown } from "@/components/resource-markdown";
@@ -102,8 +104,11 @@ const ResponsiWorkspace = ({
 
   const createResponsiMutation = useCreateResponsi();
   const updateResponsiMutation = useUpdateResponsi();
+  const restoreVersionMutation = useRestoreResponsiVersion();
   const isPending =
-    createResponsiMutation.isPending || updateResponsiMutation.isPending;
+    createResponsiMutation.isPending ||
+    updateResponsiMutation.isPending ||
+    restoreVersionMutation.isPending;
 
   useEffect(() => {
     if (detailData?.content !== undefined) {
@@ -472,7 +477,7 @@ const ResponsiWorkspace = ({
       </Container>
 
       <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-md">
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
           <SheetHeader>
             <SheetTitle>Version history</SheetTitle>
             <SheetDescription>
@@ -513,6 +518,32 @@ const ResponsiWorkspace = ({
                       })}{" "}
                       WIB
                     </p>
+                    <ConfirmAction
+                      label={`Restore ${item.version}`}
+                      description="This replaces the current document content, including unsaved edits, and sends the summary back to review."
+                      successMessage="Version restored and sent to review."
+                      onConfirm={async () => {
+                        const restored = await restoreVersionMutation.mutateAsync({
+                          id: activeId,
+                          versionId: item.id,
+                        });
+                        setContent(restored.content);
+                        setStatus(restored.status);
+                        onSaved?.(restored);
+                        setHistoryOpen(false);
+                      }}
+                    >
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        disabled={isPending}
+                        aria-label={`Restore ${item.version}`}
+                      >
+                        Restore
+                      </Button>
+                    </ConfirmAction>
                   </li>
                 ))}
               </ol>

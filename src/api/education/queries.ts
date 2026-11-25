@@ -223,6 +223,23 @@ export const useUpdateResponsi = () => {
   });
 };
 
+export const useRestoreResponsiVersion = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, versionId }: { id: string; versionId: string }) =>
+      apiClient
+        .post<ResponsiDetailResponse>(
+          `${Api.responsi}/${id}/versions/${versionId}/restore`,
+        )
+        .then((response) => response.data.data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(educationKeys.responsi(data.id), data);
+      queryClient.invalidateQueries({ queryKey: educationKeys.responsies });
+    },
+  });
+};
+
 export const useDeleteResponsi = () => {
   const queryClient = useQueryClient();
 
